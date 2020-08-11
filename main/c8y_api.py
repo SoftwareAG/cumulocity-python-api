@@ -1,19 +1,26 @@
 from datetime import datetime
 from urllib.parse import urlencode
-from c8y_rest import get, post, delete
+from c8y_rest import __C8Y, get, post, delete
 
 
 class _DictWrapper:
 
-    def __init__(self, dictionary):
-        self.items = dictionary
+    def __init__(self, dictionary, on_update):
+        self.__dict__['items'] = dictionary
+        self.__dict__['on_update'] = on_update
 
     def has(self, name):
         return name in self.items
 
     def __getattr__(self, name):
+        print('get ' + name)
         item = self.items[name]
-        return item if not isinstance(item, dict) else _DictWrapper(item)
+        return item if not isinstance(item, dict) else _DictWrapper(item, self.on_update)
+
+    def __setattr__(self, name, value):
+        print('set ' + name)
+        self.on_update()
+        self.items[name] = value
 
 
 class Fragment:
@@ -40,26 +47,134 @@ class Fragment:
         return self
 
 
-class ManagedObject:
+class __DatabaseObject:
 
-    def __init__(self, type, name, owner, *fragments):
+    def __init__(self, type=None):
+        # the object id can only be set manually, e.g. when building an instance from json
         self.id = None
+        self.__type = type
+        self._updated_fragments = None
+        self._updated_fields = None
+        self.fragments = None
+
+    @property
+    def type(self):
+        return self.__type
+
+    @type.setter
+    def type(self, value):
+        self.__type = value
+        self._signal_updated_field('type')
+
+    def add_fragment(self, name, **kwargs):
+        """Append a custom fragment to the object."""
+        if not self.fragments:
+            self.fragments = {name: kwargs}
+        else:
+            self.fragments[name] = kwargs
+        self._signal_updated_fragment(name)
+        return self
+
+    def add_fragments(self, *fragments):
+        """Bulk append a collection of fragments."""
+        # fragments might be given as a list, not argument vector
+        if len(fragments) == 1 and isinstance(fragments[0], list):
+            return self.add_fragments(*fragments[0])
+        if not self.fragments:
+            self.fragments = dict()
+        for f in fragments:
+            self.fragments[f.name] = f.items
+            self._signal_updated_fragment(f.name)
+        return self
+
+    def __getattr__(self, item):
+        """Directly access a specific fragment."""
+        # A fragment is a simple dictionary. By wrapping it into the _DictWrapper class
+        # it is ensured that the same access behaviour is ensured on all levels.
+        # All updated anywhere within the dictionary tree will be reported as an update
+        # to this instance.
+        return _DictWrapper(self.fragments[item], lambda: self._signal_updated_fragment(item))
+
+    def has(self, fragment_name):
+        """Check whether a specific fragment is defined."""
+        return fragment_name in self.fragments
+
+    def _signal_updated_field(self, name):
+        if not self._updated_fields:
+            self._updated_fields = {name}
+        else:
+            self._updated_fields.add(name)
+
+    def _signal_updated_fragment(self, name):
+        if not self._updated_fragments:
+            self._updated_fragments = {name}
+        else:
+            self._updated_fragments.add(name)
+
+    @staticmethod
+    def _parse_fragments(object_json, builtin_fragments):
+        return  {name: body for name, body in object_json.items() if name not in builtin_fragments}
+
+
+class ManagedObject(__DatabaseObject):
+
+    __BUILTIN_FRAGMENTS = ['id', 'type', 'name', 'self']
+
+    def __init__(self, type=None, name=None, owner=None):
+        """Create a new ManagedObject from scratch."""
+        super().__init__(type)
+        # a direct update to the property backends is necessary to bypass
+        # the update notification; everything specified within the constructor is
+        # not considered to be an update
+        self.__name = name
+        self.__owner = owner if owner != 'auto' else __C8Y_c8y.__appuser
         self.__creation_time = None
         self.__creation_datetime = None
         self.__update_time = None
         self.__update_datetime = None
-        self.type = type
-        self.name = name
-        self.owner = owner if owner else ''  # todo: get current user from c8y
-        self.child_device_ids = []
+        self.child_devices = []
         self.child_assets = []
         self.child_additions = []
         self.parent_devices = []
         self.parent_assets = []
         self.parent_additions = []
-        fs = fragments[0] if isinstance(fragments[0], list) else fragments
-        self.fragments = {f.name: f for f in fs}
         self.is_device = False
+
+    @staticmethod
+    def _from_json(object_json):
+        type = object_json['type']
+        name = object_json['name']
+        owner = object_json['owner']
+        mo = ManagedObject(type=type, name=name, owner=owner)
+        mo.id = object_json['id']
+        mo.__creation_time = object_json['creationTime']
+        mo.__update_time = object_json['lastUpdated']
+        mo.child_devices = object_json['childDevices']['references']
+        mo.child_assets = object_json['childAssets']['references']
+        mo.child_additions = object_json['childAdditions']['references']
+        mo.parent_devices = object_json['deviceParents']['references']
+        mo.parent_assets = object_json['assetParents']['references']
+        mo.parent_additions = object_json['additionParents']['references']
+        mo.fragments = ManagedObject._parse_fragments(object_json, ManagedObject.__BUILTIN_FRAGMENTS)
+        return mo
+
+    @property
+    def name(self):
+        return self.__name
+
+    @name.setter
+    def name(self, value):
+        self.__name = value
+        self._signal_updated_field('name')
+
+    @property
+    def owner(self):
+        return self.__owner
+
+    @owner.setter
+    def owner(self, value):
+        self.__owner = value
+        self._signal_updated_field('owner')
 
     @property
     def creation_time(self):
@@ -94,6 +209,20 @@ class ManagedObject:
         return self.__update_datetime
 
     def store(self):
+        """Will create a new object when no ID is set; will update an existing object when an ID is set."""
+        raise NotImplementedError
+
+    def write_update(self):
+        """Updates the object within the database.
+
+        This will only write the updated properties of the object.
+        Obviously, this only works if the object already exists within the database. The defined ID will be used
+        for reference.
+        """
+        print(self.__updated.items())
+        raise NotImplementedError
+
+    def create(self):
         raise NotImplementedError
 
     def delete(self):
