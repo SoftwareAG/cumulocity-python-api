@@ -1,6 +1,5 @@
 from datetime import datetime
 from urllib.parse import urlencode
-from c8y_api import __c8y, get, post, put, delete
 
 
 class _DictWrapper:
@@ -50,8 +49,9 @@ class Fragment:
 
 class __DatabaseObject:
 
-    def __init__(self):
+    def __init__(self, c8y=None):
         # the object id can only be set manually, e.g. when building an instance from json
+        self.c8y = c8y
         self.id = None
         self._updated_fragments = None
         self._updated_fields = None
@@ -152,9 +152,9 @@ class ManagedObject(__DatabaseObject):
                            'childDevices', 'childAssets', 'childAdditions',
                            'deviceParents', 'assetParents', 'additionParents']
 
-    def __init__(self, type=None, name=None, owner=None):
+    def __init__(self, c8y=None, type=None, name=None, owner=None):
         """Create a new ManagedObject from scratch."""
-        super().__init__()
+        super().__init__(c8y)
         # a direct update to the property backends is necessary to bypass
         # the update notification; everything specified within the constructor is
         # not considered to be an update
@@ -277,20 +277,23 @@ class ManagedObject(__DatabaseObject):
 
     def store(self):
         """Will write the object to the database as a new instance."""
-        post('/inventory/managedObjects', self._to_full_json())
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.post('/inventory/managedObjects', self._to_full_json())
 
-    def update(self, id=None):
+    def update(self, object_id=None):
         """
         Write updated fields and fragments to database.
 
         The id argument is optional if it is set within the object. The same update can be written to multiple
         different objects if the id argument is used.
         """
-        put('/inventory/managedObjects/' + str(id if id else self.id), self._to_diff_json_())
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.put('/inventory/managedObjects/' + str(object_id if object_id else self.id), self._to_diff_json_())
 
     def delete(self):
         """Will delete the object within the database."""
-        delete('/inventory/managedObjects/' + str(self.id))
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.delete('/inventory/managedObjects/' + str(self.id))
 
 
 class Device(ManagedObject):
@@ -309,9 +312,9 @@ class Measurement(__DatabaseObject):
 
     __BUILTIN_FRAGMENTS = ['type', 'id', 'source', 'time', 'self']
 
-    def __init__(self, type, source, time=None):
-        super().__init__(type)
-        self.id = ''
+    def __init__(self, c8y, type, source, time=None):
+        super().__init__(c8y)
+        self.id = None
         self.type = type
         self.source = source
         self.__datetime = time if isinstance(time, datetime) else None
@@ -354,6 +357,7 @@ class Measurement(__DatabaseObject):
         self.__time = self.__datetime.isoformat(timespec='milliseconds')
 
     def store(self):
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         if not self.__time:
             self.now()
         body_json = {
@@ -361,13 +365,24 @@ class Measurement(__DatabaseObject):
             'source': {'id': self.source},
             'time': self.__time}
         body_json.update({name: body for name, body in self.fragments.items()})
-        post('/measurement/measurements', body_json)
+        self.c8y.post('/measurement/measurements', body_json)
 
     def delete(self):
-        delete('/measurement/measurements/' + self.id)
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.delete('/measurement/measurements/' + self.id)
 
 
-class _C8Y_API:
+class _Query:  # todo: better name
+
+    def __init__(self, c8y, resource: str):
+        self.c8y = c8y
+        self.resource = _Query.__prepare_resource(resource)
+        self.object_name = self.resource.split('/')[-1]
+
+    @staticmethod
+    def __prepare_resource(resource: str):
+        """Ensure that the resource string starts with a slash and ends without."""
+        return '/' + resource.strip('/')
 
     @staticmethod
     def __map_params(type=None, name=None, fragment=None, source=None,
@@ -378,104 +393,92 @@ class _C8Y_API:
         params.update(**kwargs)
         return params
 
-    @staticmethod
-    def _build_base_query(base, **kwargs):
-        params = _C8Y_API.__map_params(**kwargs)
-        return base + '?' + urlencode(params) + '&currentPage='
+    def build_base_query(self, **kwargs):
+        params = _Query.__map_params(**kwargs)
+        return self.resource + '?' + urlencode(params) + '&currentPage='
+
+    def get_object(self, object_id):
+        return self.c8y.get(self.resource + '/' + str(object_id))
+
+    def get_page(self, base_query, page_number):
+        result_json = self.c8y.get(base_query + str(page_number))
+        return result_json[self.object_name]
 
 
-class ManagedObjects(_C8Y_API):
+class Inventory(_Query):
 
-    @staticmethod
-    def get(id):
-        object_json = get('/inventory/managedObjects/' + str(id))
-        return ManagedObject._from_json(object_json)
+    def __init__(self, c8y):
+        super().__init__(c8y, 'inventory/managedObjects')
 
-    @staticmethod
-    def get_all(type="", source="", fragment="", before="", after="", reverse=False, page_size=1000):
+    def get(self, object_id):
+        managed_object = ManagedObject._from_json(self.get_object(object_id))
+        managed_object.c8y = self.c8y  # inject c8y connection into instance
+        return managed_object
+
+    def get_all(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
         pass
 
-    @staticmethod
-    def select(type="", source="", fragment="", before="", after="", reverse=False, page_size=1000):
+    def select(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
         """Lazy implementation."""
-        base_query = ManagedObjects.__build_base_query(type=type, source=source, fragment=fragment,
-                                                       before=before, after=after,
-                                                       reverse=reverse, page_size=page_size)
+        base_query = self.build_base_query(type=type, source=source, fragment=fragment,
+                                           before=before, after=after,
+                                           reverse=reverse, page_size=page_size)
         page_number = 1
         while True:
-            results = [ManagedObject._from_json(x) for x in ManagedObjects.__get_page(base_query, page_number)]
+            # todo: it should be possible to stream the JSON content as well
+            results = [ManagedObject._from_json(x) for x in self.get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
+                result.c8y = self.c8y  # inject c8y connection into instance
                 yield result
             page_number = page_number + 1
 
-    @staticmethod
-    def store(*managed_objects):
+    def create(self, *managed_objects):
         pass
 
     @staticmethod
-    def __build_base_query(**kwargs):
-        return _C8Y_API._build_base_query('/inventory/managedObjects', **kwargs)
-
-    @staticmethod
-    def __get_page(base_query, page):
-        result = get(base_query + str(page))
-        return result['managedObjects']
-
-
-class Measurements(_C8Y_API):
-
-    @staticmethod
-    def get(id=''):
+    def update(self, object_id, object_model):
         pass
 
-    @staticmethod
-    def select(type="", source="", fragment="", before="", after="", reverse=False, page_size=1000):
+
+class Measurements(_Query):
+
+    def __init__(self, c8y):
+        super().__init__(c8y, 'measurement/measurements')
+
+    def get(self, measurement_id):
+        measurement = Measurement._from_json(self.get_object(measurement_id))
+        measurement.c8y = self.c8y  # inject c8y connection into instance
+        return measurement
+
+    def select(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
         """Lazy implementation."""
-        base_query = Measurements.__build_base_query(type=type, source=source, fragment=fragment,
-                                                     before=before, after=after,
-                                                     reverse=reverse, block_size=page_size)
+        base_query = self.build_base_query(type=type, source=source, fragment=fragment,
+                                           before=before, after=after,
+                                           reverse=reverse, block_size=page_size)
         page_number = 1
         while True:
-            results = [Measurement._from_json(x) for x in Measurements.__get_page(base_query, page_number)]
+            results = [Measurement._from_json(x) for x in self.get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
+                result.c8y = self.c8y  # inject c8y connection into instance
                 yield result
             page_number = page_number + 1
 
-    @staticmethod
-    def get_all(type="", source="", fragment="", before="", after="", reverse=False, block_size=1000):
+    def get_all(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
         """Will get everything and return as a single result."""
-        return [x for x in Measurements.select(type, source, fragment, before, after, reverse, block_size)]
+        return [x for x in self.select(type, source, fragment, before, after, reverse, page_size)]
 
-    @staticmethod
-    def get_last(type="", source="", fragment=""):
+    def get_last(self, type="", source="", fragment=""):
         """Will just get the last available measurement."""
-        query = Measurements.__build_base_query(type=type, source=source, fragment=fragment, reverse=True, block_size=1)
-        return Measurement._from_json(get(query + "0")['measurements'][0])
+        base_query = self.query.build_base_query(type=type, source=source, fragment=fragment, reverse=True, block_size=1)
+        return Measurement._from_json(self.query.get_page(base_query, "1")['measurements'][0])
 
-    @staticmethod
-    def store(*measurements):
+    def store(self, *measurements):
         if len(measurements) == 1 and isinstance(measurements[0], list):
             Measurements.store(*measurements)
         else:
             for m in measurements:
                 m.store()
-
-    @staticmethod
-    def __build_base_query(type="", source="", fragment="", before="", after="", reverse=False, block_size=1000):
-        # todo: before and after could be actual dates, not strings
-        # prepare map of parameters (ignore None ones) to append
-        params = {k: v for k, v in {'type': type, 'source': source, 'fragmentType': fragment,
-                                    'dateFrom': after, 'dateTo': before, 'reverse': str(reverse),
-                                    'pageSize': block_size}.items() if v}
-        assert params  # there needs to be at least 1 param for the next line to make sense
-        return '/measurement/measurements?' + urlencode(params) + '&currentPage='
-
-    @staticmethod
-    def __get_page(base_query, page):
-        result = get(base_query + str(page))
-        return result['measurements']
-
