@@ -79,6 +79,16 @@ class __C8Y:
             error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
+    def put(self, resource, json):
+        """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
+        assert isinstance(json, dict)
+        auth = self.__get_auth()
+        headers = self.__ensure_tfa_header({'Accept': 'application/json'})
+        r = requests.put(self.baseurl + resource, json=json, auth=auth, headers=headers)
+        if r.status_code != 200:
+            error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
+        return r.json()
+
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
         auth = self.__get_auth()
@@ -97,6 +107,10 @@ def get(resource, ordered=False):
 
 def post(resource, json):
     return __c8y.post(resource, json)
+
+
+def put(resource, json):
+    return __c8y.put(resource, json)
 
 
 def delete(resource):
