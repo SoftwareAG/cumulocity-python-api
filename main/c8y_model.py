@@ -1,6 +1,6 @@
 from datetime import datetime
 from urllib.parse import urlencode
-from c8y_rest import __c8y, get, post, put, delete
+from c8y_api import __c8y, get, post, put, delete
 
 
 class _DictWrapper:
