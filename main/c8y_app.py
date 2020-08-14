@@ -17,17 +17,21 @@ class C8Y(PURE_C8Y):
 
     def __init__(self, tenant_id=None):
         self.baseurl = self.__get_env('C8Y_BASEURL')
-        self.bootstrap_tenant_id = self.__get_env('C8Y_BOOTSTRAP_TENANT')
-        self.bootstrap_username = self.__get_env('C8Y_BOOTSTRAP_USER')
-        self.__bootstrap_password = self.__get_env('C8Y_BOOTSTRAP_PASSWORD')
-        self.__bootstrap_auth = self.__build_auth(self.bootstrap_tenant_id, self.bootstrap_username,
-                                                  self.__bootstrap_password)
-        self.tenant_id = tenant_id
         if tenant_id:
+            self.tenant_id = tenant_id
+            bootstrap_tenant_id = self.__get_env('C8Y_BOOTSTRAP_TENANT')
+            bootstrap_username = self.__get_env('C8Y_BOOTSTRAP_USER')
+            bootstrap_password = self.__get_env('C8Y_BOOTSTRAP_PASSWORD')
+            self.__bootstrap_auth = self.__build_auth(bootstrap_tenant_id, bootstrap_username, bootstrap_password)
             auth = self.__get_auth(tenant_id)
+            self.username = auth.username
+            self.__password = auth.password
             super().__init__(self.baseurl, self.tenant_id, auth.username, auth.password)
         else:
-            super().__init__(self.baseurl, self.bootstrap_tenant_id, self.bootstrap_username, self.__bootstrap_password)
+            self.tenant_id = self.__get_env('C8Y_TENANT')
+            self.username = self.__get_env('C8Y_USER')
+            self.__password = self.__get_env('C8Y_PASSWORD')
+            super().__init__(self.baseurl, self.tenant_id, self.username, self.password)
 
     @staticmethod
     def __get_env(name):
