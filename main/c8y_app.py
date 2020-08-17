@@ -2,10 +2,11 @@ import os
 import requests
 from dataclasses import dataclass
 from log_util import error, info
-from c8y_api import C8Y as PURE_C8Y
+from c8y_api import CumulocityApi as NativeCumulocityApi
 
 
-class C8Y(PURE_C8Y):
+class CumulocityApi(NativeCumulocityApi):
+
     @dataclass
     class Auth:
         username: str
@@ -58,16 +59,16 @@ class C8Y(PURE_C8Y):
             tenant = subscription['tenant']
             username = subscription['name']
             password = subscription['password']
-            self.__auth_by_tenant[tenant] = C8Y.Auth(username, password)
+            self.__auth_by_tenant[tenant] = CumulocityApi.Auth(username, password)
 
     @classmethod
     def get_bootstrap_instance(cls):
         if not cls.__bootstrap_instance:
-            cls.__bootstrap_instance = C8Y()
+            cls.__bootstrap_instance = CumulocityApi()
         return cls.__bootstrap_instance
 
     @classmethod
     def get_tenant_instance(cls, tenant_id):
         if tenant_id not in cls.__tenant_instances:
-            cls.__tenant_instances[tenant_id] = C8Y(tenant_id)
+            cls.__tenant_instances[tenant_id] = CumulocityApi(tenant_id)
         return cls.__tenant_instances[tenant_id]

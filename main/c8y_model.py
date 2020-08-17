@@ -298,8 +298,8 @@ class ManagedObject(__DatabaseObject):
 
 class Device(ManagedObject):
 
-    def __init__(self, type=None, name=None, owner=None):
-        super().__init__(type, name, owner)
+    def __init__(self, c8y=None, type=None, name=None, owner=None):
+        super().__init__(c8y=c8y, type=type, name=name, owner=owner)
         self.is_device = True
 
     def _to_full_json(self):
