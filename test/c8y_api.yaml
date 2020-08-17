@@ -1,0 +1,5 @@
+base: https://eu-latest.cumulocity.com
+devicebootstrap:
+  tenant_id: management
+  username: devicebootstrap
+  password: Fhdt1bb1f
