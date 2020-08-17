@@ -26,6 +26,10 @@ def info(msg, *args):
     log(logging.INFO, msg, *args)
 
 
+def debug(msg, *args):
+    log(logging.DEBUG, msg, *args)
+
+
 def format_properties(message, *extensions):
     """Format a log message with several properties."""
     for extension in extensions:
