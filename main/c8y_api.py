@@ -5,7 +5,7 @@ import yaml
 from dataclasses import dataclass
 
 from log_util import error, debug
-from c8y_model import Inventory, Measurements, Identity
+from c8y_model import Inventory, Measurements, Identity, Users
 
 
 class CumulocityRestApi:
@@ -67,6 +67,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__measurements = Measurements(self)  # todo: lazy?
         self.__inventory = Inventory(self)  # todo: lazy?
         self.__identity = Identity(self)
+        self.__users = Users(self)
 
     @property
     def measurements(self):
@@ -79,6 +80,10 @@ class CumulocityApi(CumulocityRestApi):
     @property
     def identity(self):
         return self.__identity
+
+    @property
+    def users(self):
+        return self.__users
 
 
 class CumulocityDeviceRegistry(CumulocityRestApi):

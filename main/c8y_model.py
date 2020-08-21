@@ -2,6 +2,10 @@ from datetime import datetime
 from urllib.parse import urlencode
 
 
+def _invert_dict(d):
+    return {v: k for k, v in d.items()}
+
+
 class _DictWrapper:
 
     def __init__(self, dictionary, on_update=None):
@@ -53,8 +57,63 @@ class __DatabaseObject:
         # the object id can only be set manually, e.g. when building an instance from json
         self.c8y = c8y
         self.id = None
-        self._updated_fragments = None
         self._updated_fields = None
+
+    @classmethod
+    def _from_json(cls, obj_json, new_obj, mapping):
+        for json_key, field_name in mapping.items():
+            if json_key in obj_json:
+                new_obj.__dict__[field_name] = obj_json[json_key]
+        return new_obj
+
+    def _to_full_json(self, mapping):
+        obj_json = {}
+        for name, value in self.__dict__.items():
+            if value and name in mapping:
+                obj_json[mapping[name]] = value
+        return obj_json
+
+    def _to_diff_json(self, mapping):
+        """Convert a database object to a JSON representation considering only updated fields.
+
+        Updated fields need to be signaled via the _signal_updated_field method. The signaled
+        name is extracted from the object fields. For this to function the field name needs to
+        be identical to the signaled name (or prefixed with '__')."""
+        obj_json = {}
+        if self._updated_fields:
+            for name in self._updated_fields:
+                n = name
+                if n not in self.__dict__:
+                    n = '__' + name
+                if n not in self.__dict__:
+                    raise KeyError(f"Unable to find field for name '{name}'.")
+                obj_json[mapping[n]] = self.__dict__[n]
+        return obj_json
+
+    @staticmethod
+    def _reverse(mapping):
+        return {v: k for k, v in mapping}
+
+    def get_updates(self):
+        return list(self._updated_fields)
+
+    def _signal_updated_field(self, name):
+        if not self._updated_fields:
+            self._updated_fields = {name}
+        else:
+            self._updated_fields.add(name)
+
+    @staticmethod
+    def _resolve(name, mapping):
+        return mapping[name] if name in mapping else name
+
+
+class __DatabaseObjectWithFragments(__DatabaseObject):
+
+    def __init__(self, c8y=None):
+        # the object id can only be set manually, e.g. when building an instance from json
+        super().__init__(c8y)
+        self._updated_fragments = None
         self.fragments = {}
 
     def add_fragment(self, name, **kwargs):
@@ -93,7 +152,8 @@ class __DatabaseObject:
         # All updated anywhere within the dictionary tree will be reported as an update
         # to this instance.
         # If the element is not a dictionary, it can be returned directly
-        return item if not isinstance(self.fragments[item], dict) else _DictWrapper(self.fragments[item], lambda: self._signal_updated_fragment(item))
+        return item if not isinstance(self.fragments[item], dict) else \
+            _DictWrapper(self.fragments[item], lambda: self._signal_updated_fragment(item))
 
     def has(self, fragment_name):
         """Check whether a specific fragment is defined."""
@@ -104,12 +164,6 @@ class __DatabaseObject:
 
     def get_updates(self):
         return list(self._updated_fields) + list(self._updated_fragments)
-
-    def _signal_updated_field(self, name):
-        if not self._updated_fields:
-            self._updated_fields = {name}
-        else:
-            self._updated_fields.add(name)
 
     def _signal_updated_fragment(self, name):
         if not self._updated_fragments:
@@ -122,7 +176,70 @@ class __DatabaseObject:
         return {name: body for name, body in object_json.items() if name not in builtin_fragments}
 
 
-class ManagedObject(__DatabaseObject):
+class User(__DatabaseObject):
+
+    __python_to_json = {
+        'user_id': 'id',
+        'email': 'email',
+        '__enabled': 'enabled',  # bool
+        '__display_name': 'displayName',
+        '__last_password_change_time': 'lastPasswordChange'}
+
+    __json_to_python = _invert_dict(__python_to_json)
+
+    def __init__(self, c8y=None, user_id=None, email=None, enabled=True):
+        super().__init__(c8y)
+        self.user_id = user_id
+        self.email = email
+        self.__enabled = enabled
+        self.__last_password_change_time = None
+        self.__last_password_change_datetime = None
+
+    @classmethod
+    def from_json(cls, user_json):
+        return super()._from_json(user_json, User(), cls.__json_to_python)
+
+    def to_full_json(self):
+        return self._to_full_json(self.__python_to_json)
+
+    def to_diff_json(self):
+        return self._to_diff_json(self.__python_to_json)
+
+    @property
+    def email(self):
+        return self.__email
+
+    @email.setter
+    def email(self, value: bool):
+        self.__email = value
+        self._signal_updated_field('email')
+
+    @property
+    def enabled(self):
+        return self.__enabled
+
+    @enabled.setter
+    def enabled(self, value: bool):
+        self.__enabled = value
+        self._signal_updated_field('enabled')
+
+    @property
+    def last_password_change_time(self):
+        if not self.__last_password_change_time:
+            if self.__last_password_change_datetime:
+                self.__last_password_change_time = \
+                    self.__last_password_change_datetime.isoformat(timespec='milliseconds')
+            # else: it remains None
+        return self.__last_password_change_time
+
+    @property
+    def last_password_change_datetime(self):
+        if not self.__last_password_change_datetime:
+            self.__last_password_change_datetime = datetime.fromisoformat(self.__last_password_change_time)
+        return self.__last_password_change_datetime
+
+
+class ManagedObject(__DatabaseObjectWithFragments):
 
     """
 
@@ -311,8 +428,15 @@ class Device(ManagedObject):
         object_json['c8y_IsDevice'] = {}
         return object_json
 
+    def delete(self):
+        """Delete both the device managed object as well as the device credentials within the database."""
+        assert self.name, "Device name must be defined for deletion."
+        device_username = 'device_' + self.name
+        super().delete()
+        self.c8y.users.delete(device_username)
 
-class Measurement(__DatabaseObject):
+
+class Measurement(__DatabaseObjectWithFragments):
 
     __BUILTIN_FRAGMENTS = ['type', 'id', 'source', 'time', 'self']
 
@@ -377,7 +501,7 @@ class Measurement(__DatabaseObject):
         self.c8y.delete('/measurement/measurements/' + self.id)
 
 
-class ExternalId():
+class ExternalId:
 
     def __init__(self, c8y=None, external_id=None, external_type=None, managed_object_id=None):
         self.c8y = c8y
@@ -483,8 +607,17 @@ class Inventory(_Query):
     def create(self, *managed_objects):
         pass
 
-    @staticmethod
     def update(self, object_id, object_model):
+        pass
+
+    def delete(self, *object_ids):
+        pass
+
+
+class DeviceInventory(Inventory):
+
+    def delete(self, *device_ids):
+        """Delete both the Device managed object as well as the registered device credentials from database."""
         pass
 
 
@@ -520,19 +653,43 @@ class Measurements(_Query):
 
     def get_last(self, type="", source="", fragment=""):
         """Will just get the last available measurement."""
-        base_query = self.query.build_base_query(
+        base_query = self.build_base_query(
             type=type, source=source, fragment=fragment, reverse=True, block_size=1)
-        return Measurement._from_json(self.query.get_page(base_query, "1")['measurements'][0])
+        return Measurement._from_json(self.get_page(base_query, "1")['measurements'][0])
 
     def store(self, *measurements):
         if len(measurements) == 1 and isinstance(measurements[0], list):
             Measurements.store(*measurements)
         else:
             for m in measurements:
+                m.c8y = self.c8y
                 m.store()
 
 
-class Identity():
+class Users(_Query):
+
+    def __init__(self, c8y):
+        super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
+
+    def get(self, user_id):
+        user = User.from_json(self.get_object(user_id))
+        user.c8y = self.c8y   # inject c8y connection into instance
+        return user
+
+    def select(self):
+        pass
+
+    def get_all(self):
+        pass
+
+    def create(self):
+        pass
+
+
+class Identity:
+    # the Identity API of C8Y uses inconsistent resource paths and therefore
+    # cannot use the generic _Query base class helper
+
     def __init__(self, c8y):
         self.c8y = c8y
 
