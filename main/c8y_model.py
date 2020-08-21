@@ -1,6 +1,8 @@
 from datetime import datetime
 from urllib.parse import urlencode
 
+from log_util import error
+
 
 def _invert_dict(d):
     return {v: k for k, v in d.items()}
@@ -436,6 +438,11 @@ class Device(ManagedObject):
         self.c8y.users.delete(device_username)
 
 
+class Binary(ManagedObject):
+    def __init__(self, c8y=None, filename=None, media_type=None):
+        super().__init__(c8y=c8y, type=media_type, name=filename)
+
+
 class Measurement(__DatabaseObjectWithFragments):
 
     __BUILTIN_FRAGMENTS = ['type', 'id', 'source', 'time', 'self']
@@ -708,3 +715,41 @@ class Identity:
             return ExternalId._from_json(response)
         except KeyError:
             return None
+
+
+class Binaries:
+    def __init__(self, c8y):
+        self.c8y = c8y
+
+    def upload(self, binary_meta_information, file_path=None, file=None):
+        assert isinstance(binary_meta_information, Binary)
+
+        try:
+            if (file_path is not None):
+                file = open(file_path, 'rb')
+        except FileNotFoundError:
+            error('File not found for file path: ', file_path)
+            return
+
+        if (file is None):
+            error('No File available to upload')
+            return
+
+        return self.c8y.post_file('/inventory/binaries', file, binary_meta_information)
+
+    def update(self, binary_id, media_type, file_path=None, file=None):
+        try:
+            if not file_path:
+                file = open(file_path, 'rb')
+        except FileNotFoundError:
+            error('File not found for file path: ', file_path)
+            return
+
+        if file:
+            error('No File available to upload')
+            return
+
+        self.c8y.put_file(f'/inventory/binaries/{binary_id}', file, media_type)
+
+    def delete(self, binary_id):
+        self.c8y.delete(f'/inventory/binaries/{binary_id}')
