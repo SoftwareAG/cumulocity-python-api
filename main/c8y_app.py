@@ -32,7 +32,7 @@ class CumulocityApi(NativeCumulocityApi):
             self.tenant_id = self.__get_env('C8Y_TENANT')
             self.username = self.__get_env('C8Y_USER')
             self.__password = self.__get_env('C8Y_PASSWORD')
-            super().__init__(self.baseurl, self.tenant_id, self.username, self.password)
+            super().__init__(self.baseurl, self.tenant_id, self.username, self.__password)
 
     @staticmethod
     def __get_env(name):
