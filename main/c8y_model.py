@@ -119,7 +119,7 @@ class __DatabaseObject:
 
     @staticmethod
     def _parse_fragments(object_json, builtin_fragments):
-        return  {name: body for name, body in object_json.items() if name not in builtin_fragments}
+        return {name: body for name, body in object_json.items() if name not in builtin_fragments}
 
 
 class ManagedObject(__DatabaseObject):
@@ -143,7 +143,6 @@ class ManagedObject(__DatabaseObject):
         mo.c8y_CustomReferences = [1, 2, 3]
         mo.flag_update('c8y_CustomReferences')
     """
-
 
     # todo: del mo.c8y_IsDevice  - how does this need to be written to DB? With a POST on the ID?
 
@@ -189,7 +188,8 @@ class ManagedObject(__DatabaseObject):
         mo.parent_devices = object_json['deviceParents']['references']
         mo.parent_assets = object_json['assetParents']['references']
         mo.parent_additions = object_json['additionParents']['references']
-        mo.fragments = ManagedObject._parse_fragments(object_json, ManagedObject.__BUILTIN_FRAGMENTS)
+        mo.fragments = ManagedObject._parse_fragments(
+            object_json, ManagedObject.__BUILTIN_FRAGMENTS)
         return mo
 
     def _to_full_json(self):
@@ -248,7 +248,8 @@ class ManagedObject(__DatabaseObject):
         if not self.__creation_time:
             if not self.__creation_datetime:
                 return None
-            self.__creation_time = self.__creation_datetime.isoformat(timespec='milliseconds')
+            self.__creation_time = self.__creation_datetime.isoformat(
+                timespec='milliseconds')
         return self.__creation_datetime
 
     @property
@@ -256,7 +257,8 @@ class ManagedObject(__DatabaseObject):
         if not self.__creation_datetime:
             if not self.__creation_time:
                 return None
-            self.__creation_datetime = datetime.fromisoformat(self.__creation_time)
+            self.__creation_datetime = datetime.fromisoformat(
+                self.__creation_time)
         return self.__creation_datetime
 
     @property
@@ -264,7 +266,8 @@ class ManagedObject(__DatabaseObject):
         if not self.__update_time:
             if not self.__update_datetime:
                 return None
-            self.__update_time = self.__update_datetime.isoformat(timespec='milliseconds')
+            self.__update_time = self.__update_datetime.isoformat(
+                timespec='milliseconds')
         return self.__update_datetime
 
     @property
@@ -278,7 +281,7 @@ class ManagedObject(__DatabaseObject):
     def store(self):
         """Will write the object to the database as a new instance."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects', self._to_full_json())
+        return self.c8y.post('/inventory/managedObjects', self._to_full_json())
 
     def update(self, object_id=None):
         """
@@ -288,7 +291,8 @@ class ManagedObject(__DatabaseObject):
         different objects if the id argument is used.
         """
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.put('/inventory/managedObjects/' + str(object_id if object_id else self.id), self._to_diff_json_())
+        self.c8y.put('/inventory/managedObjects/' +
+                     str(object_id if object_id else self.id), self._to_diff_json_())
 
     def delete(self):
         """Will delete the object within the database."""
@@ -328,7 +332,8 @@ class Measurement(__DatabaseObject):
         time = measurement_json['time']
         m = Measurement(type, source, time)
         m.id = measurement_json['id']
-        m.fragments = Measurement._parse_fragments(measurement_json, Measurement.__BUILTIN_FRAGMENTS)
+        m.fragments = Measurement._parse_fragments(
+            measurement_json, Measurement.__BUILTIN_FRAGMENTS)
         return m
 
     # the __getattr__ function is overwritten to return a wrapper that doesn't signal updates
@@ -370,6 +375,46 @@ class Measurement(__DatabaseObject):
     def delete(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.delete('/measurement/measurements/' + self.id)
+
+
+class ExternalId():
+
+    def __init__(self, c8y=None, external_id=None, external_type=None, managed_object_id=None):
+        self.c8y = c8y
+        self.external_id = external_id
+        self.external_type = external_type
+        self.managed_object_id = managed_object_id
+
+    @staticmethod
+    def _from_json(identity_json):
+        external_type = identity_json['type']
+        external_id = identity_json['externalId']
+        managed_object_id = identity_json['managedObject']['id']
+        return ExternalId(external_id=external_id, external_type=external_type, managed_object_id=managed_object_id)
+
+    def create(self):
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        body_json = {
+            'externalId': self.external_id,
+            'type': self.external_type}
+        self.c8y.post(f'/identity/globalIds/{self.managed_object_id}/externalIds', body_json)
+
+    def delete(self):
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.delete(f'/identity/externalIds/{self.external_type}/{self.external_id}')
+
+    def get_managed_object_id(self):
+        if self.managed_object_id is None:
+            self.managed_object_id = self.c8y.get(f'/identity/externalIds/{self.external_type}/{self.external_id}')
+
+        return self.managed_object_id
+
+    def __str__(self):
+        return str({
+            'external_id': self.external_id,
+            'external_type': self.external_type,
+            'managed_object_id': self.managed_object_id
+        })
 
 
 class _Query:  # todo: better name
@@ -426,7 +471,8 @@ class Inventory(_Query):
         page_number = 1
         while True:
             # todo: it should be possible to stream the JSON content as well
-            results = [ManagedObject._from_json(x) for x in self.get_page(base_query, page_number)]
+            results = [ManagedObject._from_json(
+                x) for x in self.get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
@@ -459,7 +505,8 @@ class Measurements(_Query):
                                            reverse=reverse, block_size=page_size)
         page_number = 1
         while True:
-            results = [Measurement._from_json(x) for x in self.get_page(base_query, page_number)]
+            results = [Measurement._from_json(
+                x) for x in self.get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
@@ -473,7 +520,8 @@ class Measurements(_Query):
 
     def get_last(self, type="", source="", fragment=""):
         """Will just get the last available measurement."""
-        base_query = self.query.build_base_query(type=type, source=source, fragment=fragment, reverse=True, block_size=1)
+        base_query = self.query.build_base_query(
+            type=type, source=source, fragment=fragment, reverse=True, block_size=1)
         return Measurement._from_json(self.query.get_page(base_query, "1")['measurements'][0])
 
     def store(self, *measurements):
@@ -482,3 +530,24 @@ class Measurements(_Query):
         else:
             for m in measurements:
                 m.store()
+
+
+class Identity():
+    def __init__(self, c8y):
+        self.c8y = c8y
+
+    def create(self, external_id, external_type, managed_object_id):
+        body_json = {
+            'externalId': external_id,
+            'type': external_type}
+        self.c8y.post(f'/identity/globalIds/{managed_object_id}/externalIds', body_json)
+
+    def delete(self, external_id, external_type):
+        self.c8y.delete(f'/identity/externalIds/{external_type}/{external_id}')
+
+    def get_managed_object_id(self, external_id, external_type):
+        try:
+            response = self.c8y.get(f'/identity/externalIds/{external_type}/{external_id}')
+            return ExternalId._from_json(response)
+        except KeyError:
+            return None
