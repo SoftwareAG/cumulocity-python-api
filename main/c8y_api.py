@@ -44,6 +44,23 @@ class CumulocityRestApi:
             error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
+    def post_file(self, resource, file, binary_meta_information):
+        assert isinstance(binary_meta_information, Binary)
+        assert file is not None
+
+        headers = {'Accept': 'application/json', **self.__default_headers}
+
+        payload = {
+            'object': (None, str(binary_meta_information._to_full_json()).replace("'", '"')),
+            'filesize': (None, sys.getsizeof(file)),
+            'file': (None, file.read())
+        }
+
+        r = requests.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
+        if r.status_code != 201:
+            error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
+        return r.json()
+
     def put(self, resource, json):
         """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
@@ -52,6 +69,12 @@ class CumulocityRestApi:
         if r.status_code != 200:
             error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
+
+    def put_file(self, resource, file, media_type):
+        headers = {'Content-Type': media_type, **self.__default_headers}
+        r = requests.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
+        if r.status_code != 201:
+            error("Unable to perform PUT request.", ("Status", r.status_code), ("Response", r.text))
 
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""

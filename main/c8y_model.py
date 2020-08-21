@@ -1,6 +1,8 @@
 from datetime import datetime
 from urllib.parse import urlencode
 
+from log_util import error
+
 
 class _DictWrapper:
 
@@ -312,6 +314,11 @@ class Device(ManagedObject):
         return object_json
 
 
+class Binary(ManagedObject):
+    def __init__(self, c8y=None, filename=None, media_type=None):
+        super().__init__(c8y=c8y, type=media_type, name=filename)
+
+
 class Measurement(__DatabaseObject):
 
     __BUILTIN_FRAGMENTS = ['type', 'id', 'source', 'time', 'self']
@@ -397,15 +404,18 @@ class ExternalId():
         body_json = {
             'externalId': self.external_id,
             'type': self.external_type}
-        self.c8y.post(f'/identity/globalIds/{self.managed_object_id}/externalIds', body_json)
+        self.c8y.post(
+            f'/identity/globalIds/{self.managed_object_id}/externalIds', body_json)
 
     def delete(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete(f'/identity/externalIds/{self.external_type}/{self.external_id}')
+        self.c8y.delete(
+            f'/identity/externalIds/{self.external_type}/{self.external_id}')
 
     def get_managed_object_id(self):
         if self.managed_object_id is None:
-            self.managed_object_id = self.c8y.get(f'/identity/externalIds/{self.external_type}/{self.external_id}')
+            self.managed_object_id = self.c8y.get(
+                f'/identity/externalIds/{self.external_type}/{self.external_id}')
 
         return self.managed_object_id
 
@@ -540,14 +550,54 @@ class Identity():
         body_json = {
             'externalId': external_id,
             'type': external_type}
-        self.c8y.post(f'/identity/globalIds/{managed_object_id}/externalIds', body_json)
+        self.c8y.post(
+            f'/identity/globalIds/{managed_object_id}/externalIds', body_json)
 
     def delete(self, external_id, external_type):
         self.c8y.delete(f'/identity/externalIds/{external_type}/{external_id}')
 
     def get_managed_object_id(self, external_id, external_type):
         try:
-            response = self.c8y.get(f'/identity/externalIds/{external_type}/{external_id}')
+            response = self.c8y.get(
+                f'/identity/externalIds/{external_type}/{external_id}')
             return ExternalId._from_json(response)
         except KeyError:
             return None
+
+
+class Binaries():
+    def __init__(self, c8y):
+        self.c8y = c8y
+
+    def upload(self, binary_meta_information, file_path=None, file=None):
+        assert isinstance(binary_meta_information, Binary)
+
+        try:
+            if (file_path is not None):
+                file = open(file_path, 'rb')
+        except FileNotFoundError:
+            error('File not found for file path: ', file_path)
+            return
+
+        if (file is None):
+            error('No File available to upload')
+            return
+
+        return self.c8y.post_file('/inventory/binaries', file, binary_meta_information)
+
+    def update(self, binary_id, media_type, file_path=None, file=None):
+        try:
+            if (file_path is not None):
+                file = open(file_path, 'rb')
+        except FileNotFoundError:
+            error('File not found for file path: ', file_path)
+            return
+
+        if (file is None):
+            error('No File available to upload')
+            return
+
+        self.c8y.put_file(f'/inventory/binaries/{binary_id}', file, media_type)
+
+    def delete(self, binary_id):
+        self.c8y.delete(f'/inventory/binaries/{binary_id}')
