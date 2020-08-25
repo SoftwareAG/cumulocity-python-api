@@ -1,4 +1,5 @@
 from datetime import datetime
+from tokenize import group
 from urllib.parse import urlencode
 from dateutil import parser
 
@@ -261,6 +262,27 @@ class User(_DatabaseObject):
     def to_diff_json(self):
         return self.__parser.to_diff_json(self)
 
+    def add_role(self, role_id):
+        pass
+
+
+class Group(_DatabaseObject):
+
+    __parser = _DatabaseObjectParser({
+            'id': 'id',
+            'name': 'name',
+            'description': 'description'})
+
+    def __init__(self, c8y=None):
+        super().__init__(c8y)
+        self.id = None
+        self.name = None
+        self.description = None
+
+    @classmethod
+    def from_json(cls, group_json):
+        return cls.__parser.from_json(group_json, Group())
+
 
 class ManagedObject(_DatabaseObjectWithFragments):
     """
@@ -513,7 +535,7 @@ class _Query(object):  # todo: better name
         params = {k: v for k, v in {'type': type, 'source': source, 'fragmentType': fragment,
                                     'dateFrom': after, 'dateTo': before, 'reverse': str(reverse),
                                     'pageSize': page_size}.items() if v}
-        params.update(**kwargs)
+        params.update({k:v for k,v in kwargs.items() if v is not None})
         return params
 
     def build_base_query(self, **kwargs):
@@ -623,23 +645,128 @@ class Users(_Query):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
+        self.__groups = Groups(c8y)
 
     def get(self, user_id):
+        """Retrieve a specific user.
+
+        :param user_id The ID of the user (usually the mail address)
+        :rtype User
+        """
         user = User.from_json(self.get_object(user_id))
         user.c8y = self.c8y  # inject c8y connection into instance
         return user
 
     def add_roles(self, user_id, *role_ids):
+        # todo: this would be an immediate action/write to database
         pass
 
-    def select(self):
-        pass
+    def select(self, username=None, groups=None):
+        """Lazily select and yield User instances.
 
-    def get_all(self):
-        pass
+        The result can be limited by username (prefix) and/or group membership.
+
+        :param username: A user's username or a prefix thereof
+        :param groups: a scalar or list of int (actual group ID), string (group names),
+            or actual Group instances
+        :rtype Generator of Group instances
+        """
+        # group_list can be ints, strings (names) or Group objects
+        # it needs to become a comma-separated string
+        groups_string = None
+        if groups:  # either non-empty list or scalar
+            # ensure it's a list to allow
+            if not isinstance(groups, list):
+                groups = [groups]
+            if isinstance(groups[0], int):
+                groups_string = [str(i) for i in groups]
+            elif isinstance(groups[0], Group):
+                groups_string = [str(g.id) for g in groups]
+            elif isinstance(groups[0], str):
+                groups_string = [str(self.__groups.get(name).id) for name in groups]
+            else:
+                ValueError("Unable to identify type of given group identifiers.")
+            groups_string = ','.join(groups_string)
+        # lazily yield parsed objects page by page
+        base_query = super().build_base_query(username=username, groups=groups_string)
+        page_number = 1
+        while True:
+            page_results = [User.from_json(x) for x in self.get_page(base_query, page_number)]
+            if not page_results:
+                break
+            for user in page_results:
+                user.c8y = self.c8y  # inject c8y connection into instance
+                yield user
+            page_number = page_number + 1
+
+    def get_all(self, username=None, groups=None):
+        """Select and retrieve User instances as list.
+
+        The result can be limited by username (prefix) and/or group membership.
+
+        :param username: A user's username or a prefix thereof
+        :param groups: a scalar or list of int (actual group ID), string (group names),
+            or actual Group instances
+        :rtype List of Group
+        """
+        return [x for x in self.select(username, groups)]
 
     def create(self):
         pass
+
+
+class Groups(_Query):
+
+    def __init__(self, c8y):
+        super().__init__(c8y, 'user/' + c8y.tenant_id + '/groups')
+        self.__groups_by_name = None
+
+    def reset_caches(self):
+        """Reset internal caching.
+
+        This resets the following caches:
+          * Groups by name (used for all group lookup by name)
+        """
+        self.__groups_by_name = None
+
+    def get(self, group_id):
+        """Retrieve a specific group.
+
+        Note:  The C8Y REST API does not support direct query by name. Hence,
+        searching by name will actually retrieve all available groups and
+        return the matching ones.
+        These groups will be cached internally for subsequent calls.
+
+        See also method :py:meth:reset_caches
+
+        :param group_id  a scalar int (actual group ID) or string (group name)
+        :rtype Group
+        """
+        if isinstance(group_id, int):
+            return Group.from_json(super().get_object(group_id))
+        # else: find group by name
+        if not self.__groups_by_name:
+            self.__groups_by_name = {g.name: g for g in self.get_all()}
+        return self.__groups_by_name[group_id]
+
+    def get_all(self):
+        """Retrieve all available groups.
+
+        :rtype List of Group
+        """
+        base_query = self.build_base_query()
+        result = []
+        page_number = 1
+        while True:
+            xs = self.get_page(base_query, page_number)
+            if not xs:
+                break
+            for x in xs:
+                g = Group.from_json(x)
+                g.c8y = self.c8y
+                result.append(g)
+            page_number = page_number + 1
+        return result
 
 
 class Identity(object):
