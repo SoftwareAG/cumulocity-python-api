@@ -1,14 +1,11 @@
 from datetime import datetime
 from urllib.parse import urlencode
+from dateutil import parser
 
 from log_util import error
 
 
-def _invert_dict(d):
-    return {v: k for k, v in d.items()}
-
-
-class _DictWrapper:
+class _DictWrapper(object):
 
     def __init__(self, dictionary, on_update=None):
         self.__dict__['items'] = dictionary
@@ -29,7 +26,37 @@ class _DictWrapper:
         self.items[name] = value
 
 
-class Fragment:
+class _DatabaseObject(object):
+
+    def __init__(self, c8y=None):
+        # the object id can only be set manually, e.g. when building an instance from json
+        self.c8y = c8y
+        self.id = None
+        self._updated_fields = None
+
+    def get_updates(self):
+        return list(self._updated_fields)
+
+    def _signal_updated_field(self, name):
+        if not self._updated_fields:
+            self._updated_fields = {name}
+        else:
+            self._updated_fields.add(name)
+        if '+full_json+' in self.__dict__:
+            del self.__dict__['+full_json+']
+        if '+diff_json+' in self.__dict__:
+            del self.__dict__['+diff_json+']
+
+    @staticmethod
+    def _to_datetime(string):
+        return parser.parse(string)
+
+    @staticmethod
+    def _resolve(name, mapping):
+        return mapping[name] if name in mapping else name
+
+
+class Fragment(object):
 
     def __init__(self, name, **kwargs):
         self.name = name
@@ -53,64 +80,7 @@ class Fragment:
         return self
 
 
-class __DatabaseObject:
-
-    def __init__(self, c8y=None):
-        # the object id can only be set manually, e.g. when building an instance from json
-        self.c8y = c8y
-        self.id = None
-        self._updated_fields = None
-
-    @classmethod
-    def _from_json(cls, obj_json, new_obj, mapping):
-        for json_key, field_name in mapping.items():
-            if json_key in obj_json:
-                new_obj.__dict__[field_name] = obj_json[json_key]
-        return new_obj
-
-    def _to_full_json(self, mapping):
-        obj_json = {}
-        for name, value in self.__dict__.items():
-            if value and name in mapping:
-                obj_json[mapping[name]] = value
-        return obj_json
-
-    def _to_diff_json(self, mapping):
-        """Convert a database object to a JSON representation considering only updated fields.
-
-        Updated fields need to be signaled via the _signal_updated_field method. The signaled
-        name is extracted from the object fields. For this to function the field name needs to
-        be identical to the signaled name (or prefixed with '__')."""
-        obj_json = {}
-        if self._updated_fields:
-            for name in self._updated_fields:
-                n = name
-                if n not in self.__dict__:
-                    n = '__' + name
-                if n not in self.__dict__:
-                    raise KeyError(f"Unable to find field for name '{name}'.")
-                obj_json[mapping[n]] = self.__dict__[n]
-        return obj_json
-
-    @staticmethod
-    def _reverse(mapping):
-        return {v: k for k, v in mapping}
-
-    def get_updates(self):
-        return list(self._updated_fields)
-
-    def _signal_updated_field(self, name):
-        if not self._updated_fields:
-            self._updated_fields = {name}
-        else:
-            self._updated_fields.add(name)
-
-    @staticmethod
-    def _resolve(name, mapping):
-        return mapping[name] if name in mapping else name
-
-
-class __DatabaseObjectWithFragments(__DatabaseObject):
+class _DatabaseObjectWithFragments(_DatabaseObject):
 
     def __init__(self, c8y=None):
         # the object id can only be set manually, e.g. when building an instance from json
@@ -133,19 +103,6 @@ class __DatabaseObjectWithFragments(__DatabaseObject):
             self.fragments[f.name] = f.items
             self._signal_updated_fragment(f.name)
         return self
-
-    # Thoughts regarding a direct assignment of fragments:
-    # This would require to overload __setattr__ which makes everything VERY complicated. E.g. it would bypass
-    # the property assignment and therefore everything needs to be handled within. It is also already called
-    # during the constructor so fields may even not be defined yet.
-    # def __setattr__(self, item, value):
-    #     # check if it is a fragment
-    #     if 'fragments' in self.__dict__:
-    #         if item in self.fragments:
-    #             self.fragments[item] = value
-    #             self._signal_updated_fragment(item)
-    #     object.__setattr__(self, item, value)
-    #     self._signal_updated_field(item)
 
     def __getattr__(self, item):
         """Directly access a specific fragment."""
@@ -172,77 +129,140 @@ class __DatabaseObjectWithFragments(__DatabaseObject):
             self._updated_fragments = {name}
         else:
             self._updated_fragments.add(name)
+        if '+full_json+' in self.__dict__:
+            del self.__dict__['+full_json+']
+        if '+diff_json+' in self.__dict__:
+            del self.__dict__['+diff_json+']
 
-    @staticmethod
-    def _parse_fragments(object_json, builtin_fragments):
-        return {name: body for name, body in object_json.items() if name not in builtin_fragments}
+
+class _DatabaseObjectParser(object):
+
+    def __init__(self, mapping):
+        self.__to_json = mapping
+        self.__to_python = {v: k for k, v in mapping.items()}
+        self.__full_json_repr = None
+        self.__diff_json_repr = None
+
+    def from_json(self, obj_json, new_obj):
+        for json_key, field_name in self.__to_python.items():
+            if json_key in obj_json:
+                new_obj.__dict__[field_name] = obj_json[json_key]
+        return new_obj
+
+    def to_full_json(self, obj):
+        if '+full_json+' not in obj.__dict__:
+            obj_json = {}
+            for name, value in obj.__dict__.items():
+                if value and name in self.__to_json:
+                    obj_json[self.__to_json[name]] = value
+            obj.__dict__['+full_json+'] = obj_json
+        return obj.__dict__['+full_json+']
+
+    def to_diff_json(self, obj):
+        """Convert a database object to a JSON representation considering only updated fields.
+
+        Updated fields need to be signaled via the _signal_updated_field method. The signaled
+        name is extracted from the object fields. For this to function the field name needs to
+        be identical to the signaled name.
+
+        The formatted JSON string is stored within the object reference for performance reasons.
+        """
+        if '+diff_json+' not in obj.__dict__:
+            obj_json = {}
+            if obj._updated_fields:
+                for name in obj._updated_fields:
+                    obj_json[self.__to_json[name]] = obj.__dict__[name]
+            obj.__dict__['+diff_json+'] = obj_json
+        return obj.__dict__['+diff_json+']
 
 
-class User(__DatabaseObject):
+class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
 
-    __python_to_json = {
-        'user_id': 'id',
-        'email': 'email',
-        '__enabled': 'enabled',  # bool
-        '__display_name': 'displayName',
-        '__last_password_change_time': 'lastPasswordChange'}
+    def __init__(self, to_json_mapping, no_fragments_list):
+        super().__init__(to_json_mapping)
+        self.__ignore_set = set(no_fragments_list + list(to_json_mapping.values()))
 
-    __json_to_python = _invert_dict(__python_to_json)
+    def from_json(self, obj_json, new_obj):
+        new_obj = super().from_json(obj_json, new_obj)
+        new_obj.fragments = self.__parse_fragments(obj_json)
+        return new_obj
 
-    def __init__(self, c8y=None, user_id=None, email=None, enabled=True):
+    def to_full_json(self, obj):
+        obj_json = super().to_full_json(obj)
+        obj_json.update(self.__format_fragments(obj))
+        return obj_json
+
+    def to_diff_json(self, obj):
+        obj_json = super().to_diff_json(obj)
+        obj_json.update(self.__format_updated_fragments(obj))
+        return obj_json
+
+    def __parse_fragments(self, obj_json):
+        return {name: body for name, body in obj_json.items() if name not in self.__ignore_set}
+
+    def __format_fragments(self, obj):
+        return {name: fragment for name, fragment in obj.fragments.items()}
+
+    def __format_updated_fragments(self, obj):
+        return {name: fragment for name, fragment in obj.fragments.items() if name in obj._updated_fragments}
+
+
+class _UpdatableProperty(object):
+
+    def __init__(self, name=None):
+        self.name = name
+
+    def __get__(self, obj, _):
+        return obj.__dict__[self.name]
+
+    def __set__(self, obj, value):
+        obj._signal_updated_field(self.name)
+        obj.__dict__[self.name] = value
+
+
+class User(_DatabaseObject):
+
+    __parser = _DatabaseObjectParser({
+            'user_id': 'id',
+            '_u_email': 'email',
+            '_u_enabled': 'enabled',  # bool
+            '_u_username': 'userName',
+            '_u_display_name': 'displayName',
+            '_last_password_change': 'lastPasswordChange'})
+
+    def __init__(self, c8y=None, user_id=None, email=None, enabled=True, username=None, display_name=None):
         super().__init__(c8y)
         self.user_id = user_id
-        self.email = email
-        self.__enabled = enabled
-        self.__last_password_change_time = None
-        self.__last_password_change_datetime = None
+        self._u_email = email
+        self._u_enabled = enabled
+        self._u_username = username
+        self._u_display_name = display_name
+        # todo: groups
+        # todo: roles
+        self._last_password_change = None
+
+    username = _UpdatableProperty(name='_u_username')
+    display_name = _UpdatableProperty(name='_u_display_name')
+    email = _UpdatableProperty(name='_u_email')
+    enabled = _UpdatableProperty(name='_u_enabled')
+
+    @property
+    def last_password_change(self):
+        # hint: could be cached, but it rarely is accessed multiple times
+        return self._to_datetime(self._last_password_change)
 
     @classmethod
     def from_json(cls, user_json):
-        return super()._from_json(user_json, User(), cls.__json_to_python)
+        return cls.__parser.from_json(user_json, User())
 
     def to_full_json(self):
-        return self._to_full_json(self.__python_to_json)
+        return self.__parser.to_full_json(self)
 
     def to_diff_json(self):
-        return self._to_diff_json(self.__python_to_json)
-
-    @property
-    def email(self):
-        return self.__email
-
-    @email.setter
-    def email(self, value: bool):
-        self.__email = value
-        self._signal_updated_field('email')
-
-    @property
-    def enabled(self):
-        return self.__enabled
-
-    @enabled.setter
-    def enabled(self, value: bool):
-        self.__enabled = value
-        self._signal_updated_field('enabled')
-
-    @property
-    def last_password_change_time(self):
-        if not self.__last_password_change_time:
-            if self.__last_password_change_datetime:
-                self.__last_password_change_time = \
-                    self.__last_password_change_datetime.isoformat(timespec='milliseconds')
-            # else: it remains None
-        return self.__last_password_change_time
-
-    @property
-    def last_password_change_datetime(self):
-        if not self.__last_password_change_datetime:
-            self.__last_password_change_datetime = datetime.fromisoformat(self.__last_password_change_time)
-        return self.__last_password_change_datetime
+        return self.__parser.to_diff_json(self)
 
 
-class ManagedObject(__DatabaseObjectWithFragments):
-
+class ManagedObject(_DatabaseObjectWithFragments):
     """
 
     Updates to both fields and fragments are tracked automatically and will
@@ -265,10 +285,16 @@ class ManagedObject(__DatabaseObjectWithFragments):
 
     # todo: del mo.c8y_IsDevice  - how does this need to be written to DB? With a POST on the ID?
 
-    __BUILTIN_FRAGMENTS = ['id', 'self', 'type', 'name', 'owner',
-                           'creationTime', 'lastUpdated',
-                           'childDevices', 'childAssets', 'childAdditions',
-                           'deviceParents', 'assetParents', 'additionParents']
+    __parser = _DatabaseObjectWithFragmentsParser(
+        {'id': 'id',
+         '_u_type': 'type',
+         '_u_name': 'name',
+         '_u_owner': 'owner',
+         '_creation_time': 'creationTime',
+         '_update_time': 'lastUpdated'},
+        ['self',
+         'childDevices', 'childAssets', 'childAdditions',
+         'deviceParents', 'assetParents', 'additionParents'])
 
     def __init__(self, c8y=None, type=None, name=None, owner=None):
         """Create a new ManagedObject from scratch."""
@@ -276,13 +302,11 @@ class ManagedObject(__DatabaseObjectWithFragments):
         # a direct update to the property backends is necessary to bypass
         # the update notification; everything specified within the constructor is
         # not considered to be an update
-        self.__type = type
-        self.__name = name
-        self.__owner = owner
-        self.__creation_time = None
-        self.__creation_datetime = None
-        self.__update_time = None
-        self.__update_datetime = None
+        self._u_type = type
+        self._u_name = name
+        self._u_owner = owner
+        self._creation_time = None
+        self._update_time = None
         self.child_devices = []
         self.child_assets = []
         self.child_additions = []
@@ -291,15 +315,13 @@ class ManagedObject(__DatabaseObjectWithFragments):
         self.parent_additions = []
         self.is_device = False
 
-    @staticmethod
-    def _from_json(object_json):
-        type = object_json['type'] if 'type' in object_json else None
-        name = object_json['name'] if 'name' in object_json else None
-        owner = object_json['owner']
-        mo = ManagedObject(type=type, name=name, owner=owner)
-        mo.id = object_json['id']
-        mo.__creation_time = object_json['creationTime']
-        mo.__update_time = object_json['lastUpdated']
+    type = _UpdatableProperty(name='_u_type')
+    name = _UpdatableProperty(name='_u_name')
+    owner = _UpdatableProperty(name='_u_owner')
+
+    @classmethod
+    def from_json(cls, object_json):
+        mo = cls.__parser.from_json(object_json, ManagedObject())
         # todo: references look different
         mo.child_devices = object_json['childDevices']['references']
         mo.child_assets = object_json['childAssets']['references']
@@ -307,100 +329,26 @@ class ManagedObject(__DatabaseObjectWithFragments):
         mo.parent_devices = object_json['deviceParents']['references']
         mo.parent_assets = object_json['assetParents']['references']
         mo.parent_additions = object_json['additionParents']['references']
-        mo.fragments = ManagedObject._parse_fragments(
-            object_json, ManagedObject.__BUILTIN_FRAGMENTS)
         return mo
 
-    def _to_full_json(self):
-        object_json = {}
-        if self.__type:
-            object_json['type'] = self.__type
-        if self.__name:
-            object_json['name'] = self.__name
-        if self.__owner:
-            object_json['owner'] = self.__owner
-        # todo: references
-        for name, fragment in self.fragments.items():
-            object_json[name] = fragment
-        return object_json
+    def to_full_json(self):
+        return self.__parser.to_full_json(self)
 
-    def _to_diff_json_(self):
-        object_json = {}
-        if self._updated_fields:
-            for name in self._updated_fields:
-                object_json[name] = self.__dict__[name]
-        # todo: references
-        if self._updated_fragments:
-            for name in self._updated_fragments:
-                object_json[name] = self.fragments[name]
-        return object_json
-
-    @property
-    def type(self):
-        return self.__type if self.__type else ''
-
-    @type.setter
-    def type(self, value):
-        self.__type = value
-        self._signal_updated_field('type')
-
-    @property
-    def name(self):
-        return self.__name if self.__name else ''
-
-    @name.setter
-    def name(self, value):
-        self.__name = value
-        self._signal_updated_field('name')
-
-    @property
-    def owner(self):
-        return self.__owner
-
-    @owner.setter
-    def owner(self, value):
-        self.__owner = value
-        self._signal_updated_field('owner')
+    def to_diff_json(self):
+        return self.__parser.to_diff_json(self)
 
     @property
     def creation_time(self):
-        if not self.__creation_time:
-            if not self.__creation_datetime:
-                return None
-            self.__creation_time = self.__creation_datetime.isoformat(
-                timespec='milliseconds')
-        return self.__creation_datetime
-
-    @property
-    def creation_datetime(self):
-        if not self.__creation_datetime:
-            if not self.__creation_time:
-                return None
-            self.__creation_datetime = datetime.fromisoformat(
-                self.__creation_time)
-        return self.__creation_datetime
+        super()._to_datetime(self._creation_time)
 
     @property
     def update_time(self):
-        if not self.__update_time:
-            if not self.__update_datetime:
-                return None
-            self.__update_time = self.__update_datetime.isoformat(
-                timespec='milliseconds')
-        return self.__update_datetime
-
-    @property
-    def update_datetime(self):
-        if not self.__update_datetime:
-            if not self.__update_time:
-                return None
-            self.__update_datetime = datetime.fromisoformat(self.__update_time)
-        return self.__update_datetime
+        super()._to_datetime(self._update_time)
 
     def store(self):
         """Will write the object to the database as a new instance."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        return self.c8y.post('/inventory/managedObjects', self._to_full_json())
+        return self.c8y.post('/inventory/managedObjects', self.to_full_json())
 
     def update(self, object_id=None):
         """
@@ -411,7 +359,7 @@ class ManagedObject(__DatabaseObjectWithFragments):
         """
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.put('/inventory/managedObjects/' +
-                     str(object_id if object_id else self.id), self._to_diff_json_())
+                     str(object_id if object_id else self.id), self.to_diff_json())
 
     def delete(self):
         """Will delete the object within the database."""
@@ -425,8 +373,8 @@ class Device(ManagedObject):
         super().__init__(c8y=c8y, type=type, name=name, owner=owner)
         self.is_device = True
 
-    def _to_full_json(self):
-        object_json = super()._to_full_json()
+    def to_full_json(self):
+        object_json = super().to_full_json()
         object_json['c8y_IsDevice'] = {}
         return object_json
 
@@ -443,8 +391,7 @@ class Binary(ManagedObject):
         super().__init__(c8y=c8y, type=media_type, name=filename)
 
 
-class Measurement(__DatabaseObjectWithFragments):
-
+class Measurement(_DatabaseObjectWithFragments):
     __BUILTIN_FRAGMENTS = ['type', 'id', 'source', 'time', 'self']
 
     def __init__(self, c8y, type, source, time=None):
@@ -508,7 +455,7 @@ class Measurement(__DatabaseObjectWithFragments):
         self.c8y.delete('/measurement/measurements/' + self.id)
 
 
-class ExternalId:
+class ExternalId(object):
 
     def __init__(self, c8y=None, external_id=None, external_type=None, managed_object_id=None):
         self.c8y = c8y
@@ -548,7 +495,7 @@ class ExternalId:
         })
 
 
-class _Query:  # todo: better name
+class _Query(object):  # todo: better name
 
     def __init__(self, c8y, resource: str):
         self.c8y = c8y
@@ -602,8 +549,7 @@ class Inventory(_Query):
         page_number = 1
         while True:
             # todo: it should be possible to stream the JSON content as well
-            results = [ManagedObject._from_json(
-                x) for x in self.get_page(base_query, page_number)]
+            results = [ManagedObject.from_json(x) for x in self.get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
@@ -645,7 +591,7 @@ class Measurements(_Query):
                                            reverse=reverse, block_size=page_size)
         page_number = 1
         while True:
-            results = [Measurement._from_json(
+            results = [Measurement.from_json(
                 x) for x in self.get_page(base_query, page_number)]
             if not results:
                 break
@@ -662,7 +608,7 @@ class Measurements(_Query):
         """Will just get the last available measurement."""
         base_query = self.build_base_query(
             type=type, source=source, fragment=fragment, reverse=True, block_size=1)
-        return Measurement._from_json(self.get_page(base_query, "1")['measurements'][0])
+        return Measurement.from_json(self.get_page(base_query, "1")['measurements'][0])
 
     def store(self, *measurements):
         if len(measurements) == 1 and isinstance(measurements[0], list):
@@ -680,8 +626,11 @@ class Users(_Query):
 
     def get(self, user_id):
         user = User.from_json(self.get_object(user_id))
-        user.c8y = self.c8y   # inject c8y connection into instance
+        user.c8y = self.c8y  # inject c8y connection into instance
         return user
+
+    def add_roles(self, user_id, *role_ids):
+        pass
 
     def select(self):
         pass
@@ -693,7 +642,7 @@ class Users(_Query):
         pass
 
 
-class Identity:
+class Identity(object):
     # the Identity API of C8Y uses inconsistent resource paths and therefore
     # cannot use the generic _Query base class helper
 
@@ -717,7 +666,7 @@ class Identity:
             return None
 
 
-class Binaries:
+class Binaries(object):
     def __init__(self, c8y):
         self.c8y = c8y
 
