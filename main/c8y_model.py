@@ -1,5 +1,4 @@
-from datetime import datetime
-from tokenize import group
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 from dateutil import parser
 
@@ -16,12 +15,10 @@ class _DictWrapper(object):
         return name in self.items
 
     def __getattr__(self, name):
-        print('get ' + name)
         item = self.items[name]
         return item if not isinstance(item, dict) else _DictWrapper(item, self.on_update)
 
     def __setattr__(self, name, value):
-        print('set ' + name)
         if self.on_update:
             self.on_update()
         self.items[name] = value
@@ -49,12 +46,60 @@ class _DatabaseObject(object):
             del self.__dict__['+diff_json+']
 
     @staticmethod
+    def _to_timestring(dt: datetime):
+        return dt.isoformat(timespec='milliseconds')
+
+    @staticmethod
     def _to_datetime(string):
         return parser.parse(string)
 
     @staticmethod
+    def _now():
+        return datetime.now(timezone.utc)
+
+    @staticmethod
     def _resolve(name, mapping):
         return mapping[name] if name in mapping else name
+
+
+class Value(dict):
+    def __init__(self, value, unit):
+        super().__init__(value=value, unit=unit)
+
+
+class Grams(Value):
+    def __init__(self, value):
+        super().__init__(value, 'g')
+
+
+class Kilograms(Value):
+    def __init__(self, value):
+        super().__init__(value, 'kg')
+
+
+class Kelvin(Value):
+    def __init__(self, value):
+        super().__init__(value, '°K')
+
+
+class Celsius(Value):
+    def __init__(self, value):
+        super().__init__(value, '°C')
+
+
+class Meters(Value):
+    def __init__(self, value):
+        super().__init__(value, 'm')
+
+
+class Centimeters(Value):
+    def __init__(self, value):
+        super().__init__(value, 'cm')
+
+
+class Count(Value):
+    def __init__(self, value):
+        super().__init__(value, '#')
 
 
 class Fragment(object):
@@ -150,14 +195,18 @@ class _DatabaseObjectParser(object):
                 new_obj.__dict__[field_name] = obj_json[json_key]
         return new_obj
 
-    def to_full_json(self, obj):
-        if '+full_json+' not in obj.__dict__:
+    def to_full_json(self, obj, ignore_list=None):
+        repr_key = '+full_json+'+str(ignore_list)+'+'
+        if not ignore_list:
+            ignore_list = []
+        if repr_key not in obj.__dict__:
             obj_json = {}
             for name, value in obj.__dict__.items():
-                if value and name in self.__to_json:
-                    obj_json[self.__to_json[name]] = value
-            obj.__dict__['+full_json+'] = obj_json
-        return obj.__dict__['+full_json+']
+                if name not in ignore_list:
+                    if value and name in self.__to_json:
+                        obj_json[self.__to_json[name]] = value
+            obj.__dict__[repr_key] = obj_json
+        return obj.__dict__[repr_key]
 
     def to_diff_json(self, obj):
         """Convert a database object to a JSON representation considering only updated fields.
@@ -188,8 +237,8 @@ class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
         new_obj.fragments = self.__parse_fragments(obj_json)
         return new_obj
 
-    def to_full_json(self, obj):
-        obj_json = super().to_full_json(obj)
+    def to_full_json(self, obj, ignore_list=None):
+        obj_json = super().to_full_json(obj, ignore_list)
         obj_json.update(self.__format_fragments(obj))
         return obj_json
 
@@ -201,10 +250,12 @@ class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
     def __parse_fragments(self, obj_json):
         return {name: body for name, body in obj_json.items() if name not in self.__ignore_set}
 
-    def __format_fragments(self, obj):
+    @staticmethod
+    def __format_fragments(obj):
         return {name: fragment for name, fragment in obj.fragments.items()}
 
-    def __format_updated_fragments(self, obj):
+    @staticmethod
+    def __format_updated_fragments(obj):
         return {name: fragment for name, fragment in obj.fragments.items() if name in obj._updated_fragments}
 
 
@@ -361,11 +412,11 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     @property
     def creation_time(self):
-        super()._to_datetime(self._creation_time)
+        return super()._to_datetime(self._creation_time)
 
     @property
     def update_time(self):
-        super()._to_datetime(self._update_time)
+        return super()._to_datetime(self._update_time)
 
     def store(self):
         """Will write the object to the database as a new instance."""
@@ -414,27 +465,51 @@ class Binary(ManagedObject):
 
 
 class Measurement(_DatabaseObjectWithFragments):
-    __BUILTIN_FRAGMENTS = ['type', 'id', 'source', 'time', 'self']
 
-    def __init__(self, c8y, type, source, time=None):
+    __parser = _DatabaseObjectWithFragmentsParser(
+        to_json_mapping={'id': 'id',
+                         'type': 'type'},
+        no_fragments_list=['self', 'time', 'source'])
+
+    def __init__(self, c8y=None, type=None, source=None, time=None):
+        """ Create a new Measurement.
+
+        :param c8y:  Cumulocity connection reference; needs to be set for the
+            direct manipulation (create, delete) to function
+        :param type:   Measurement type
+        :param source:  Device ID which this measurement is for
+        :param time:   Datetime string or Python datetime object. A given
+            datetime string needs to be in standard ISO format incl. timezone:
+            YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is retured by the Cumulocity REST
+            API. A given datetime object needs to be timezone aware.
+            For manual construction it is recommended to specify a datetime
+            object as the formatting of a timestring is never checked for
+            performance reasons.
+        """
         super().__init__(c8y)
         self.id = None
         self.type = type
         self.source = source
-        self.__datetime = time if isinstance(time, datetime) else None
-        self.__time = time if isinstance(time, str) else None
-        self.fragments = None
+        # The time can either be set as string (e.g. when read from JSON) or
+        # as a datetime object. It will be converted to string immediately
+        # as there is no scenario where a manually created object won't be
+        # written to Cumulocity anyways
+        if isinstance(time, datetime) and not time.tzinfo:
+            raise ValueError("A specified datetime needs to be timezone aware.")
+        self.time = super()._to_timestring(time) if isinstance(time, datetime) else time
 
-    @staticmethod
-    def _from_json(measurement_json):
-        type = measurement_json['type']
-        source = measurement_json['source']['id']
-        time = measurement_json['time']
-        m = Measurement(type, source, time)
-        m.id = measurement_json['id']
-        m.fragments = Measurement._parse_fragments(
-            measurement_json, Measurement.__BUILTIN_FRAGMENTS)
-        return m
+    @classmethod
+    def from_json(cls, measurement_json):
+        obj = cls.__parser.from_json(measurement_json, Measurement())
+        obj.source = measurement_json['source']['id']
+        obj.time = measurement_json['time']
+        return obj
+
+    def to_json(self):
+        measurement_json = self.__parser.to_full_json(self)
+        measurement_json['time'] = self.time if self.time else super()._to_timestring(self._now())
+        measurement_json['source'] = {'id': self.source}
+        return measurement_json
 
     # the __getattr__ function is overwritten to return a wrapper that doesn't signal updates
     # (because Measurements are not updated, can only be created from scratch)
@@ -443,34 +518,14 @@ class Measurement(_DatabaseObjectWithFragments):
 
     @property
     def datetime(self):
-        if not self.__datetime:
-            if not self.__time:
-                self.now()
-            self.__datetime = datetime.fromisoformat(self.__time)
-        return self.__datetime
-
-    @property
-    def time(self):
-        if not self.__time:
-            if not self.__datetime:
-                self.now()
-            self.__time = self.__datetime.isoformat(timespec='milliseconds')
-        return self.__time
-
-    def now(self):
-        self.__datetime = datetime.now()
-        self.__time = self.__datetime.isoformat(timespec='milliseconds')
+        if self.time:
+            return super()._to_datetime(self.time)
+        else:
+            return None
 
     def store(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        if not self.__time:
-            self.now()
-        body_json = {
-            'type': self.type,
-            'source': {'id': self.source},
-            'time': self.__time}
-        body_json.update({name: body for name, body in self.fragments.items()})
-        self.c8y.post('/measurement/measurements', body_json)
+        self.c8y.post('/measurement/measurements', self.to_json())
 
     def delete(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
@@ -532,22 +587,27 @@ class _Query(object):  # todo: better name
     @staticmethod
     def __map_params(type=None, name=None, fragment=None, source=None,
                      before=None, after=None, reverse=None, page_size=None, **kwargs):
-        params = {k: v for k, v in {'type': type, 'source': source, 'fragmentType': fragment,
-                                    'dateFrom': after, 'dateTo': before, 'reverse': str(reverse),
+        params = {k: v for k, v in {'type': type, 'name': name,
+                                    'source': source, 'fragmentType': fragment,
+                                    'dateFrom': after, 'dateTo': before, 'revert': str(reverse),
                                     'pageSize': page_size}.items() if v}
-        params.update({k:v for k,v in kwargs.items() if v is not None})
+        params.update({k: v for k, v in kwargs.items() if v is not None})
         return params
 
-    def build_base_query(self, **kwargs):
+    def _build_base_query(self, **kwargs):
         params = _Query.__map_params(**kwargs)
         return self.resource + '?' + urlencode(params) + '&currentPage='
 
-    def get_object(self, object_id):
+    def _get_object(self, object_id):
         return self.c8y.get(self.resource + '/' + str(object_id))
 
-    def get_page(self, base_query, page_number):
+    def _get_page(self, base_query, page_number):
         result_json = self.c8y.get(base_query + str(page_number))
         return result_json[self.object_name]
+
+    def delete(self, *object_ids):
+        for object_id in object_ids:
+            self.c8y.delete(self.resource + '/' + str(object_id))
 
 
 class Inventory(_Query):
@@ -556,22 +616,22 @@ class Inventory(_Query):
         super().__init__(c8y, 'inventory/managedObjects')
 
     def get(self, object_id):
-        managed_object = ManagedObject._from_json(self.get_object(object_id))
+        managed_object = ManagedObject.from_json(self._get_object(object_id))
         managed_object.c8y = self.c8y  # inject c8y connection into instance
         return managed_object
 
     def get_all(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
-        pass
+        return [x for x in self.select(type, source, fragment, before, after, reverse, page_size)]
 
     def select(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
         """Lazy implementation."""
-        base_query = self.build_base_query(type=type, source=source, fragment=fragment,
-                                           before=before, after=after,
-                                           reverse=reverse, page_size=page_size)
+        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+                                            before=before, after=after,
+                                            reverse=reverse, page_size=page_size)
         page_number = 1
         while True:
             # todo: it should be possible to stream the JSON content as well
-            results = [ManagedObject.from_json(x) for x in self.get_page(base_query, page_number)]
+            results = [ManagedObject.from_json(x) for x in self._get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
@@ -583,9 +643,6 @@ class Inventory(_Query):
         pass
 
     def update(self, object_id, object_model):
-        pass
-
-    def delete(self, *object_ids):
         pass
 
 
@@ -602,19 +659,18 @@ class Measurements(_Query):
         super().__init__(c8y, 'measurement/measurements')
 
     def get(self, measurement_id):
-        measurement = Measurement._from_json(self.get_object(measurement_id))
+        measurement = Measurement.from_json(self._get_object(measurement_id))
         measurement.c8y = self.c8y  # inject c8y connection into instance
         return measurement
 
     def select(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
         """Lazy implementation."""
-        base_query = self.build_base_query(type=type, source=source, fragment=fragment,
-                                           before=before, after=after,
-                                           reverse=reverse, block_size=page_size)
+        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+                                            before=before, after=after,
+                                            reverse=reverse, page_size=page_size)
         page_number = 1
         while True:
-            results = [Measurement.from_json(
-                x) for x in self.get_page(base_query, page_number)]
+            results = [Measurement.from_json(x) for x in self._get_page(base_query, page_number)]
             if not results:
                 break
             for result in results:
@@ -628,9 +684,9 @@ class Measurements(_Query):
 
     def get_last(self, type="", source="", fragment=""):
         """Will just get the last available measurement."""
-        base_query = self.build_base_query(
+        base_query = self._build_base_query(
             type=type, source=source, fragment=fragment, reverse=True, block_size=1)
-        return Measurement.from_json(self.get_page(base_query, "1")['measurements'][0])
+        return Measurement.from_json(self._get_page(base_query, "1")['measurements'][0])
 
     def store(self, *measurements):
         if len(measurements) == 1 and isinstance(measurements[0], list):
@@ -653,7 +709,7 @@ class Users(_Query):
         :param user_id The ID of the user (usually the mail address)
         :rtype User
         """
-        user = User.from_json(self.get_object(user_id))
+        user = User.from_json(self._get_object(user_id))
         user.c8y = self.c8y  # inject c8y connection into instance
         return user
 
@@ -688,10 +744,10 @@ class Users(_Query):
                 ValueError("Unable to identify type of given group identifiers.")
             groups_string = ','.join(groups_string)
         # lazily yield parsed objects page by page
-        base_query = super().build_base_query(username=username, groups=groups_string)
+        base_query = super()._build_base_query(username=username, groups=groups_string)
         page_number = 1
         while True:
-            page_results = [User.from_json(x) for x in self.get_page(base_query, page_number)]
+            page_results = [User.from_json(x) for x in self._get_page(base_query, page_number)]
             if not page_results:
                 break
             for user in page_results:
@@ -743,7 +799,7 @@ class Groups(_Query):
         :rtype Group
         """
         if isinstance(group_id, int):
-            return Group.from_json(super().get_object(group_id))
+            return Group.from_json(super()._get_object(group_id))
         # else: find group by name
         if not self.__groups_by_name:
             self.__groups_by_name = {g.name: g for g in self.get_all()}
@@ -754,11 +810,11 @@ class Groups(_Query):
 
         :rtype List of Group
         """
-        base_query = self.build_base_query()
+        base_query = self._build_base_query()
         result = []
         page_number = 1
         while True:
-            xs = self.get_page(base_query, page_number)
+            xs = self._get_page(base_query, page_number)
             if not xs:
                 break
             for x in xs:
