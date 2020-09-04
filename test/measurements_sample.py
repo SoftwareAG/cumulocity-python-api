@@ -33,7 +33,8 @@ for i in range(0, 5):
     # the time will be updated every time
     m1.store()
 
-# querying the database
+# querying the database by type
+# other filters are possible: source, fragment, date
 for m in c8y.measurements.select(type='c8y_DemoMeasurement', after=run_at, reverse=True):
     v = m.c8y_DemoMeasurement.Iterations.value
     u = m.c8y_DemoMeasurement.Iterations.unit
@@ -41,6 +42,16 @@ for m in c8y.measurements.select(type='c8y_DemoMeasurement', after=run_at, rever
     print(f"Got measurement at {t}: {v} {u}")
     # a measurement retrieved like this can be deleted directly
     m.delete()
+
+# Specific timeframes can be specified with before/after parameters.
+# The API also provides an alternative mechanism via min/max age of entries
+# The select method evaluates lazy (by result page), the get_all method will
+# pull everything available. Both methods support a limit parameter to limit
+# the number of results possible.
+ms = c8y.measurements.get_all(min_age=datetime.timedelta(days=1), max_age=datetime.timedelta(days=3), limit=3)
+assert len(ms) == 3
+for m in ms:
+    print(f"Got measurement of type {m.type} at {m.time}")
 
 # cleanup assets
 # d.delete() does not work, because it is a new object without ID and no connection set

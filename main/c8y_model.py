@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from dateutil import parser
 
@@ -24,6 +24,35 @@ class _DictWrapper(object):
         self.items[name] = value
 
 
+class _DateUtil(object):
+
+    @staticmethod
+    def to_timestring(dt: datetime):
+        return dt.isoformat(timespec='milliseconds')
+
+    @staticmethod
+    def to_datetime(string):
+        return parser.parse(string)
+
+    @staticmethod
+    def now():
+        return datetime.now(timezone.utc)
+
+    @staticmethod
+    def ensure_timestring(time):
+        if isinstance(time, datetime):
+            if not time.tzinfo:
+                raise ValueError("A specified datetime needs to be timezone aware.")
+            return _DateUtil.to_timestring(time)
+        return time  # assuming it is a timestring
+
+    @staticmethod
+    def ensure_timedelta(time):
+        if not isinstance(time, timedelta):
+            raise ValueError("A specified duration needs to be a timedelta object.")
+        return time
+
+
 class _DatabaseObject(object):
 
     def __init__(self, c8y=None):
@@ -44,22 +73,6 @@ class _DatabaseObject(object):
             del self.__dict__['+full_json+']
         if '+diff_json+' in self.__dict__:
             del self.__dict__['+diff_json+']
-
-    @staticmethod
-    def _to_timestring(dt: datetime):
-        return dt.isoformat(timespec='milliseconds')
-
-    @staticmethod
-    def _to_datetime(string):
-        return parser.parse(string)
-
-    @staticmethod
-    def _now():
-        return datetime.now(timezone.utc)
-
-    @staticmethod
-    def _resolve(name, mapping):
-        return mapping[name] if name in mapping else name
 
 
 class Value(dict):
@@ -301,7 +314,7 @@ class User(_DatabaseObject):
     @property
     def last_password_change(self):
         # hint: could be cached, but it rarely is accessed multiple times
-        return self._to_datetime(self._last_password_change)
+        return _DateUtil.to_datetime(self._last_password_change)
 
     @classmethod
     def from_json(cls, user_json):
@@ -412,11 +425,11 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     @property
     def creation_time(self):
-        return super()._to_datetime(self._creation_time)
+        return _DateUtil.to_datetime(self._creation_time)
 
     @property
     def update_time(self):
-        return super()._to_datetime(self._update_time)
+        return _DateUtil.to_datetime(self._update_time)
 
     def store(self):
         """Will write the object to the database as a new instance."""
@@ -494,9 +507,7 @@ class Measurement(_DatabaseObjectWithFragments):
         # as a datetime object. It will be converted to string immediately
         # as there is no scenario where a manually created object won't be
         # written to Cumulocity anyways
-        if isinstance(time, datetime) and not time.tzinfo:
-            raise ValueError("A specified datetime needs to be timezone aware.")
-        self.time = super()._to_timestring(time) if isinstance(time, datetime) else time
+        self.time = _DateUtil.ensure_timestring(time)
 
     @classmethod
     def from_json(cls, measurement_json):
@@ -507,7 +518,7 @@ class Measurement(_DatabaseObjectWithFragments):
 
     def to_json(self):
         measurement_json = self.__parser.to_full_json(self)
-        measurement_json['time'] = self.time if self.time else super()._to_timestring(self._now())
+        measurement_json['time'] = self.time if self.time else _DateUtil.to_timestring(_DateUtil.now())
         measurement_json['source'] = {'id': self.source}
         return measurement_json
 
@@ -519,7 +530,7 @@ class Measurement(_DatabaseObjectWithFragments):
     @property
     def datetime(self):
         if self.time:
-            return super()._to_datetime(self.time)
+            return _DateUtil.to_datetime(self.time)
         else:
             return None
 
@@ -585,8 +596,25 @@ class _Query(object):  # todo: better name
         return '/' + resource.strip('/')
 
     @staticmethod
-    def __map_params(type=None, name=None, fragment=None, source=None,
-                     before=None, after=None, reverse=None, page_size=None, **kwargs):
+    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None,
+                                   before=None, after=None, min_age=None, max_age=None,
+                                   reverse=None, page_size=None, **kwargs):
+        # min_age/max_age should be timedelta objects that can be used for
+        # alternative calculation of the before/after parameters
+        if min_age:
+            assert not before  # todo warning
+            min_age = _DateUtil.ensure_timedelta(min_age)
+            before = _DateUtil.now() - min_age
+        if max_age:
+            assert not after  # todo warning
+            max_age = _DateUtil.ensure_timedelta(max_age)
+            after = _DateUtil.now() - max_age
+
+        # before/after can also be datetime objects,
+        # if so they need to be timezone aware
+        before = _DateUtil.ensure_timestring(before)
+        after = _DateUtil.ensure_timestring(after)
+
         params = {k: v for k, v in {'type': type, 'name': name,
                                     'source': source, 'fragmentType': fragment,
                                     'dateFrom': after, 'dateTo': before, 'revert': str(reverse),
@@ -595,7 +623,7 @@ class _Query(object):  # todo: better name
         return params
 
     def _build_base_query(self, **kwargs):
-        params = _Query.__map_params(**kwargs)
+        params = _Query.__prepare_query_parameters(**kwargs)
         return self.resource + '?' + urlencode(params) + '&currentPage='
 
     def _get_object(self, object_id):
@@ -663,24 +691,37 @@ class Measurements(_Query):
         measurement.c8y = self.c8y  # inject c8y connection into instance
         return measurement
 
-    def select(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
+    def select(self, type=None, source=None, fragment=None,
+               before=None, after=None, min_age=None, max_age=None, reverse=False,
+               limit=None, page_size=1000):
         """Lazy implementation."""
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
-                                            before=before, after=after,
+                                            before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
         page_number = 1
+        num_results = 1
         while True:
-            results = [Measurement.from_json(x) for x in self._get_page(base_query, page_number)]
-            if not results:
+            try:
+                results = [Measurement.from_json(x) for x in self._get_page(base_query, page_number)]
+                if not results:
+                    break
+                for result in results:
+                    result.c8y = self.c8y  # inject c8y connection into instance
+                    if limit and num_results > limit:
+                        raise StopIteration
+                    num_results = num_results + 1
+                    yield result
+            except StopIteration:
                 break
-            for result in results:
-                result.c8y = self.c8y  # inject c8y connection into instance
-                yield result
             page_number = page_number + 1
 
-    def get_all(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
+    def get_all(self, type=None, source=None, fragment=None,
+                before=None, after=None, min_age=None, max_age=None, reverse=False,
+                limit=None, page_size=1000):
         """Will get everything and return as a single result."""
-        return [x for x in self.select(type, source, fragment, before, after, reverse, page_size)]
+        return [x for x in self.select(type=type, source=source, fragment=fragment,
+                                       before=before, after=after, min_age=min_age, max_age=max_age,
+                                       reverse=reverse, limit=limit, page_size=page_size)]
 
     def get_last(self, type="", source="", fragment=""):
         """Will just get the last available measurement."""
@@ -857,13 +898,13 @@ class Binaries(object):
         assert isinstance(binary_meta_information, Binary)
 
         try:
-            if (file_path is not None):
+            if file_path is not None:
                 file = open(file_path, 'rb')
         except FileNotFoundError:
             error('File not found for file path: ', file_path)
             return
 
-        if (file is None):
+        if file is None:
             error('No File available to upload')
             return
 
