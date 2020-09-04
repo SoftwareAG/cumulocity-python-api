@@ -1,11 +1,12 @@
+import sys
 import requests
 import collections
 import time
 import yaml
 from dataclasses import dataclass
 
-from log_util import error, debug
-from c8y_model import Inventory, Measurements, Identity, Users
+from log_util import debug
+from c8y_model import Inventory, Measurements, Identity, Users, Binary
 
 
 class CumulocityRestApi:
@@ -31,8 +32,10 @@ class CumulocityRestApi:
     def get(self, resource, ordered=False):
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
         r = requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        if r.status_code == 404:
+            raise KeyError(f"No such object: {resource}")
         if r.status_code != 200:
-            error("Unable to perform GET request.", ("Status", r.status_code), ("Response", r.text))
+            raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
         return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
 
     def post(self, resource, json):
@@ -41,7 +44,7 @@ class CumulocityRestApi:
         headers = {'Accept': 'application/json', **self.__default_headers}
         r = requests.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if r.status_code != 201:
-            error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
+            raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
         return r.json()
 
     def post_file(self, resource, file, binary_meta_information):
@@ -58,7 +61,7 @@ class CumulocityRestApi:
 
         r = requests.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
         if r.status_code != 201:
-            error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
+            raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
     def put(self, resource, json):
@@ -67,20 +70,20 @@ class CumulocityRestApi:
         headers = {'Accept': 'application/json', **self.__default_headers}
         r = requests.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if r.status_code != 200:
-            error("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
+            raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
         return r.json()
 
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}
         r = requests.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
         if r.status_code != 201:
-            error("Unable to perform PUT request.", ("Status", r.status_code), ("Response", r.text))
+            raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
 
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
         r = requests.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if r.status_code != 204:
-            error("Unable to perform DELETE request.", ("Status", r.status_code), ("Response", r.text))
+            raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
 
 
 class CumulocityApi(CumulocityRestApi):
