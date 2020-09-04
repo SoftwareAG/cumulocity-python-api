@@ -34,6 +34,8 @@ class CumulocityRestApi:
         r = requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid GET request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
             raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
         return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
@@ -43,6 +45,8 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
         r = requests.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
         return r.json()
@@ -60,6 +64,8 @@ class CumulocityRestApi:
         }
 
         r = requests.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
             raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
@@ -69,6 +75,8 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
         r = requests.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
         return r.json()
@@ -76,12 +84,16 @@ class CumulocityRestApi:
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}
         r = requests.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
 
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
         r = requests.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 204:
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
 
