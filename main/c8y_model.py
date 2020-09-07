@@ -534,7 +534,7 @@ class Measurement(_DatabaseObjectWithFragments):
         else:
             return None
 
-    def store(self):
+    def create(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.post('/measurement/measurements', self.to_json())
 
@@ -633,6 +633,13 @@ class _Query(object):  # todo: better name
         result_json = self.c8y.get(base_query + str(page_number))
         return result_json[self.object_name]
 
+    def _create(self, jsonify_func, *objects):
+        if len(objects) == 1 and isinstance(objects[0], list):
+            self._create(jsonify_func, *objects)
+        else:
+            for o in objects:
+                self.c8y.post(self.resource, jsonify_func(o))
+
     def delete(self, *object_ids):
         for object_id in object_ids:
             self.c8y.delete(self.resource + '/' + str(object_id))
@@ -723,19 +730,16 @@ class Measurements(_Query):
                                        before=before, after=after, min_age=min_age, max_age=max_age,
                                        reverse=reverse, limit=limit, page_size=page_size)]
 
-    def get_last(self, type="", source="", fragment=""):
+    def get_last(self, type=None, source=None, fragment=None, before=None, min_age=None):
         """Will just get the last available measurement."""
-        base_query = self._build_base_query(
-            type=type, source=source, fragment=fragment, reverse=True, block_size=1)
-        return Measurement.from_json(self._get_page(base_query, "1")['measurements'][0])
+        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+                                            before=before, min_age=min_age, reverse=True, block_size=1)
+        m = Measurement.from_json(self._get_page(base_query, "1")['measurements'][0])
+        m.c8y = self.c8y  # inject c8y connection into instance
+        return m
 
-    def store(self, *measurements):
-        if len(measurements) == 1 and isinstance(measurements[0], list):
-            Measurements.store(*measurements)
-        else:
-            for m in measurements:
-                m.c8y = self.c8y
-                m.store()
+    def create(self, *measurements):
+        self._create(lambda m: m.to_json(), *measurements)
 
 
 class Users(_Query):
