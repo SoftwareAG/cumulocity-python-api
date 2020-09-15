@@ -177,9 +177,6 @@ class _DatabaseObjectWithFragments(_DatabaseObject):
         """Check whether a specific fragment is defined."""
         return fragment_name in self.fragments
 
-    def flag_update(self, name):
-        self._signal_updated_fragment(name)
-
     def get_updates(self):
         return list(self._updated_fields) + list(self._updated_fragments)
 
@@ -431,7 +428,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
     def update_time(self):
         return _DateUtil.to_datetime(self._update_time)
 
-    def store(self):
+    def create(self):
         """Will write the object to the database as a new instance."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         return self.c8y.post('/inventory/managedObjects', self.to_full_json())
@@ -634,11 +631,8 @@ class _Query(object):  # todo: better name
         return result_json[self.object_name]
 
     def _create(self, jsonify_func, *objects):
-        if len(objects) == 1 and isinstance(objects[0], list):
-            self._create(jsonify_func, *objects)
-        else:
-            for o in objects:
-                self.c8y.post(self.resource, jsonify_func(o))
+        for o in objects:
+            self.c8y.post(self.resource, jsonify_func(o))
 
     def delete(self, *object_ids):
         for object_id in object_ids:
@@ -655,14 +649,12 @@ class Inventory(_Query):
         managed_object.c8y = self.c8y  # inject c8y connection into instance
         return managed_object
 
-    def get_all(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
-        return [x for x in self.select(type, source, fragment, before, after, reverse, page_size)]
+    def get_all(self, type=None, fragment=None, page_size=1000):
+        return [x for x in self.select(type, fragment, page_size)]
 
-    def select(self, type=None, source=None, fragment=None, before=None, after=None, reverse=False, page_size=1000):
+    def select(self, type=None, fragment=None, page_size=1000):
         """Lazy implementation."""
-        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
-                                            before=before, after=after,
-                                            reverse=reverse, page_size=page_size)
+        base_query = self._build_base_query(type=type, fragment=fragment, page_size=page_size)
         page_number = 1
         while True:
             # todo: it should be possible to stream the JSON content as well
@@ -674,11 +666,33 @@ class Inventory(_Query):
                 yield result
             page_number = page_number + 1
 
-    def create(self, *managed_objects):
-        pass
+    def create(self, *managed_objects: ManagedObject):
+        """Create managed objects in database.
 
-    def update(self, object_id, object_model):
-        pass
+        Takes a list of managed objects and writes them to the database one by
+        one using the Cumulocity connection of this Inventory instance.
+
+        :param managed_objects  a list of ManagedObject instances
+        """
+        super()._create(lambda mo: mo.to_full_json(), *managed_objects)
+
+    def update(self, object_model, *object_ids):
+        """Apply a change to a number of existing objects.
+
+        Takes a list of ID of already existing managed objects and applies a
+        change within the database to all of them one by one.
+
+        Uses the Cumulocity connection of this Inventiry instance.
+
+        :param object_model  ManagedObject instance holding the change structure
+            like an added fragment of updated value.
+        :param object_ids  a list of ID of already existing ManagedObject
+            instances.
+        """
+        if object_model.id:
+            raise ValueError("The change model must not specify an ID.")
+        for object_id in object_ids:
+            self.c8y.put(self.resource + '/' + str(object_id), object_model.to_diff_json())
 
 
 class DeviceInventory(Inventory):
