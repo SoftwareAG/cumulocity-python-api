@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from dateutil import parser
+from copy import copy
 
 from log_util import error
 
@@ -73,6 +74,7 @@ class _DatabaseObject(object):
             del self.__dict__['+full_json+']
         if '+diff_json+' in self.__dict__:
             del self.__dict__['+diff_json+']
+
 
 
 class Value(dict):
@@ -282,48 +284,200 @@ class _UpdatableProperty(object):
         obj.__dict__[self.name] = value
 
 
+class _UpdatableThingProperty(object):
+
+    def __init__(self, prop_name, orig_name):
+        self.prop_name = prop_name
+        self.orig_name = orig_name
+        self._updatable = None
+
+    def __get__(self, obj, _):
+        print('get ' + self.prop_name)
+        if not self._updatable:
+            def on_update(n1, n2):
+                if not obj.__dict__[n1]:  # has not been preserved
+                    obj.__dict__[n2] = copy(obj.__dict__[n1])
+            self._updatable = _UpdatableThing(obj.__dict__[self.prop_name],
+                                              lambda: on_update(self.prop_name, self.orig_name))
+        return self._updatable
+
+    def __set__(self, obj, value):
+        if not obj.__dict__[self.orig_name]:  # has not been preserved
+            obj.__dict__[self.orig_name] = copy(obj.__dict__[self.prop_name])
+        obj.__dict__[self.prop_name] = value
+
+    @staticmethod
+    def _preserve_original_set(obj, name, orig_name):
+        if not obj.__dict__[orig_name]:
+            obj.__dict__[orig_name] = set(obj.__dict__[name])
+
+
+class _UpdatableSetProperty(object):
+
+    def __init__(self, prop_name, orig_name):
+        self.prop_name = prop_name
+        self.orig_name = orig_name
+
+    def __get__(self, obj, _):
+        self._preserve_original(obj)
+        return obj.__dict__[self.prop_name]
+
+    def __set__(self, obj, value):
+        self._preserve_original(obj)
+        obj.__dict__[self.prop_name] = value
+
+    def _preserve_original(self, obj):
+        if not obj.__dict__[self.orig_name]:
+            obj.__dict__[self.orig_name] = set(obj.__dict__[self.prop_name])
+
+
+class _UpdatableSet(set):
+
+    def __init__(self, data=None):
+        super().__init__(data)
+        self.is_updated = False
+
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if hasattr(attr, '__call__'):  # it's a function
+            def func(*args, **kwargs):
+                return attr(*args, **kwargs)
+            self.is_updated = True
+            return func
+        else:
+            return attr
+
+
+class _UpdatableThing:
+
+    def __init__(self, thing, on_access):
+        self.on_access = on_access
+        self.thing = thing
+
+    def __getattribute__(self, name):
+        print('getattr ' + name)
+        attr = object.__getattribute__(object.__getattribute__(self, 'thing'), name)
+        if hasattr(attr, '__call__'):  # it's a function
+            def func(*args, **kwargs):
+                return attr(*args, **kwargs)
+            object.__getattribute__(self, 'on_access')()
+            return func
+        else:
+            return attr
+
+
 class User(_DatabaseObject):
 
     __parser = _DatabaseObjectParser({
-            'user_id': 'id',
+            '_user_id': 'id',
+            'username': 'userName',
             '_u_email': 'email',
             '_u_enabled': 'enabled',  # bool
-            '_u_username': 'userName',
             '_u_display_name': 'displayName',
+            '_u_password': 'password',
+            '_u_should_reset_password': 'shouldResetPassword',
+            '_password_reset_mail': 'sendPasswordResetMail',
             '_last_password_change': 'lastPasswordChange'})
 
-    def __init__(self, c8y=None, user_id=None, email=None, enabled=True, username=None, display_name=None):
+    def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
+                 password=None, require_password_reset=None, roles=None, groups=None):
+        """
+        :param c8y:
+        :param username:
+        :param email:
+        :param enabled:
+        :param display_name:
+        :param password:  the initial password for the user
+            if omitted, a newly created user will be send a password reset link
+            (for human users)
+        :param roles:  the initial set of roles (permissions) for this user
+            a newly created user will be assigned these after creation
+            Note: human users are usually assigned to groups (global roles)
+        :param groups:  the initial set of groups (global roles) for this user
+            a newly created user will be assigned to these after creation
+        """
         super().__init__(c8y)
-        self.user_id = user_id
+        self.user_id = None
+        self.username = username
         self._u_email = email
         self._u_enabled = enabled
-        self._u_username = username
         self._u_display_name = display_name
-        # todo: groups
-        # todo: roles
+        self._u_password = password
+        self._u_require_password_reset = require_password_reset
+        self._password_reset_mail = False if self._u_password else True
         self._last_password_change = None
+        self._x_groups = groups
+        self._x_roles = roles
+        self._x_orig_groups = None
+        self._x_orig_roles = None
 
-    username = _UpdatableProperty(name='_u_username')
-    display_name = _UpdatableProperty(name='_u_display_name')
-    email = _UpdatableProperty(name='_u_email')
-    enabled = _UpdatableProperty(name='_u_enabled')
+    display_name = _UpdatableProperty('_u_display_name')
+    email = _UpdatableProperty('_u_email')
+    enabled = _UpdatableProperty('_u_enabled')
+    require_password_reset = _UpdatableProperty('_u_require_password_reset')
+    role_ids = _UpdatableSetProperty('_x_roles', '_x_orig_roles')
+    group_ids = _UpdatableSetProperty('_x_groups', '_x_orig_groups')
 
     @property
     def last_password_change(self):
-        # hint: could be cached, but it rarely is accessed multiple times
+        # hint: could be cached, but it is rarely accessed multiple times
         return _DateUtil.to_datetime(self._last_password_change)
 
     @classmethod
     def from_json(cls, user_json):
-        return cls.__parser.from_json(user_json, User())
+        user = cls.__parser.from_json(user_json, User())
+        if user_json['roles']:
+            if user_json['roles']['references']:
+                user._x_roles = {ref['role']['id'] for ref in user_json['roles']['references']}
+        if user_json['groups']:
+            if user_json['groups']['references']:
+                user._x_groups = {ref['group']['id'] for ref in user_json['groups']['references']}
+        return user
 
     def to_full_json(self):
         return self.__parser.to_full_json(self)
 
     def to_diff_json(self):
-        return self.__parser.to_diff_json(self)
+        result_json = self.__parser.to_diff_json(self)
+        # check roles
+        if self._x_orig_roles:
+            added = self._x_roles.difference(self._x_orig_roles)
+            removed = self._x_orig_roles.difference(self._x_roles)
+            print(added)
+            print(removed)
+        return result_json
 
-    def add_role(self, role_id):
+    def create(self):
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        if not self.username:
+            raise ValueError("User ID must be provided.")
+        # 1: create the user itself
+        self.c8y.post(f'/user/{self.c8y.tenant_id}/users', self.to_full_json())
+        # 2: assign roles
+        useradd_json = {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
+        for group_id in self.group_ids:
+            self.c8y.post(f'/user/{self.c8y.tenant_id}/groups/{group_id}/users', useradd_json)
+        # 3: assign groups
+        for role_id in self.role_ids:
+            roleadd_json = {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
+            self.c8y.post(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles', roleadd_json)
+
+    def update(self):
+        pass
+
+    def update_password(self, new_password):
+        pass
+
+    def add_groups(self, *group_ids):
+        pass
+
+    def remove_groups(self, *group_ids):
+        pass
+
+    def add_roles(self, *role_ids):
+        pass
+
+    def remove_roles(self, *role_ids):
         pass
 
 
@@ -691,8 +845,9 @@ class Inventory(_Query):
         """
         if object_model.id:
             raise ValueError("The change model must not specify an ID.")
+        update_json = object_model.to_diff_json()
         for object_id in object_ids:
-            self.c8y.put(self.resource + '/' + str(object_id), object_model.to_diff_json())
+            self.c8y.put(self.resource + '/' + str(object_id), update_json)
 
 
 class DeviceInventory(Inventory):
@@ -762,19 +917,15 @@ class Users(_Query):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
         self.__groups = Groups(c8y)
 
-    def get(self, user_id):
+    def get(self, username):
         """Retrieve a specific user.
 
-        :param user_id The ID of the user (usually the mail address)
+        :param username The ID of the user (usually the mail address)
         :rtype User
         """
-        user = User.from_json(self._get_object(user_id))
+        user = User.from_json(self._get_object(username))
         user.c8y = self.c8y  # inject c8y connection into instance
         return user
-
-    def add_roles(self, user_id, *role_ids):
-        # todo: this would be an immediate action/write to database
-        pass
 
     def select(self, username=None, groups=None):
         """Lazily select and yield User instances.
@@ -829,12 +980,23 @@ class Users(_Query):
     def create(self):
         pass
 
+    def update(self, update_model, *usernames):
+        # just to make sure that the developer is aware that the first argument
+        # is a MODEL which is applied not NOT updated; Also: the username cannot
+        # be updated
+        if update_model.username:
+            raise ValueError("The change model must not specify a username.")
+        update_json = update_model.to_diff_json()
+        for username in usernames:
+            self.c8y.put(self.resource + '/' + username, update_json)
+
 
 class Groups(_Query):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/groups')
         self.__groups_by_name = None
+        self.__groups_by_id = None
 
     def reset_caches(self):
         """Reset internal caching.
@@ -843,6 +1005,7 @@ class Groups(_Query):
           * Groups by name (used for all group lookup by name)
         """
         self.__groups_by_name = None
+        self.__groups_by_id = None
 
     def get(self, group_id):
         """Retrieve a specific group.

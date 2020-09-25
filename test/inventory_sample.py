@@ -7,8 +7,8 @@ mo1 = ManagedObject(name='test')
 mo1.add_fragment(name='c8y_Fragment', region='EMEA')
 mo1.add_fragments([Fragment('c8y_F1', v=1), Fragment('c8y_F2', v=2)])
 mo1.c8y = c8y  # needs to be defined for object-oriented database access
-mo1.store()
-mo1.store()
+mo1.create()
+mo1.create()
 
 mo_chg = ManagedObject()
 mo_chg.c8y = c8y  # this is needed to invoke db access methods directly on object

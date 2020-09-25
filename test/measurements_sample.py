@@ -9,7 +9,7 @@ c8y = CumulocityApi()
 # create a device and obtain ID
 d = Device(c8y, type='DemoClient')
 d.add_fragment('c8y_DemoClient')
-d.store()
+d.create()
 device_id = c8y.inventory.get_all(fragment='c8y_DemoClient')[0].id
 
 m1 = Measurement(c8y, type='c8y_DemoMeasurement', source=device_id)
