@@ -149,9 +149,9 @@ class _DatabaseObjectWithFragments(_DatabaseObject):
         self._updated_fragments = None
         self.fragments = {}
 
-    def add_fragment(self, name, **kwargs):
+    def add_fragment(self, name, value=None, **kwargs):
         """Append a custom fragment to the object."""
-        self.fragments[name] = kwargs
+        self.fragments[name] = value if value else kwargs
         self._signal_updated_fragment(name)
         return self
 
@@ -167,13 +167,15 @@ class _DatabaseObjectWithFragments(_DatabaseObject):
 
     def __getattr__(self, item):
         """Directly access a specific fragment."""
+        fragment = self.fragments[item]
         # A fragment is a simple dictionary. By wrapping it into the _DictWrapper class
         # it is ensured that the same access behaviour is ensured on all levels.
         # All updated anywhere within the dictionary tree will be reported as an update
         # to this instance.
         # If the element is not a dictionary, it can be returned directly
-        return item if not isinstance(self.fragments[item], dict) else \
-            _DictWrapper(self.fragments[item], lambda: self._signal_updated_fragment(item))
+        if isinstance(fragment, dict):
+            return _DictWrapper(self.fragments[item], lambda: self._signal_updated_fragment(item))
+        return fragment
 
     def has(self, fragment_name):
         """Check whether a specific fragment is defined."""
