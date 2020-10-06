@@ -76,7 +76,6 @@ class _DatabaseObject(object):
             del self.__dict__['+diff_json+']
 
 
-
 class Value(dict):
     def __init__(self, value, unit):
         super().__init__(value=value, unit=unit)
@@ -149,9 +148,13 @@ class _DatabaseObjectWithFragments(_DatabaseObject):
         self._updated_fragments = None
         self.fragments = {}
 
-    def add_fragment(self, name, value=None, **kwargs):
+    def add_attribute(self, name, value):
+        self.fragments[name] = value
+        self._signal_updated_fragment(name)
+
+    def add_fragment(self, name, **kwargs):
         """Append a custom fragment to the object."""
-        self.fragments[name] = value if value else kwargs
+        self.fragments[name] = kwargs
         self._signal_updated_fragment(name)
         return self
 
@@ -165,17 +168,16 @@ class _DatabaseObjectWithFragments(_DatabaseObject):
             self._signal_updated_fragment(f.name)
         return self
 
-    def __getattr__(self, item):
+    def __getattr__(self, name):
         """Directly access a specific fragment."""
-        fragment = self.fragments[item]
         # A fragment is a simple dictionary. By wrapping it into the _DictWrapper class
         # it is ensured that the same access behaviour is ensured on all levels.
         # All updated anywhere within the dictionary tree will be reported as an update
         # to this instance.
         # If the element is not a dictionary, it can be returned directly
-        if isinstance(fragment, dict):
-            return _DictWrapper(self.fragments[item], lambda: self._signal_updated_fragment(item))
-        return fragment
+        item = self.fragments[name]
+        return item if not isinstance(item, dict) else \
+            _DictWrapper(self.fragments[name], lambda: self._signal_updated_fragment(name))
 
     def has(self, fragment_name):
         """Check whether a specific fragment is defined."""
