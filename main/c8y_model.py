@@ -498,6 +498,26 @@ class Group(_DatabaseObject):
     def from_json(cls, group_json):
         return cls.__parser.from_json(group_json, Group())
 
+class ManagedObjectReference(_DatabaseObjectWithFragments):
+    __parser = _DatabaseObjectWithFragmentsParser(
+        {'managedObject': 'managedObject'},
+        [])
+
+    def __init__(self, c8y=None, reference=None):
+        super().__init__(c8y)
+        self.add_fragment(name='managedObject', id=reference)
+
+    @classmethod
+    def from_json(cls, object_json):
+        mor = cls.__parser.from_json(object_json, ManagedObjectReference())
+        return mor
+
+    def to_full_json(self):
+        return self.__parser.to_full_json(self)
+
+    def to_diff_json(self):
+        return self.__parser.to_diff_json(self)
+
 
 class ManagedObject(_DatabaseObjectWithFragments):
     """
@@ -602,6 +622,13 @@ class ManagedObject(_DatabaseObjectWithFragments):
         """Will delete the object within the database."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.delete('/inventory/managedObjects/' + str(self.id))
+
+    def add_child_asset(self, child_id):
+        """ 
+        Empty
+        """
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAssets", ManagedObjectReference(reference=child_id).to_full_json())
 
 
 class Device(ManagedObject):
