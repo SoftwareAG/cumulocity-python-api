@@ -390,8 +390,8 @@ class Permission(_DatabaseObject):
 
     @classmethod
     def from_json(cls, object_json):
-        mor = cls.__parser.from_json(object_json, Permission())
-        return mor
+        p = cls.__parser.from_json(object_json, Permission())
+        return p
 
     def to_full_json(self):
         return self.__parser.to_full_json(self)
@@ -399,7 +399,43 @@ class Permission(_DatabaseObject):
     def to_diff_json(self):
         return self.__parser.to_diff_json(self)
 
+class InventoryRole(_DatabaseObjectWithFragments):
+    __parser = _DatabaseObjectWithFragmentsParser({
+            'id': 'id',
+            'name': 'name',
+            '_ir_permissions': 'permissions'},['self', 'permissionsList'])
 
+    def __init__(self,  c8y=None, name=None):
+        """
+        :param c8y:
+        :param name: name of the inventory role
+        """
+        super().__init__(c8y)
+        self.id = None
+        self.name = name
+        self.permissionsList = []
+
+    @classmethod
+    def from_json(cls, object_json):
+        # TODO implement
+        r = cls.__parser.from_json(object_json, InventoryRole())
+        return r
+
+    def to_full_json(self):
+        self._ir_permissions = list(map(lambda p: p.to_full_json(), self.permissionsList))
+        return self.__parser.to_full_json(self)
+
+    def to_diff_json(self):
+        # TODO implement
+        return self.__parser.to_diff_json(self)
+
+    def add_permission(self, permission):
+        self.permissionsList.append(permission)
+
+    def create(self):
+        """Will write the object to the database as a new instance."""
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        return self.c8y.post('/user/inventoryroles', self.to_full_json())
 
 class User(_DatabaseObject):
 
