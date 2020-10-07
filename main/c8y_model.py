@@ -627,12 +627,32 @@ class ManagedObject(_DatabaseObjectWithFragments):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.delete('/inventory/managedObjects/' + str(self.id))
 
-    def add_child_asset(self, child_id):
+    def add_child_asset(self, managed_object_child_id):
         """ 
-        Empty
+        Add a child asset to this managed object.
+
+        Provide the id of the managed object you want to add as a child asset
         """
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAssets", ManagedObjectReference(reference=child_id).to_full_json())
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAssets", ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+
+    def add_child_device(self, managed_object_child_id):
+        """ 
+        Add a child device to this managed object.
+
+        Provide the id of the managed object you want to add as a child device
+        """
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childDevice", ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+
+    def add_child_addition(self, managed_object_child_id):
+        """ 
+        Add a child addition to this managed object.
+
+        Provide the id of the managed object you want to add as a child addition
+        """
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAdditions", ManagedObjectReference(reference=managed_object_child_id).to_full_json())
 
 
 class Device(ManagedObject):
