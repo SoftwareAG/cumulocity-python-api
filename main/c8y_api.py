@@ -6,7 +6,7 @@ import yaml
 from dataclasses import dataclass
 
 from log_util import debug
-from c8y_model import Inventory, Measurements, Identity, Users, Groups, Binary
+from c8y_model import Inventory, Measurements, Identity, Users, Groups, Binary, InventoryRoles
 
 
 class CumulocityRestApi:
@@ -107,6 +107,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__identity = Identity(self)
         self.__users = Users(self)
         self.__groups = Groups(self)
+        self.__inventoryroles = InventoryRoles(self)
 
     @property
     def measurements(self):
@@ -127,6 +128,10 @@ class CumulocityApi(CumulocityRestApi):
     @property
     def groups(self):
         return self.__groups
+
+    @property
+    def inventoryroles(self):
+        return self.__inventoryroles
 
 class CumulocityDeviceRegistry(CumulocityRestApi):
 

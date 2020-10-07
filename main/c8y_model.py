@@ -419,6 +419,7 @@ class InventoryRole(_DatabaseObjectWithFragments):
     def from_json(cls, object_json):
         # TODO implement
         r = cls.__parser.from_json(object_json, InventoryRole())
+        r.permissionsList = list(map(lambda p: Permission.from_json(p), object_json['permissions']))
         return r
 
     def to_full_json(self):
@@ -1028,6 +1029,30 @@ class Measurements(_Query):
     def create(self, *measurements):
         self._create(lambda m: m.to_json(), *measurements)
 
+class InventoryRoles(_Query):
+
+    def __init__(self, c8y):
+        super().__init__(c8y, 'user/inventoryroles')
+        self.object_name="roles"
+
+    def get(self, object_id):
+        role = InventoryRole.from_json(self._get_object(object_id))
+        role.c8y = self.c8y  # inject c8y connection into instance
+        return role
+
+    def get_all(self, page_size=1000):
+        """Lazy implementation."""
+        base_query = self._build_base_query(page_size=page_size)
+        page_number = 1
+        while True:
+            # todo: it should be possible to stream the JSON content as well
+            results = [InventoryRole.from_json(x) for x in self._get_page(base_query, page_number)]
+            if not results:
+                break
+            for result in results:
+                result.c8y = self.c8y  # inject c8y connection into instance
+                yield result
+            page_number = page_number + 1
 
 class Users(_Query):
 
