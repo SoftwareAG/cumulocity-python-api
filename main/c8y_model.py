@@ -369,6 +369,37 @@ class _UpdatableThing:
         else:
             return attr
 
+class Permission(_DatabaseObject):
+    __parser = _DatabaseObjectParser({
+            'id': 'id',
+            'permission': 'permission',
+            'c8y_type': 'type',
+            'scope': 'scope'})
+
+    def __init__(self, permission="*", c8y_type="*", scope="*"):
+        """
+        :param permission: one of ADMIN, READ, * (default)
+        :param type: type on which to restrict or * (default)
+        :param scope: one of ALARM, AUDIT, EVENT, MEASUREMENT, MANAGED_OBJECT, OPERATION, or * (default)
+        """
+        super().__init__(None)
+        self.id = None
+        self.permission = permission
+        self.c8y_type = c8y_type
+        self.scope = scope
+
+    @classmethod
+    def from_json(cls, object_json):
+        mor = cls.__parser.from_json(object_json, Permission())
+        return mor
+
+    def to_full_json(self):
+        return self.__parser.to_full_json(self)
+
+    def to_diff_json(self):
+        return self.__parser.to_diff_json(self)
+
+
 
 class User(_DatabaseObject):
 
