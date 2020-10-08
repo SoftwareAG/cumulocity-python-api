@@ -402,9 +402,10 @@ class Permission(_DatabaseObject):
 class InventoryRole(_DatabaseObject):
     __parser = _DatabaseObjectParser({
             'id': 'id',
-            'name': 'name'})
+            'name': 'name',
+            'description': 'description'})
 
-    def __init__(self,  c8y=None, name=None, permissions=[]):
+    def __init__(self,  c8y=None, name=None, description=None, permissions=[]):
         """
         :param c8y:
         :param name: name of the inventory role
@@ -412,6 +413,7 @@ class InventoryRole(_DatabaseObject):
         super().__init__(c8y)
         self.id = None
         self.name = name
+        self.description = description
         self.permissions = permissions
 
     @classmethod
