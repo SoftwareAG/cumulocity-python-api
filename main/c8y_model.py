@@ -405,13 +405,13 @@ class InventoryRole(_DatabaseObject):
             'name': 'name',
             'description': 'description'})
 
-    def __init__(self,  c8y=None, name=None, description=None, permissions=[]):
+    def __init__(self, id=None, c8y=None, name=None, description=None, permissions=[]):
         """
         :param c8y:
         :param name: name of the inventory role
         """
         super().__init__(c8y)
-        self.id = None
+        self.id = id
         self.name = name
         self.description = description
         self.permissions = permissions
@@ -445,6 +445,54 @@ class InventoryRole(_DatabaseObject):
         """Will delete the object within the database."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.delete('/user/inventoryroles/{}'.format(self.id))
+
+
+class InventoryRoleAssignment(_DatabaseObject):
+    __parser = _DatabaseObjectParser({
+            'id': 'id',
+            'managedObject': 'managedObject'})
+
+    def __init__(self,  c8y=None, username=None, managedObject=None, roles=[]):
+        """
+        :param c8y:
+        :param name: name of the inventory role
+        """
+        super().__init__(c8y)
+        self.id = None
+        self.username = username
+        self.managedObject = managedObject
+        self.roles = roles
+    
+    @classmethod
+    def from_json(cls, object_json):
+        r = cls.__parser.from_json(object_json, InventoryRoleAssignment())
+        r.roles = list(map(lambda p: InventoryRole.from_json(p), object_json['roles']))
+        return r
+
+    def to_full_json(self):
+        j = self.__parser.to_full_json(self)
+        j['roles'] = list(map(lambda r: r.to_full_json(), self.roles))
+        return j
+
+    def to_diff_json(self):
+        # TODO improve by csou
+        return self.to_full_json()
+
+    def create(self):
+        """Will write the object to the database as a new instance."""
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        return self.c8y.post(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory', self.to_full_json())
+    
+    def update(self):
+        """Will update the Inventory Role object"""
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        return self.c8y.put(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}', self.to_diff_json())
+
+    def delete(self):
+        """Will delete the object within the database."""
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.delete(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}')
+
 
 class User(_DatabaseObject):
 

@@ -47,7 +47,7 @@ class CumulocityRestApi:
         r = requests.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code != 201:
+        if r.status_code != 201 and r.status_code != 200:
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
         return r.json()
 
