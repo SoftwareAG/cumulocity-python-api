@@ -399,13 +399,12 @@ class Permission(_DatabaseObject):
     def to_diff_json(self):
         return self.__parser.to_diff_json(self)
 
-class InventoryRole(_DatabaseObjectWithFragments):
-    __parser = _DatabaseObjectWithFragmentsParser({
+class InventoryRole(_DatabaseObject):
+    __parser = _DatabaseObjectParser({
             'id': 'id',
-            'name': 'name',
-            '_ir_permissions': 'permissions'},['self', 'permissionsList'])
+            'name': 'name'})
 
-    def __init__(self,  c8y=None, name=None):
+    def __init__(self,  c8y=None, name=None, permissions=[]):
         """
         :param c8y:
         :param name: name of the inventory role
@@ -413,25 +412,22 @@ class InventoryRole(_DatabaseObjectWithFragments):
         super().__init__(c8y)
         self.id = None
         self.name = name
-        self.permissionsList = []
+        self.permissions = permissions
 
     @classmethod
     def from_json(cls, object_json):
-        # TODO implement
         r = cls.__parser.from_json(object_json, InventoryRole())
-        r.permissionsList = list(map(lambda p: Permission.from_json(p), object_json['permissions']))
+        r.permissions = list(map(lambda p: Permission.from_json(p), object_json['permissions']))
         return r
 
     def to_full_json(self):
-        self._ir_permissions = list(map(lambda p: p.to_full_json(), self.permissionsList))
-        return self.__parser.to_full_json(self)
+        j = self.__parser.to_full_json(self)
+        j['permissions'] = list(map(lambda p: p.to_full_json(), self.permissions))
+        return j
 
     def to_diff_json(self):
-        # TODO implement
-        return self.__parser.to_diff_json(self)
-
-    def add_permission(self, permission):
-        self.permissionsList.append(permission)
+        # TODO improve by csou
+        return self.to_full_json()
 
     def create(self):
         """Will write the object to the database as a new instance."""
