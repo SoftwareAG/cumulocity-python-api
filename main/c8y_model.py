@@ -455,7 +455,9 @@ class InventoryRoleAssignment(_DatabaseObject):
     def __init__(self,  c8y=None, username=None, managedObject=None, roles=[]):
         """
         :param c8y:
-        :param name: name of the inventory role
+        :param username: user to which to assign the inventory roles
+        :param managedObject: id of the group on which to assign the inventory roles
+        :param roles: list of inventory roles to assign
         """
         super().__init__(c8y)
         self.id = None
