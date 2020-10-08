@@ -433,6 +433,11 @@ class InventoryRole(_DatabaseObject):
         """Will write the object to the database as a new instance."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         return self.c8y.post('/user/inventoryroles', self.to_full_json())
+    
+    def delete(self):
+        """Will delete the object within the database."""
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self.c8y.delete('/user/inventoryroles/' + str(self.id))
 
 class User(_DatabaseObject):
 
