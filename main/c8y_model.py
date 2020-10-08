@@ -434,10 +434,15 @@ class InventoryRole(_DatabaseObject):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         return self.c8y.post('/user/inventoryroles', self.to_full_json())
     
+    def update(self):
+        """Will update the Inventory Role object"""
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        return self.c8y.put('/user/inventoryroles/{}'.format(self.id), self.to_diff_json())
+
     def delete(self):
         """Will delete the object within the database."""
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete('/user/inventoryroles/' + str(self.id))
+        self.c8y.delete('/user/inventoryroles/{}'.format(self.id))
 
 class User(_DatabaseObject):
 
