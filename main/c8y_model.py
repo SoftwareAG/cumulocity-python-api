@@ -75,6 +75,9 @@ class _DatabaseObject(object):
         if '+diff_json+' in self.__dict__:
             del self.__dict__['+diff_json+']
 
+    def _assert_c8y(self):
+        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+
 
 class Value(dict):
     def __init__(self, value, unit):
@@ -369,6 +372,22 @@ class _UpdatableThing:
         else:
             return attr
 
+
+class _Reference(object):
+
+    def __init__(self, c8y, path, type, id):
+        # self.tenant_id = tenant_id
+        self.path = path
+        self.type = type
+        self.id = id
+
+    def to_json(self):
+        return
+#         return {self.type:{
+#             'name': self.id, 'self':f'https://{self.c8y.tenant_id}.{self.c8y.}'}}
+# {"role":{"name":"ROLE_INVENTORY_READ","self":"https://t21106993.eu-latest.cumulocity.com/user/roles/ROLE_INVENTORY_READ","id":"ROLE_INVENTORY_READ"}}
+
+
 class Permission(_DatabaseObject):
     __parser = _DatabaseObjectParser({
             'id': 'id',
@@ -496,6 +515,7 @@ class InventoryRoleAssignment(_DatabaseObject):
         self.c8y.delete(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}')
 
 
+
 class User(_DatabaseObject):
 
     __parser = _DatabaseObjectParser({
@@ -611,22 +631,90 @@ class User(_DatabaseObject):
         pass
 
 
-class Group(_DatabaseObject):
+class GlobalRole(_DatabaseObject):
 
     __parser = _DatabaseObjectParser({
             'id': 'id',
-            'name': 'name',
-            'description': 'description'})
+            '_u_name': 'name',
+            '_u_description': 'description'})
 
-    def __init__(self, c8y=None):
+    def __init__(self, c8y=None, name=None, description=None, permission_ids=set()):
         super().__init__(c8y)
         self.id = None
-        self.name = None
-        self.description = None
+        self._u_name = name
+        self._u_description = description
+        self._x_permissions = permission_ids
+        self._x_orig_permissions = permission_ids
+
+    name = _UpdatableProperty('_u_name')
+    description = _UpdatableProperty('_u_description')
+    permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
 
     @classmethod
-    def from_json(cls, group_json):
-        return cls.__parser.from_json(group_json, Group())
+    def from_json(cls, role_json):
+        role = cls.__parser.from_json(role_json, GlobalRole())
+        if role_json['roles']:
+            if role_json['roles']['references']:
+                role._x_permissions = {ref['role']['id'] for ref in role_json['roles']['references']}
+        return role
+
+    def _to_full_json(self):
+        """ Return a complete JSON (dict) representation of the object.
+        As the 'full' JSON does not include the referenced permissions sensible
+        use of this function is module internal. """
+        return self.__parser.to_full_json(self)
+
+    def _to_diff_json(self):
+        """ Return a difference JSON (dict) representation of the object which
+        includes only updated aspects.
+        As the JSON does not include the referenced permissions sensible
+        use of this function is module internal. """
+        return self.__parser.to_diff_json(self)
+
+    def create(self, parse=False):
+        self._assert_c8y()
+        # 1 create the base object
+        new_id = self.c8y.post(self._base_path(), self._to_full_json())['id']
+        # 2 assign permissions to new global role
+        path = self._roles_path(new_id)
+        for p in self._x_permissions:
+            self.c8y.post(path, self.c8y.build_reference('user/roles', 'role', p))
+        # 3 get complete object as a result
+        if parse:
+            return self.from_json(self.c8y.get(self._object_path(new_id)))
+
+    def update(self, object_id=None, parse=False):
+        self._assert_c8y()
+        # 1 update the base object
+        if not object_id:
+            object_id = self.id
+        self.c8y.put(self._object_path(object_id), self._to_diff_json())
+        # 2 update roles
+        if self._x_orig_permissions:
+            added = self._x_permissions.difference(self._x_orig_permissions)
+            removed = self._x_orig_permissions.difference(self._x_permissions)
+            roles_path = self._roles_path(object_id)
+            for p in added:
+                self.c8y.post(roles_path, self.c8y.build_reference('user/roles', 'role', p))  # todo re-use from create
+            for p in removed:
+                self.c8y.delete(roles_path + '/' + p)
+        # 3 get updated object as result
+        if parse:
+            return self.from_json(self.c8y.get(self._object_path(object)))
+
+    def delete(self):
+        self._assert_c8y()
+        self.c8y.delete(self._object_path(self.id))
+
+    def _base_path(self):
+        return f'/user/{self.c8y.tenant_id}/groups'
+
+    def _object_path(self, object_id):
+        return f'{self._base_path()}/{object_id}'
+
+    def _roles_path(self, object_id):
+        return f'{self._object_path(object_id)}/roles'
+
 
 class ManagedObjectReference(_DatabaseObjectWithFragments):
     __parser = _DatabaseObjectWithFragmentsParser(
@@ -1147,7 +1235,7 @@ class Users(_Query):
                 groups = [groups]
             if isinstance(groups[0], int):
                 groups_string = [str(i) for i in groups]
-            elif isinstance(groups[0], Group):
+            elif isinstance(groups[0], GlobalRole):
                 groups_string = [str(g.id) for g in groups]
             elif isinstance(groups[0], str):
                 groups_string = [str(self.__groups.get(name).id) for name in groups]
@@ -1222,7 +1310,7 @@ class Groups(_Query):
         :rtype Group
         """
         if isinstance(group_id, int):
-            return Group.from_json(super()._get_object(group_id))
+            return GlobalRole.from_json(super()._get_object(group_id))
         # else: find group by name
         if not self.__groups_by_name:
             self.__groups_by_name = {g.name: g for g in self.get_all()}
@@ -1241,7 +1329,7 @@ class Groups(_Query):
             if not xs:
                 break
             for x in xs:
-                g = Group.from_json(x)
+                g = GlobalRole.from_json(x)
                 g.c8y = self.c8y
                 result.append(g)
             page_number = page_number + 1
