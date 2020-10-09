@@ -5,24 +5,21 @@ c8y = CumulocityApi()
 
 role = GlobalRole(name='new_role', description='description', permission_ids=['ROLE_ALARM_READ', 'ROLE_EVENT_READ'])
 role.c8y = c8y
-created_role1 = role.create(True)
+created_role = role.create()
 
-print(created_role1.id)
-print(created_role1.name)
-print(created_role1.description)
-print(created_role1.permission_ids)
+print(created_role.id)
+print(created_role.name)
+print(created_role.description)
+print(created_role.permission_ids)
 
-role_update = GlobalRole()
-role_update.description = 'updated description'
-role_update.permission_ids.add('ROLE_AUDIT_READ')
-# role_update.permission_ids.remove('ROLE_ALARM_READ')
+created_role.description = 'updated description'
+created_role.permission_ids.add('ROLE_AUDIT_READ')
+created_role.permission_ids.remove('ROLE_ALARM_READ')
+updated_role = created_role.update()
 
-# updated_role1 = role_update.update(created_role1, parse=True)
-#
-# print(updated_role1.id)
-# print(updated_role1.name)
-# print(updated_role1.description)
-# print(updated_role1.permission_ids)
+print("Global role after update:")
+print("  Name: " + updated_role.name)
+print("  Desc: " + updated_role.description)
+print("  Permissions: " + ', '.join(updated_role.permission_ids))
 
-created_role1.c8y = c8y
-created_role1.delete()
+updated_role.delete()

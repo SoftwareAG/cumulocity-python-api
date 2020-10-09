@@ -76,7 +76,12 @@ class _DatabaseObject(object):
             del self.__dict__['+diff_json+']
 
     def _assert_c8y(self):
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        if not self.c8y:
+            raise ValueError("Cumulocity connection reference must be set to allow direct database access.")
+
+    def _assert_id(self):
+        if not self.id:
+            raise ValueError("The object ID must be set to allow direct object access.")
 
 
 class Value(dict):
@@ -418,6 +423,7 @@ class Permission(_DatabaseObject):
     def to_diff_json(self):
         return self.__parser.to_diff_json(self)
 
+
 class InventoryRole(_DatabaseObject):
     __parser = _DatabaseObjectParser({
             'id': 'id',
@@ -443,7 +449,7 @@ class InventoryRole(_DatabaseObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['permissions'] = list(map(lambda p: p.to_full_json(), self.permissions))
+        j['permissions'] = list(map(lambda p: p._to_full_json(), self.permissions))
         return j
 
     def to_diff_json(self):
@@ -492,7 +498,7 @@ class InventoryRoleAssignment(_DatabaseObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['roles'] = list(map(lambda r: r.to_full_json(), self.roles))
+        j['roles'] = list(map(lambda r: r._to_full_json(), self.roles))
         return j
 
     def to_diff_json(self):
@@ -515,7 +521,6 @@ class InventoryRoleAssignment(_DatabaseObject):
         self.c8y.delete(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}')
 
 
-
 class User(_DatabaseObject):
 
     __parser = _DatabaseObjectParser({
@@ -525,12 +530,12 @@ class User(_DatabaseObject):
             '_u_enabled': 'enabled',  # bool
             '_u_display_name': 'displayName',
             '_u_password': 'password',
-            '_u_should_reset_password': 'shouldResetPassword',
+            '_u_require_password_reset': 'shouldResetPassword',
             '_password_reset_mail': 'sendPasswordResetMail',
             '_last_password_change': 'lastPasswordChange'})
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, require_password_reset=None, roles=None, groups=None):
+                 password=None, require_password_reset=None, permission_ids=None, global_role_ids=None):
         """
         :param c8y:
         :param username:
@@ -540,10 +545,10 @@ class User(_DatabaseObject):
         :param password:  the initial password for the user
             if omitted, a newly created user will be send a password reset link
             (for human users)
-        :param roles:  the initial set of roles (permissions) for this user
+        :param permission_ids:  the initial set of roles (permissions) for this user
             a newly created user will be assigned these after creation
             Note: human users are usually assigned to groups (global roles)
-        :param groups:  the initial set of groups (global roles) for this user
+        :param global_role_ids:  the initial set of groups (global roles) for this user
             a newly created user will be assigned to these after creation
         """
         super().__init__(c8y)
@@ -556,17 +561,17 @@ class User(_DatabaseObject):
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = False if self._u_password else True
         self._last_password_change = None
-        self._x_groups = groups
-        self._x_roles = roles
-        self._x_orig_groups = None
-        self._x_orig_roles = None
+        self._x_global_roles = global_role_ids
+        self._x_permissions = permission_ids
+        self._x_orig_global_roles = None
+        self._x_orig_permissions = None
 
     display_name = _UpdatableProperty('_u_display_name')
     email = _UpdatableProperty('_u_email')
     enabled = _UpdatableProperty('_u_enabled')
     require_password_reset = _UpdatableProperty('_u_require_password_reset')
-    role_ids = _UpdatableSetProperty('_x_roles', '_x_orig_roles')
-    group_ids = _UpdatableSetProperty('_x_groups', '_x_orig_groups')
+    role_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
+    group_ids = _UpdatableSetProperty('_x_global_roles', '_x_orig_global_roles')
 
     @property
     def last_password_change(self):
@@ -578,57 +583,102 @@ class User(_DatabaseObject):
         user = cls.__parser.from_json(user_json, User())
         if user_json['roles']:
             if user_json['roles']['references']:
-                user._x_roles = {ref['role']['id'] for ref in user_json['roles']['references']}
+                user._x_permissions = {ref['role']['id'] for ref in user_json['roles']['references']}
         if user_json['groups']:
             if user_json['groups']['references']:
-                user._x_groups = {ref['group']['id'] for ref in user_json['groups']['references']}
+                user._x_global_roles = {ref['group']['id'] for ref in user_json['groups']['references']}
         return user
 
-    def to_full_json(self):
+    def _to_full_json(self):
         return self.__parser.to_full_json(self)
 
-    def to_diff_json(self):
+    def _to_diff_json(self):
         result_json = self.__parser.to_diff_json(self)
         # check roles
-        if self._x_orig_roles:
-            added = self._x_roles.difference(self._x_orig_roles)
-            removed = self._x_orig_roles.difference(self._x_roles)
+        if self._x_orig_permissions:
+            added = self._x_permissions.difference(self._x_orig_permissions)
+            removed = self._x_orig_permissions.difference(self._x_permissions)
             print(added)
             print(removed)
         return result_json
 
-    def create(self):
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        if not self.username:
-            raise ValueError("User ID must be provided.")
+    def create(self, ignore_result=False):
+        self._assert_c8y()
+        self._assert_username()
         # 1: create the user itself
-        self.c8y.post(f'/user/{self.c8y.tenant_id}/users', self.to_full_json())
-        # 2: assign roles
-        useradd_json = {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
+        base_path = f'/user/{self.c8y.tenant_id}/users'
+        self.c8y.post(base_path, self._to_full_json())
+        # 2: assign user to global roles
+        ref_json = self._build_user_reference()
         for group_id in self.group_ids:
-            self.c8y.post(f'/user/{self.c8y.tenant_id}/groups/{group_id}/users', useradd_json)
-        # 3: assign groups
+            group_users_path = f'/user/{self.c8y.tenant_id}/groups/{group_id}/users'
+            self.c8y.post(group_users_path, ref_json)
+        # 3: assign single permissions to user
+        user_path = base_path + '/' + self.username
+        user_roles_path = user_path + '/roles'
         for role_id in self.role_ids:
-            roleadd_json = {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
-            self.c8y.post(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles', roleadd_json)
+            ref_json = self._build_role_reference(role_id)
+            self.c8y.post(user_roles_path, ref_json)
+        if not ignore_result:
+            new_obj = self.from_json(self.c8y.get(user_path))
+            new_obj.c8y = self.c8y
+            return new_obj
 
-    def update(self):
-        pass
+    def update(self, ignore_result=False):
+        """
+        Write changed aspects to database.
+
+        :param parse  Read the updated object and parse it into a new object
+
+        Note: The User object is spread across multiple database concepts
+        that need to be updated separately. Because of this it can only be
+        updated directly - it is not possible to apply a 'change' to
+        another object.
+        """
+        self._assert_c8y()
+        self._assert_username()
+        user_path = f'/user/{self.c8y.tenant_id}/users/{self.username}'
+        # 1: write base object changes
+        self.c8y.put(user_path, self._to_diff_json())
+        # 2: assign/unassign user from global roles
+        if self._x_orig_global_roles:
+            added = self._x_global_roles.difference(self._x_orig_global_roles)
+            removed = self._x_orig_global_roles.difference(self._x_global_roles)
+            if added:
+                user_reference_json = self._build_user_reference()
+                for gid in added:
+                    groups_path = f'/user/{self.c8y.tenant_id}/groups/{gid}/users'
+                    self.c8y.post(groups_path, user_reference_json)
+            if removed:
+                for gid in removed:
+                    roles_path = f'/user/{self.c8y.tenant_id}/groups/{gid}/users/{self.username}'
+                    self.c8y.delete(roles_path)
+        # 3: add/remove permissions
+        if self._x_orig_permissions:
+            added = self._x_permissions.difference(self._x_orig_permissions)
+            removed = self._x_orig_permissions.difference(self._x_permissions)
+            roles_path = user_path + '/roles'
+            for pid in added:
+                self.c8y.post(roles_path, self._build_role_reference(pid))
+            for pid in removed:
+                self.c8y.delete(roles_path + '/' + pid)
+        if not ignore_result:
+            new_obj = self.from_json(self.c8y.get(user_path))
+            new_obj.c8y = self.c8y
+            return new_obj
 
     def update_password(self, new_password):
         pass
 
-    def add_groups(self, *group_ids):
-        pass
+    def _build_role_reference(self, role_id):
+        return {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
 
-    def remove_groups(self, *group_ids):
-        pass
+    def _build_user_reference(self):
+        return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
 
-    def add_roles(self, *role_ids):
-        pass
-
-    def remove_roles(self, *role_ids):
-        pass
+    def _assert_username(self):
+        if not self.username:
+            raise ValueError("Username must be provided.")
 
 
 class GlobalRole(_DatabaseObject):
@@ -671,49 +721,65 @@ class GlobalRole(_DatabaseObject):
         use of this function is module internal. """
         return self.__parser.to_diff_json(self)
 
-    def create(self, parse=False):
+    def create(self, ignore_result=False):
         self._assert_c8y()
         # 1 create the base object
-        new_id = self.c8y.post(self._base_path(), self._to_full_json())['id']
+        base_path = f'/user/{self.c8y.tenant_id}/groups'
+        new_id = self.c8y.post(base_path, self._to_full_json())['id']
+        object_path = base_path + '/' + str(new_id)
         # 2 assign permissions to new global role
-        path = self._roles_path(new_id)
-        for p in self._x_permissions:
-            self.c8y.post(path, self.c8y.build_reference('user/roles', 'role', p))
+        roles_path = object_path + '/roles'
+        for pid in self._x_permissions:
+            self.c8y.post(roles_path, self._build_role_reference(pid))
         # 3 get complete object as a result
-        if parse:
-            return self.from_json(self.c8y.get(self._object_path(new_id)))
+        if not ignore_result:
+            new_obj = self.from_json(self.c8y.get(object_path))
+            new_obj.c8y = self.c8y
+            return new_obj
 
-    def update(self, object_id=None, parse=False):
+    def update(self, ignore_result=False):
+        """
+        Write changed aspects to database.
+
+        :param ignore_result  if False (default), the updated object is
+            returned as new instance
+
+        Note: The GlobalRole object is spread across multiple database
+        concepts that need to be updated separately. Because of this it can
+        only be updated directly - it is not possible to apply a 'change' to
+        another object.
+        """
         self._assert_c8y()
+        self._assert_id()
+        object_path = f'/user/{self.c8y.tenant_id}/groups/{self.id}'
         # 1 update the base object
-        if not object_id:
-            object_id = self.id
-        self.c8y.put(self._object_path(object_id), self._to_diff_json())
+        update_json = self._to_diff_json()
+        update_json['name'] = self.name  # for whatever reason name must be provided
+        self.c8y.put(object_path, update_json)
         # 2 update roles
         if self._x_orig_permissions:
             added = self._x_permissions.difference(self._x_orig_permissions)
             removed = self._x_orig_permissions.difference(self._x_permissions)
-            roles_path = self._roles_path(object_id)
-            for p in added:
-                self.c8y.post(roles_path, self.c8y.build_reference('user/roles', 'role', p))  # todo re-use from create
-            for p in removed:
-                self.c8y.delete(roles_path + '/' + p)
+            roles_path = object_path + '/roles'
+            for pid in added:
+                self.c8y.post(roles_path, self._build_role_reference(pid))  # todo re-use from create
+            for pid in removed:
+                self.c8y.delete(roles_path + '/' + pid)
         # 3 get updated object as result
-        if parse:
-            return self.from_json(self.c8y.get(self._object_path(object)))
+        if not ignore_result:
+            updated_obj = self.from_json(self.c8y.get(object_path))
+            updated_obj.c8y = self.c8y
+            return updated_obj
 
     def delete(self):
         self._assert_c8y()
-        self.c8y.delete(self._object_path(self.id))
+        self._assert_id()
+        object_path = f'/user/{self.c8y.tenant_id}/groups/{self.id}'
+        self.c8y.delete(object_path)
 
-    def _base_path(self):
-        return f'/user/{self.c8y.tenant_id}/groups'
-
-    def _object_path(self, object_id):
-        return f'{self._base_path()}/{object_id}'
-
-    def _roles_path(self, object_id):
-        return f'{self._object_path(object_id)}/roles'
+    @staticmethod
+    def _build_role_reference(role_id):
+        return {'role': {'self': 'user/roles/' + role_id}}
 
 
 class ManagedObjectReference(_DatabaseObjectWithFragments):
@@ -1093,7 +1159,7 @@ class Inventory(_Query):
 
         :param managed_objects  a list of ManagedObject instances
         """
-        super()._create(lambda mo: mo.to_full_json(), *managed_objects)
+        super()._create(lambda mo: mo._to_full_json(), *managed_objects)
 
     def update(self, object_model, *object_ids):
         """Apply a change to a number of existing objects.
@@ -1110,7 +1176,7 @@ class Inventory(_Query):
         """
         if object_model.id:
             raise ValueError("The change model must not specify an ID.")
-        update_json = object_model.to_diff_json()
+        update_json = object_model._to_diff_json()
         for object_id in object_ids:
             self.c8y.put(self.resource + '/' + str(object_id), update_json)
 
@@ -1275,7 +1341,7 @@ class Users(_Query):
         # be updated
         if update_model.username:
             raise ValueError("The change model must not specify a username.")
-        update_json = update_model.to_diff_json()
+        update_json = update_model._to_diff_json()
         for username in usernames:
             self.c8y.put(self.resource + '/' + username, update_json)
 

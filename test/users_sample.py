@@ -12,7 +12,7 @@ print(f"Role ID:         {current_user.role_ids}")
 print(f"Group ID:        {current_user.group_ids}")
 
 print("\nCurrent user JSON:")
-print(current_user.to_full_json())
+print(current_user._to_full_json())
 
 print("\nRoles:")
 for role_id in current_user.role_ids:
@@ -25,35 +25,25 @@ for group_id in current_user.group_ids:
 
 print("\nCreate new human users with password:")
 new_user = User(username='sou', email='sou@softwareag.com', password='password',
-                groups=[1, 8], roles=['ROLE_INVENTORY_CREATE'])
+                global_role_ids=[1, 8], permission_ids=['ROLE_INVENTORY_CREATE'])
 new_user.c8y = c8y
 new_user.create()
 
 db_user = c8y.users.get('sou')
-print(f"  Password: {db_user.password}")
 print(f"  Require Password Reset: {db_user.require_password_reset}")
 print(f"  Group ID: {db_user.group_ids}")
 print(f"  Role ID: {db_user.role_ids}")
 
 print("\nUpdate user in DB:")
-update_user = User(require_password_reset=True)
-c8y.users.update(update_user, 'sou')
-
-
+db_user.require_password_reset = True
+db_user.role_ids = {'ROLE_AUDIT_READ'}
+db_user.group_ids.remove(8)
+updated_user = db_user.update()
 
 print("\nUpdate/Diff JSON after changes:")
-current_user.email = "new@softwareag.com"
-current_user.enabled = False
-current_user.display_name = 'Chris Sour'
-# current_user.roles.add('some_role')
-# current_user.roles.remove('some_role')
-# current_user.roles.add('a')
-# current_user.roles.remove('xx')
-# print(current_user.to_diff_json())
-# current_user.roles.add('a')
-# current_user.roles.add('b')
-current_user.roles = set(['a', 'b'])
-print(current_user.to_diff_json())
+print(f"  Require Password Reset: {updated_user.require_password_reset}")
+print(f"  Global Roles: {updated_user.group_ids}")
+print(f"  Permissions: {updated_user.role_ids}")
 
 print("\nFinding users by name prefix:")
 users = c8y.users.select(username='Chris')
