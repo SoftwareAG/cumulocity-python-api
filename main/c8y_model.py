@@ -570,8 +570,8 @@ class User(_DatabaseObject):
     email = _UpdatableProperty('_u_email')
     enabled = _UpdatableProperty('_u_enabled')
     require_password_reset = _UpdatableProperty('_u_require_password_reset')
-    role_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
-    group_ids = _UpdatableSetProperty('_x_global_roles', '_x_orig_global_roles')
+    permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
+    global_role_ids = _UpdatableSetProperty('_x_global_roles', '_x_orig_global_roles')
 
     @property
     def last_password_change(self):
@@ -610,13 +610,13 @@ class User(_DatabaseObject):
         self.c8y.post(base_path, self._to_full_json())
         # 2: assign user to global roles
         ref_json = self._build_user_reference()
-        for group_id in self.group_ids:
+        for group_id in self.global_role_ids:
             group_users_path = f'/user/{self.c8y.tenant_id}/groups/{group_id}/users'
             self.c8y.post(group_users_path, ref_json)
         # 3: assign single permissions to user
-        user_path = base_path + '/' + self.username
+        user_path = self._build_user_path()
         user_roles_path = user_path + '/roles'
-        for role_id in self.role_ids:
+        for role_id in self.permission_ids:
             ref_json = self._build_role_reference(role_id)
             self.c8y.post(user_roles_path, ref_json)
         if not ignore_result:
@@ -628,7 +628,7 @@ class User(_DatabaseObject):
         """
         Write changed aspects to database.
 
-        :param parse  Read the updated object and parse it into a new object
+        :param ignore_result  Do not read and parse the updated object
 
         Note: The User object is spread across multiple database concepts
         that need to be updated separately. Because of this it can only be
@@ -637,7 +637,7 @@ class User(_DatabaseObject):
         """
         self._assert_c8y()
         self._assert_username()
-        user_path = f'/user/{self.c8y.tenant_id}/users/{self.username}'
+        user_path = self._build_user_path()
         # 1: write base object changes
         self.c8y.put(user_path, self._to_diff_json())
         # 2: assign/unassign user from global roles
@@ -666,6 +666,16 @@ class User(_DatabaseObject):
             new_obj = self.from_json(self.c8y.get(user_path))
             new_obj.c8y = self.c8y
             return new_obj
+
+    def delete(self):
+        self._assert_c8y()
+        self._assert_username()
+        self._build_user_path()
+        self.c8y.delete(self._build_user_path())
+        pass
+
+    def _build_user_path(self):
+        return f'/user/{self.c8y.tenant_id}/users/{self.username}'
 
     def update_password(self, new_password):
         pass

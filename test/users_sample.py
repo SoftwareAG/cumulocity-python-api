@@ -8,19 +8,19 @@ print("Current User:")
 print(f"User:            {current_user.user_id}")
 print(f"Alias:           {current_user.display_name}")
 print(f"Password Change: {current_user.last_password_change.isoformat()}")
-print(f"Role ID:         {current_user.role_ids}")
-print(f"Group ID:        {current_user.group_ids}")
+print(f"Role ID:         {current_user.permission_ids}")
+print(f"Group ID:        {current_user.global_role_ids}")
 
 print("\nCurrent user JSON:")
 print(current_user._to_full_json())
 
 print("\nRoles:")
-for role_id in current_user.role_ids:
+for role_id in current_user.permission_ids:
     print(f" - {role_id}")
 
 print("\nGroups:")
-for group_id in current_user.group_ids:
-    g = c8y.groups.get(group_id)
+for role_id in current_user.global_role_ids:
+    g = c8y.groups.get(role_id)
     print(f" - {g.name} ({g.id})")
 
 print("\nCreate new human users with password:")
@@ -31,19 +31,27 @@ new_user.create()
 
 db_user = c8y.users.get('sou')
 print(f"  Require Password Reset: {db_user.require_password_reset}")
-print(f"  Group ID: {db_user.group_ids}")
-print(f"  Role ID: {db_user.role_ids}")
+print(f"  Group ID: {db_user.global_role_ids}")
+print(f"  Role ID: {db_user.permission_ids}")
 
 print("\nUpdate user in DB:")
 db_user.require_password_reset = True
-db_user.role_ids = {'ROLE_AUDIT_READ'}
-db_user.group_ids.remove(8)
+db_user.permission_ids = {'ROLE_AUDIT_READ'}
+db_user.global_role_ids.remove(8)
 updated_user = db_user.update()
 
 print("\nUpdate/Diff JSON after changes:")
 print(f"  Require Password Reset: {updated_user.require_password_reset}")
-print(f"  Global Roles: {updated_user.group_ids}")
-print(f"  Permissions: {updated_user.role_ids}")
+print(f"  Global Roles: {updated_user.global_role_ids}")
+print(f"  Permissions: {updated_user.permission_ids}")
+
+print('\nDeleting previously created user:')
+updated_user.delete()
+try:
+    users = c8y.users.get("sou")
+    assert False
+except KeyError:
+    pass
 
 print("\nFinding users by name prefix:")
 users = c8y.users.select(username='Chris')
