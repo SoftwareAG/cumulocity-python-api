@@ -378,38 +378,40 @@ class _UpdatableThing:
             return attr
 
 
-class _Reference(object):
+class PermissionLevel(object):
+    ANY = '*'
+    READ = 'READ'
+    WRITE = 'ADMIN'
 
-    def __init__(self, c8y, path, type, id):
-        # self.tenant_id = tenant_id
-        self.path = path
-        self.type = type
-        self.id = id
 
-    def to_json(self):
-        return
-#         return {self.type:{
-#             'name': self.id, 'self':f'https://{self.c8y.tenant_id}.{self.c8y.}'}}
-# {"role":{"name":"ROLE_INVENTORY_READ","self":"https://t21106993.eu-latest.cumulocity.com/user/roles/ROLE_INVENTORY_READ","id":"ROLE_INVENTORY_READ"}}
+class PermissionScope(object):
+    ANY = '*'
+    ALARM = 'ALARM'
+    AUDIT = 'AUDIT'
+    EVENT = 'EVENT',
+    MEASUREMENT = 'MEASUREMENT',
+    MANAGED_OBJECT = 'MANAGED_OBJECT',
+    OPERATION = 'OPERATION'
 
 
 class Permission(_DatabaseObject):
+
     __parser = _DatabaseObjectParser({
             'id': 'id',
-            'permission': 'permission',
-            'c8y_type': 'type',
+            'level': 'permission',
+            'type': 'type',
             'scope': 'scope'})
 
-    def __init__(self, permission="*", c8y_type="*", scope="*"):
+    def __init__(self, level=PermissionLevel.ANY, scope=PermissionScope.ANY, type='*'):
         """
-        :param permission: one of ADMIN, READ, * (default)
+        :param level: one of ADMIN, READ, * (default)
         :param type: type on which to restrict or * (default)
         :param scope: one of ALARM, AUDIT, EVENT, MEASUREMENT, MANAGED_OBJECT, OPERATION, or * (default)
         """
         super().__init__(None)
         self.id = None
-        self.permission = permission
-        self.c8y_type = c8y_type
+        self.level = level
+        self.type = type
         self.scope = scope
 
     @classmethod
@@ -420,15 +422,28 @@ class Permission(_DatabaseObject):
     def to_full_json(self):
         return self.__parser.to_full_json(self)
 
-    def to_diff_json(self):
-        return self.__parser.to_diff_json(self)
+
+class ReadPermission(Permission):
+    def __init__(self, scope=PermissionScope.ANY, type='*'):
+        super().__init__(level=PermissionLevel.READ, scope=scope, type=type)
+
+
+class WritePermission(Permission):
+    def __init__(self, scope=PermissionScope.ANY, type='*'):
+        super().__init__(level=PermissionLevel.WRITE, scope=scope, type=type)
+
+
+class AnyPermission(Permission):
+    def __init__(self, scope=PermissionScope.ANY, type='*'):
+        super().__init__(level=PermissionLevel.ANY, scope=scope, type=type)
 
 
 class InventoryRole(_DatabaseObject):
+
     __parser = _DatabaseObjectParser({
             'id': 'id',
-            'name': 'name',
-            'description': 'description'})
+            '_u_name': 'name',
+            '_u_description': 'description'})
 
     def __init__(self, id=None, c8y=None, name=None, description=None, permissions=[]):
         """
@@ -437,9 +452,12 @@ class InventoryRole(_DatabaseObject):
         """
         super().__init__(c8y)
         self.id = id
-        self.name = name
-        self.description = description
+        self._u_name = name
+        self._u_description = description
         self.permissions = permissions
+
+    name = _UpdatableProperty('_u_name')
+    description = _UpdatableProperty('_u_description')
 
     @classmethod
     def from_json(cls, object_json):
@@ -449,27 +467,34 @@ class InventoryRole(_DatabaseObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['permissions'] = list(map(lambda p: p._to_full_json(), self.permissions))
+        j['permissions'] = list(map(lambda p: p.to_full_json(), self.permissions))
         return j
 
     def to_diff_json(self):
-        # TODO improve by csou
-        return self.to_full_json()
+        j = self.__parser.to_diff_json(self)
+        # the permission list can only be specified as a whole
+        j['permissions'] = list(map(lambda p: p.to_full_json(), self.permissions))
+        return j
 
-    def create(self):
+    def create(self, ignore_result=False):
         """Will write the object to the database as a new instance."""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        return self.c8y.post('/user/inventoryroles', self.to_full_json())
-    
-    def update(self):
+        self._assert_c8y()
+        response_json = self.c8y.post('/user/inventoryroles', self.to_full_json())
+        if not ignore_result:
+            return self.from_json(response_json)
+
+    def update(self, ignore_result=False):
         """Will update the Inventory Role object"""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        return self.c8y.put('/user/inventoryroles/{}'.format(self.id), self.to_diff_json())
+        self._assert_c8y()
+        self._assert_id()
+        response_json = self.c8y.put(f'/user/inventoryroles/{self.id}', self.to_diff_json())
+        if not ignore_result:
+            return self.from_json(response_json)
 
     def delete(self):
         """Will delete the object within the database."""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete('/user/inventoryroles/{}'.format(self.id))
+        self._assert_c8y()
+        self.c8y.delete(f'/user/inventoryroles/{self.id}')
 
 
 class InventoryRoleAssignment(_DatabaseObject):
@@ -477,19 +502,19 @@ class InventoryRoleAssignment(_DatabaseObject):
             'id': 'id',
             'managedObject': 'managedObject'})
 
-    def __init__(self,  c8y=None, username=None, managedObject=None, roles=[]):
+    def __init__(self, c8y=None, username=None, group=None, roles=None):
         """
         :param c8y:
         :param username: user to which to assign the inventory roles
-        :param managedObject: id of the group on which to assign the inventory roles
-        :param roles: list of inventory roles to assign
+        :param group: id of the group on which to assign the inventory roles
+        :param roles: list of inventory role objects to assign
         """
         super().__init__(c8y)
         self.id = None
         self.username = username
-        self.managedObject = managedObject
-        self.roles = roles
-    
+        self.managedObject = group
+        self.roles = roles if roles else []
+
     @classmethod
     def from_json(cls, object_json):
         r = cls.__parser.from_json(object_json, InventoryRoleAssignment())
@@ -498,27 +523,35 @@ class InventoryRoleAssignment(_DatabaseObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['roles'] = list(map(lambda r: r._to_full_json(), self.roles))
+        j['roles'] = list(map(lambda r: r.to_full_json(), self.roles))
         return j
 
     def to_diff_json(self):
         # TODO improve by csou
         return self.to_full_json()
 
-    def create(self):
+    def create(self, ignore_result=False):
         """Will write the object to the database as a new instance."""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        return self.c8y.post(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory', self.to_full_json())
-    
-    def update(self):
+        self._assert_c8y()
+        base_path = f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory'
+        result_json = self.c8y.post(base_path, self.to_full_json())
+        if not ignore_result:
+            return self.from_json(result_json)
+
+    def update(self, ignore_result=False):
         """Will update the Inventory Role object"""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        return self.c8y.put(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}', self.to_diff_json())
+        self._assert_c8y()
+        result_json = self.c8y.put(self._build_object_path(), self.to_diff_json())
+        if not ignore_result:
+            return self.from_json(result_json)
 
     def delete(self):
         """Will delete the object within the database."""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete(f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}')
+        self._assert_c8y()
+        self.c8y.delete(self._build_object_path())
+
+    def _build_object_path(self):
+        return f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}'
 
 
 class User(_DatabaseObject):
@@ -531,11 +564,12 @@ class User(_DatabaseObject):
             '_u_display_name': 'displayName',
             '_u_password': 'password',
             '_u_require_password_reset': 'shouldResetPassword',
-            '_password_reset_mail': 'sendPasswordResetMail',
+            '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, require_password_reset=None, permission_ids=None, global_role_ids=None):
+                 password=None, require_password_reset=None,
+                 permission_ids=None, global_role_ids=None, inventory_roles=None):
         """
         :param c8y:
         :param username:
@@ -674,11 +708,37 @@ class User(_DatabaseObject):
         self.c8y.delete(self._build_user_path())
         pass
 
-    def _build_user_path(self):
-        return f'/user/{self.c8y.tenant_id}/users/{self.username}'
-
     def update_password(self, new_password):
         pass
+
+    def assign_global_role(self, role_id):
+        pass
+
+    def unassign_global_role(self, role_id):
+        pass
+
+    def assign_inventory_role(self, group_id, role_id):
+        """Assign an inventory role for a specific device group.
+
+        The assignment is executed immediately. No call to :ref:`update`
+        is required.
+
+        :param group_id  object ID of an existing device group
+        :param role_id  object ID of an existing inventory role
+        """
+        pass
+
+    def unassign_inventory_role(self, group_id, role_id=None):
+        """Unassign an inventory role for a specific device group.
+
+        :param  group_id  object id of an existing device group
+        :param  role_id  object ID of an existing inventory role; if None
+            (default) all current assignments are removed.
+        """
+        pass
+
+    def _build_user_path(self):
+        return f'/user/{self.c8y.tenant_id}/users/{self.username}'
 
     def _build_role_reference(self, role_id):
         return {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
@@ -698,13 +758,13 @@ class GlobalRole(_DatabaseObject):
             '_u_name': 'name',
             '_u_description': 'description'})
 
-    def __init__(self, c8y=None, name=None, description=None, permission_ids=set()):
+    def __init__(self, c8y=None, name=None, description=None, permission_ids=None):
         super().__init__(c8y)
         self.id = None
         self._u_name = name
         self._u_description = description
-        self._x_permissions = permission_ids
-        self._x_orig_permissions = permission_ids
+        self._x_permissions = permission_ids if permission_ids else set()
+        self._x_orig_permissions = self._x_permissions
 
     name = _UpdatableProperty('_u_name')
     description = _UpdatableProperty('_u_description')
@@ -1276,11 +1336,12 @@ class InventoryRoles(_Query):
                 yield result
             page_number = page_number + 1
 
+
 class Users(_Query):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
-        self.__groups = Groups(c8y)
+        self.__groups = GlobalRoles(c8y)
 
     def get(self, username):
         """Retrieve a specific user.
@@ -1342,21 +1403,11 @@ class Users(_Query):
         """
         return [x for x in self.select(username, groups)]
 
-    def create(self):
-        pass
-
-    def update(self, update_model, *usernames):
-        # just to make sure that the developer is aware that the first argument
-        # is a MODEL which is applied not NOT updated; Also: the username cannot
-        # be updated
-        if update_model.username:
-            raise ValueError("The change model must not specify a username.")
-        update_json = update_model._to_diff_json()
-        for username in usernames:
-            self.c8y.put(self.resource + '/' + username, update_json)
+    def create(self, *users):
+        super()._create(lambda u: u._to_full_json(), *users)
 
 
-class Groups(_Query):
+class GlobalRoles(_Query):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/groups')
@@ -1372,7 +1423,7 @@ class Groups(_Query):
         self.__groups_by_name = None
         self.__groups_by_id = None
 
-    def get(self, group_id):
+    def get(self, role_id):
         """Retrieve a specific group.
 
         Note:  The C8Y REST API does not support direct query by name. Hence,
@@ -1382,15 +1433,15 @@ class Groups(_Query):
 
         See also method :py:meth:reset_caches
 
-        :param group_id  a scalar int (actual group ID) or string (group name)
+        :param role_id  a scalar int (actual group ID) or string (group name)
         :rtype Group
         """
-        if isinstance(group_id, int):
-            return GlobalRole.from_json(super()._get_object(group_id))
+        if isinstance(role_id, int):
+            return GlobalRole.from_json(super()._get_object(role_id))
         # else: find group by name
         if not self.__groups_by_name:
             self.__groups_by_name = {g.name: g for g in self.get_all()}
-        return self.__groups_by_name[group_id]
+        return self.__groups_by_name[role_id]
 
     def get_all(self):
         """Retrieve all available groups.

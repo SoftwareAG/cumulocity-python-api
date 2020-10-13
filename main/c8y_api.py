@@ -4,10 +4,9 @@ import collections
 import time
 import yaml
 from dataclasses import dataclass
-from urllib.parse import urlparse
 
 from log_util import debug
-from c8y_model import Inventory, Measurements, Identity, Users, Groups, Binary, InventoryRoles
+from c8y_model import Inventory, Measurements, Identity, Users, GlobalRoles, Binary, InventoryRoles
 
 
 class CumulocityRestApi:
@@ -18,7 +17,6 @@ class CumulocityRestApi:
         self.username = username
         self.password = password
         self.tfa_token = tfa_token
-        self.__reference_base_url = self._build_reference_base_url(tenant_id, base_url)
         self.__auth = f'{tenant_id}/{username}', password
         self.__default_headers = {'tfatoken': self.tfa_token} if self.tfa_token else {}
 
@@ -30,11 +28,6 @@ class CumulocityRestApi:
         if body:
             rq.json = body
         return rq.prepare()
-
-    def build_reference(self, path, type, id):
-        return {type: {'name': id,
-                       'self': self.__reference_base_url + '/' + path.strip('/') + '/' + id,
-                       'id': id}}
 
     def get(self, resource, ordered=False):
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
@@ -104,12 +97,6 @@ class CumulocityRestApi:
         if r.status_code != 204:
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
 
-    @classmethod
-    def _build_reference_base_url(cls, tenant_id, base_url):
-        parsed_url = urlparse(base_url)
-        instance_name = parsed_url.hostname.split('.', 1)[1]
-        return f'https://{tenant_id}.{instance_name}'
-
 
 class CumulocityApi(CumulocityRestApi):
 
@@ -119,8 +106,8 @@ class CumulocityApi(CumulocityRestApi):
         self.__inventory = Inventory(self)  # todo: lazy?
         self.__identity = Identity(self)
         self.__users = Users(self)
-        self.__groups = Groups(self)
-        self.__inventoryroles = InventoryRoles(self)
+        self.__global_roles = GlobalRoles(self)
+        self.__inventory_roles = InventoryRoles(self)
 
     @property
     def measurements(self):
@@ -139,12 +126,12 @@ class CumulocityApi(CumulocityRestApi):
         return self.__users
 
     @property
-    def groups(self):
-        return self.__groups
+    def global_roles(self):
+        return self.__global_roles
 
     @property
-    def inventoryroles(self):
-        return self.__inventoryroles
+    def inventory_roles(self):
+        return self.__inventory_roles
 
 
 class CumulocityDeviceRegistry(CumulocityRestApi):

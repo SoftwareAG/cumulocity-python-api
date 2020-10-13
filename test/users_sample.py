@@ -20,12 +20,12 @@ for role_id in current_user.permission_ids:
 
 print("\nGroups:")
 for role_id in current_user.global_role_ids:
-    g = c8y.groups.get(role_id)
+    g = c8y.global_roles.get(role_id)
     print(f" - {g.name} ({g.id})")
 
 print("\nCreate new human users with password:")
-new_user = User(username='sou', email='sou@softwareag.com', password='password',
-                global_role_ids=[1, 8], permission_ids=['ROLE_INVENTORY_CREATE'])
+new_user = User(username='sou', email='sou@softwareag.com', password='password', enabled=True,
+                global_role_ids=[], permission_ids=[])
 new_user.c8y = c8y
 new_user.create()
 
