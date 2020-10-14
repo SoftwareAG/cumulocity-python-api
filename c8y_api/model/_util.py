@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from dateutil import parser
+from copy import copy
+from urllib.parse import urlencode
 
 
 class _DictWrapper(object):
