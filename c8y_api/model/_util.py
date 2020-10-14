@@ -269,6 +269,7 @@ class _UpdatableSetProperty(object):
         return obj.__dict__[self.prop_name]
 
     def __set__(self, obj, value):
+        assert isinstance(value, set)
         self._preserve_original(obj)
         obj.__dict__[self.prop_name] = value
 
@@ -331,11 +332,13 @@ class _Query(object):  # todo: better name
         # min_age/max_age should be timedelta objects that can be used for
         # alternative calculation of the before/after parameters
         if min_age:
-            assert not before  # todo warning
+            if before:
+                raise ValueError("Only one of 'min_age' and 'before' query parameters must be used.")
             min_age = _DateUtil.ensure_timedelta(min_age)
             before = _DateUtil.now() - min_age
         if max_age:
-            assert not after  # todo warning
+            if after:
+                raise ValueError("Only one of 'max_age' and 'after' query parameters must be used.")
             max_age = _DateUtil.ensure_timedelta(max_age)
             after = _DateUtil.now() - max_age
 
@@ -351,12 +354,15 @@ class _Query(object):  # todo: better name
         params.update({k: v for k, v in kwargs.items() if v is not None})
         return params
 
+    def _build_object_path(self, object_id):
+        return self.resource + '/' +str(object_id)
+
     def _build_base_query(self, **kwargs):
         params = _Query.__prepare_query_parameters(**kwargs)
         return self.resource + '?' + urlencode(params) + '&currentPage='
 
     def _get_object(self, object_id):
-        return self.c8y.get(self.resource + '/' + str(object_id))
+        return self.c8y.get(self._build_object_path(object_id))
 
     def _get_page(self, base_query, page_number):
         result_json = self.c8y.get(base_query + str(page_number))

@@ -106,7 +106,9 @@ class InventoryRole(_DatabaseObject):
         self._assert_c8y()
         response_json = self.c8y.post('/user/inventoryroles', self.to_full_json())
         if not ignore_result:
-            return self.from_json(response_json)
+            result = self.from_json(response_json)
+            result.c8y = self.c8y
+            return result
 
     def update(self, ignore_result=False):
         """Will update the Inventory Role object"""
@@ -114,7 +116,9 @@ class InventoryRole(_DatabaseObject):
         self._assert_id()
         response_json = self.c8y.put(f'/user/inventoryroles/{self.id}', self.to_diff_json())
         if not ignore_result:
-            return self.from_json(response_json)
+            result = self.from_json(response_json)
+            result.c8y = self.c8y
+            return result
 
     def delete(self):
         """Will delete the object within the database."""
@@ -137,7 +141,7 @@ class InventoryRoleAssignment(_DatabaseObject):
         super().__init__(c8y)
         self.id = None
         self.username = username
-        self.managedObject = group
+        self.group = group
         self.roles = roles if roles else []
 
     @classmethod
@@ -173,10 +177,15 @@ class InventoryRoleAssignment(_DatabaseObject):
     def delete(self):
         """Will delete the object within the database."""
         self._assert_c8y()
+        self._assert_username()
         self.c8y.delete(self._build_object_path())
 
     def _build_object_path(self):
         return f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}'
+
+    def _assert_username(self):
+        if not self.username:
+            raise ValueError("Username must be provided.")
 
 
 class GlobalRole(_DatabaseObject):
@@ -321,8 +330,8 @@ class User(_DatabaseObject):
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = False if self._u_password else True
         self._last_password_change = None
-        self._x_global_roles = global_role_ids
-        self._x_permissions = permission_ids
+        self._x_global_roles = global_role_ids if global_role_ids else set()
+        self._x_permissions = permission_ids if permission_ids else set()
         self._x_orig_global_roles = None
         self._x_orig_permissions = None
 
@@ -369,10 +378,8 @@ class User(_DatabaseObject):
         base_path = f'/user/{self.c8y.tenant_id}/users'
         self.c8y.post(base_path, self._to_full_json())
         # 2: assign user to global roles
-        ref_json = self._build_user_reference()
         for group_id in self.global_role_ids:
-            group_users_path = f'/user/{self.c8y.tenant_id}/groups/{group_id}/users'
-            self.c8y.post(group_users_path, ref_json)
+            self.c8y.global_roles.assign_users(group_id, [self.username])
         # 3: assign single permissions to user
         user_path = self._build_user_path()
         user_roles_path = user_path + '/roles'
@@ -405,14 +412,11 @@ class User(_DatabaseObject):
             added = self._x_global_roles.difference(self._x_orig_global_roles)
             removed = self._x_orig_global_roles.difference(self._x_global_roles)
             if added:
-                user_reference_json = self._build_user_reference()
                 for gid in added:
-                    groups_path = f'/user/{self.c8y.tenant_id}/groups/{gid}/users'
-                    self.c8y.post(groups_path, user_reference_json)
+                    self.c8y.global_roles.assign_users(gid, [self.username])
             if removed:
                 for gid in removed:
-                    roles_path = f'/user/{self.c8y.tenant_id}/groups/{gid}/users/{self.username}'
-                    self.c8y.delete(roles_path)
+                    self.c8y.global_roles.unassign_users(gid, [self.username])
         # 3: add/remove permissions
         if self._x_orig_permissions:
             added = self._x_permissions.difference(self._x_orig_permissions)
@@ -430,38 +434,36 @@ class User(_DatabaseObject):
     def delete(self):
         self._assert_c8y()
         self._assert_username()
-        self._build_user_path()
         self.c8y.delete(self._build_user_path())
-        pass
 
     def update_password(self, new_password):
         pass
 
     def assign_global_role(self, role_id):
-        pass
+        GlobalRoles(self.c8y).assign_users(role_id, [self.username])
 
     def unassign_global_role(self, role_id):
-        pass
+        GlobalRoles(self.c8y).unassign_users(role_id, [self.username])
 
-    def assign_inventory_role(self, group_id, role_id):
+    def retrieve_global_roles(self):
+        return GlobalRoles(self.c8y).get_all(self.username)
+
+    def retrieve_inventory_role_assignments(self):
+        return InventoryRoles(self.c8y).get_all_assignments(self.username)
+
+    def assign_inventory_roles(self, group_id, role_ids):
         """Assign an inventory role for a specific device group.
 
         The assignment is executed immediately. No call to :ref:`update`
         is required.
 
         :param group_id  object ID of an existing device group
-        :param role_id  object ID of an existing inventory role
+        :param role_ids  object ID of an existing inventory role
         """
-        pass
-
-    def unassign_inventory_role(self, group_id, role_id=None):
-        """Unassign an inventory role for a specific device group.
-
-        :param  group_id  object id of an existing device group
-        :param  role_id  object ID of an existing inventory role; if None
-            (default) all current assignments are removed.
-        """
-        pass
+        self._assert_c8y()
+        roles_path = self._build_user_path() + '/roles/inventory'
+        assignment_json = {'managedObject': group_id, 'roles': [{'id': id} for id in role_ids]}
+        self.c8y.post(roles_path, assignment_json)
 
     def _build_user_path(self):
         return f'/user/{self.c8y.tenant_id}/users/{self.username}'
@@ -477,16 +479,11 @@ class User(_DatabaseObject):
             raise ValueError("Username must be provided.")
 
 
-
-
-
-
-
 class InventoryRoles(_Query):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/inventoryroles')
-        self.object_name="roles"
+        self.object_name = "roles"
 
     def get(self, object_id):
         role = InventoryRole.from_json(self._get_object(object_id))
@@ -506,6 +503,18 @@ class InventoryRoles(_Query):
                 result.c8y = self.c8y  # inject c8y connection into instance
                 yield result
             page_number = page_number + 1
+
+    def select_assignments(self, username):
+        query = f'/user/{self.c8y.tenant_id}/users/{username}/roles/inventory'
+        assignments_json = self.c8y.get(query)
+        for j in assignments_json['inventoryAssignments']:
+            result = InventoryRoleAssignment.from_json(j)
+            result.username = username  # username is not part of the parse json and needs to be injected
+            result.c8y = self.c8y  # inject c8y connection into instance
+            yield result
+
+    def get_all_assignments(self, username):
+        return [x for x in self.select_assignments(username)]
 
 
 class Users(_Query):
@@ -570,7 +579,7 @@ class Users(_Query):
         :param username: A user's username or a prefix thereof
         :param groups: a scalar or list of int (actual group ID), string (group names),
             or actual Group instances
-        :rtype List of Group
+        :rtype List of User
         """
         return [x for x in self.select(username, groups)]
 
@@ -595,7 +604,7 @@ class GlobalRoles(_Query):
         self.__groups_by_id = None
 
     def get(self, role_id):
-        """Retrieve a specific group.
+        """Retrieve a specific global role.
 
         Note:  The C8Y REST API does not support direct query by name. Hence,
         searching by name will actually retrieve all available groups and
@@ -614,21 +623,65 @@ class GlobalRoles(_Query):
             self.__groups_by_name = {g.name: g for g in self.get_all()}
         return self.__groups_by_name[role_id]
 
-    def get_all(self):
-        """Retrieve all available groups.
+    def select(self, username=None):
+        """Iterate over global roles.
 
-        :rtype List of Group
+        :param  username  retrieve global roles assigned to a specified user
+            If omitted, all available global roles are returned
+
+        :rtype Generator of GlobalRole instances
         """
-        base_query = self._build_base_query()
-        result = []
-        page_number = 1
-        while True:
-            xs = self._get_page(base_query, page_number)
-            if not xs:
-                break
-            for x in xs:
-                g = GlobalRole.from_json(x)
-                g.c8y = self.c8y
-                result.append(g)
-            page_number = page_number + 1
-        return result
+        if username:
+            # select by username
+            query = f'user/{self.c8y.tenant_id}/users/{username}/groups'
+            response_json = self.c8y.get(query)
+            for ref_json in response_json['references']:
+                result = GlobalRole.from_json(ref_json['group'])
+                result.c8y = self.c8y  # inject c8y connection into instance
+                yield result
+        else:
+            # select all
+            query = self._build_base_query()
+            role_jsons = self._get_page(query, 1)
+            for role_json in role_jsons:
+                result = GlobalRole.from_json(role_json)
+                result.c8y = self.c8y
+                yield result
+
+    def get_all(self, username=None):
+        """Retrieve global roles.
+
+        :param  username  retrieve global roles assigned to a specified user
+            If omitted, all available global roles are returned
+
+        :rtype List of GlobalRole
+        """
+        return [x for x in self.select(username)]
+
+    def assign_users(self, role_id, usernames):
+        """Add users to a global role.
+
+        :param role_id  technical ID (int) of the global role
+        :param usernames  technical usernames of the users to assign
+        """
+        if not isinstance(usernames, list):
+            usernames = [usernames]
+        path = self._build_object_path(role_id) + '/users'
+        for username in usernames:
+            user_reference = self._build_user_reference(username)
+            self.c8y.post(path, user_reference)
+
+    def unassign_users(self, role_id, usernames):
+        """Add users to a global role.
+
+        :param role_id  technical ID (int) of the global role
+        :param usernames  technical usernames of the users to assign
+        """
+        if not isinstance(usernames, list):
+            usernames = [usernames]
+        base_path = self._build_object_path(role_id) + '/users/'
+        for username in usernames:
+            self.c8y.delete(base_path + username)
+
+    def _build_user_reference(self, username):
+        return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{username}'}}
