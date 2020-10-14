@@ -1,6 +1,7 @@
 import datetime
-from c8y_app import CumulocityApi
-from c8y_model import Count, Meters, Value, Device, Measurement
+from c8y_api.app import CumulocityApi
+from c8y_api.model.inventory import Device
+from c8y_api.model.measurements import Count, Meters, Value, Measurement
 
 run_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='milliseconds')
 

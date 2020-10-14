@@ -1,6 +1,6 @@
-from c8y_app import CumulocityApi
-from c8y_model import ManagedObject, InventoryRole, InventoryRoleAssignment, \
-    Permission, ReadPermission, WritePermission, AnyPermission, PermissionLevel, PermissionScope
+from c8y_api.app import CumulocityApi
+from c8y_api.model import ManagedObject, InventoryRole, InventoryRoleAssignment, \
+    Permission, ReadPermission, WritePermission, PermissionLevel, PermissionScope
 
 c8y = CumulocityApi()
 

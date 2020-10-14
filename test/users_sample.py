@@ -1,5 +1,5 @@
-from c8y_app import CumulocityApi
-from c8y_model import User
+from c8y_api.app import CumulocityApi
+from c8y_api.model import User
 
 c8y = CumulocityApi()
 current_user = c8y.users.get(c8y.username)

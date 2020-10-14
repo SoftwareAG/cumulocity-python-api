@@ -1,4 +1,4 @@
-from c8y_api import Measurements, Measurement, Fragment
+from c8y_api.model import Measurements, Measurement, Fragment
 import json
 
 

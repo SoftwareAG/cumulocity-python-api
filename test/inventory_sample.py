@@ -1,5 +1,5 @@
-from c8y_app import CumulocityApi
-from c8y_model import ManagedObject, Fragment
+from c8y_api.app import CumulocityApi
+from c8y_api.model import ManagedObject, Fragment
 
 c8y = CumulocityApi()
 

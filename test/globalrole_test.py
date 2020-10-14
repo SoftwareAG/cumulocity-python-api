@@ -1,7 +1,7 @@
 import pytest
 import json
 
-from c8y_model import GlobalRole
+from c8y_api.model import GlobalRole
 
 
 def test_to_full_json():

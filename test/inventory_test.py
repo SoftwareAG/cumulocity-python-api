@@ -1,8 +1,8 @@
 import uuid
 import pytest
 
-from c8y_app import CumulocityApi
-from c8y_model import ManagedObject
+from c8y_api.app import CumulocityApi
+from c8y_api.model import ManagedObject
 
 c8y = CumulocityApi()
 

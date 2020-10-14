@@ -1,5 +1,5 @@
-from c8y_app import CumulocityApi
-from c8y_model import GlobalRole
+from c8y_api.app import CumulocityApi
+from c8y_api.model import GlobalRole
 
 c8y = CumulocityApi()
 
