@@ -533,7 +533,7 @@ class Users(_Query):
         user.c8y = self.c8y  # inject c8y connection into instance
         return user
 
-    def select(self, username=None, groups=None):
+    def select(self, username=None, groups=None, page_size=5):
         """Lazily select and yield User instances.
 
         The result can be limited by username (prefix) and/or group membership.
@@ -541,6 +541,7 @@ class Users(_Query):
         :param username: A user's username or a prefix thereof
         :param groups: a scalar or list of int (actual group ID), string (group names),
             or actual Group instances
+        :param page_size:  Number of results fetched per request
         :rtype Generator of Group instances
         """
         # group_list can be ints, strings (names) or Group objects
@@ -560,7 +561,7 @@ class Users(_Query):
                 ValueError("Unable to identify type of given group identifiers.")
             groups_string = ','.join(groups_string)
         # lazily yield parsed objects page by page
-        base_query = super()._build_base_query(username=username, groups=groups_string)
+        base_query = super()._build_base_query(username=username, groups=groups_string, page_size=page_size)
         page_number = 1
         while True:
             page_results = [User.from_json(x) for x in self._get_page(base_query, page_number)]
