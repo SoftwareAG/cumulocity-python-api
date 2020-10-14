@@ -1,8 +1,8 @@
 import os
 import requests
 from dataclasses import dataclass
-from _util import error, info
-from __init__ import CumulocityApi as NativeCumulocityApi
+from c8y_api._util import error, info
+from c8y_api import CumulocityApi as NativeCumulocityApi
 
 
 class CumulocityApi(NativeCumulocityApi):

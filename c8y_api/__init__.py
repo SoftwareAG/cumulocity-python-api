@@ -5,10 +5,10 @@ import time
 import yaml
 from dataclasses import dataclass
 
-from _util import debug
-from model.inventory import Inventory, Identity, Binary
-from model.administration import Users, GlobalRoles, InventoryRoles
-from model.measurements import Measurements
+from c8y_api._util import debug
+from c8y_api.model.inventory import Inventory, Identity, Binary
+from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
+from c8y_api.model.measurements import Measurements
 
 
 class CumulocityRestApi:
