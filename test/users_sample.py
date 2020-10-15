@@ -60,7 +60,7 @@ for user in users:
     print(f"Found: {user.email}")
 
 print("\nFinding users by group membership:")
-users = c8y.users.select(groups='business', page_size=2)
+users = c8y.users.select()
 for user in users:
     print(f"Found: {user.email}")
 

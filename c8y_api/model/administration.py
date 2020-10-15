@@ -298,12 +298,13 @@ class User(_DatabaseObject):
             '_u_enabled': 'enabled',  # bool
             '_u_display_name': 'displayName',
             '_u_password': 'password',
+            '_u_phone': 'phone',
             '_u_require_password_reset': 'shouldResetPassword',
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, require_password_reset=None,
+                 password=None, phone=None, require_password_reset=None,
                  permission_ids=None, global_role_ids=None, inventory_roles=None):
         """
         :param c8y:
@@ -327,6 +328,7 @@ class User(_DatabaseObject):
         self._u_enabled = enabled
         self._u_display_name = display_name
         self._u_password = password
+        self._u_phone = phone
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = False if self._u_password else True
         self._last_password_change = None
@@ -337,6 +339,7 @@ class User(_DatabaseObject):
 
     display_name = _UpdatableProperty('_u_display_name')
     email = _UpdatableProperty('_u_email')
+    phone = _UpdatableProperty('_u_phone')
     enabled = _UpdatableProperty('_u_enabled')
     require_password_reset = _UpdatableProperty('_u_require_password_reset')
     permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
