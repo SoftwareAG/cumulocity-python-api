@@ -129,7 +129,7 @@ class InventoryRole(_DatabaseObject):
 class InventoryRoleAssignment(_DatabaseObject):
     __parser = _DatabaseObjectParser({
             'id': 'id',
-            'managedObject': 'managedObject'})
+            'group': 'managedObject'})
 
     def __init__(self, c8y=None, username=None, group=None, roles=None):
         """
