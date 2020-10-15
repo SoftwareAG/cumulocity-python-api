@@ -23,3 +23,6 @@ print("  Desc: " + updated_role.description)
 print("  Permissions: " + ', '.join(updated_role.permission_ids))
 
 updated_role.delete()
+
+for role in c8y.global_roles.select():
+    print(role.name)

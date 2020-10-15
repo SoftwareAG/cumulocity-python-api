@@ -627,30 +627,42 @@ class GlobalRoles(_Query):
             self.__groups_by_name = {g.name: g for g in self.get_all()}
         return self.__groups_by_name[role_id]
 
-    def select(self, username=None):
+    def select(self, username=None, page_size=5):
         """Iterate over global roles.
 
         :param  username  retrieve global roles assigned to a specified user
             If omitted, all available global roles are returned
+        :param page_size:  Number of results fetched per request
 
         :rtype Generator of GlobalRole instances
         """
         if username:
             # select by username
-            query = f'user/{self.c8y.tenant_id}/users/{username}/groups'
-            response_json = self.c8y.get(query)
-            for ref_json in response_json['references']:
-                result = GlobalRole.from_json(ref_json['group'])
-                result.c8y = self.c8y  # inject c8y connection into instance
-                yield result
+            query = f'user/{self.c8y.tenant_id}/users/{username}/groups?pageSize={page_size}&currentPage='
+            page_number = 1
+            while True:
+                response_json = self.c8y.get(query + str(page_number))
+                references = response_json['references']
+                if not references:
+                    break
+                for ref_json in references:
+                    result = GlobalRole.from_json(ref_json['group'])
+                    result.c8y = self.c8y  # inject c8y connection into instance
+                    yield result
+                page_number = page_number + 1
         else:
             # select all
-            query = self._build_base_query()
-            role_jsons = self._get_page(query, 1)
-            for role_json in role_jsons:
-                result = GlobalRole.from_json(role_json)
-                result.c8y = self.c8y
-                yield result
+            query = self._build_base_query(page_size=page_size)
+            page_number = 1
+            while True:
+                role_jsons = self._get_page(query, page_number)
+                if not role_jsons:
+                    break
+                for role_json in role_jsons:
+                    result = GlobalRole.from_json(role_json)
+                    result.c8y = self.c8y
+                    yield result
+                page_number = page_number + 1
 
     def get_all(self, username=None):
         """Retrieve global roles.
