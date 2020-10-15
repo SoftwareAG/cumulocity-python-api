@@ -288,6 +288,46 @@ class GlobalRole(_DatabaseObject):
     def _build_role_reference(role_id):
         return {'role': {'self': 'user/roles/' + role_id}}
 
+class Owner(_DatabaseObject):
+    __parser = _DatabaseObjectParser({
+            'username': 'owner'})
+
+    def __init__(self, c8y=None, username=None):
+        """
+        :param c8y:
+        :param username: user who is the owner of the other user
+        """
+        super().__init__(c8y)
+        self.id = None
+        self.username = username
+
+    @classmethod
+    def from_json(cls, object_json):
+        return cls.__parser.from_json(object_json, Owner())
+
+    def to_full_json(self):
+        return self.__parser.to_full_json(self)
+
+    def to_diff_json(self):
+        # TODO improve by csou
+        return self.to_full_json()
+
+    def create(self, child_user, ignore_result=False):
+        """Will write the object to the database as a new instance."""
+        self._assert_c8y()
+        base_path = f'/user/{self.c8y.tenant_id}/users/{child_user}/owner'
+        result_json = self.c8y.put(base_path, self.to_full_json())
+        if not ignore_result:
+            return self.from_json(result_json)
+
+    def update(self, child_user, ignore_result=False):
+        """Will update the Inventory Role object"""
+        self._assert_c8y()
+        base_path = f'/user/{self.c8y.tenant_id}/users/{child_user}/owner'
+        result_json = self.c8y.put(base_path, self.to_full_json())
+        if not ignore_result:
+            return self.from_json(result_json)
+
 
 class User(_DatabaseObject):
 
