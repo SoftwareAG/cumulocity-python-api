@@ -52,12 +52,9 @@ class _DateUtil(object):
         return time
 
 
-class _DatabaseObject(object):
+class _WithUpdatableAttributes(object):
 
-    def __init__(self, c8y=None):
-        # the object id can only be set manually, e.g. when building an instance from json
-        self.c8y = c8y
-        self.id = None
+    def __init__(self):
         self._updated_fields = None
 
     def get_updates(self):
@@ -73,6 +70,15 @@ class _DatabaseObject(object):
         if '+diff_json+' in self.__dict__:
             del self.__dict__['+diff_json+']
 
+
+class _DatabaseObject(_WithUpdatableAttributes):
+
+    def __init__(self, c8y=None):
+        super().__init__()
+        # the object id can only be set manually, e.g. when building an instance from json
+        self.c8y = c8y
+        self.id = None
+
     def _assert_c8y(self):
         if not self.c8y:
             raise ValueError("Cumulocity connection reference must be set to allow direct database access.")
@@ -82,11 +88,11 @@ class _DatabaseObject(object):
             raise ValueError("The object ID must be set to allow direct object access.")
 
 
-class _DatabaseObjectWithFragments(_DatabaseObject):
+class _WithUpdatableFragments(object):
 
-    def __init__(self, c8y=None):
+    def __init__(self):
         # the object id can only be set manually, e.g. when building an instance from json
-        super().__init__(c8y)
+        self._updated_fields = None
         self._updated_fragments = None
         self.fragments = {}
 
@@ -137,6 +143,12 @@ class _DatabaseObjectWithFragments(_DatabaseObject):
             del self.__dict__['+full_json+']
         if '+diff_json+' in self.__dict__:
             del self.__dict__['+diff_json+']
+
+
+class _DatabaseObjectWithFragments(_DatabaseObject, _WithUpdatableFragments):
+
+    def __init__(self, c8y=None):
+        super().__init__(c8y)
 
 
 class _DatabaseObjectParser(object):

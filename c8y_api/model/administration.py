@@ -1,5 +1,5 @@
-from ._util import _DateUtil, _Query, \
-    _DatabaseObject, _DatabaseObjectParser, \
+from ._util import _DateUtil, _Query, _WithUpdatableFragments, \
+    _DatabaseObject, _DatabaseObjectParser, _DatabaseObjectWithFragmentsParser, \
     _UpdatableProperty, _UpdatableSetProperty
 
 
@@ -302,6 +302,7 @@ class User(_DatabaseObject):
             '_u_require_password_reset': 'shouldResetPassword',
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
+    __custom_properties_parser = _DatabaseObjectWithFragmentsParser({}, [])
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
                  password=None, phone=None, require_password_reset=None,
@@ -336,6 +337,7 @@ class User(_DatabaseObject):
         self._x_permissions = permission_ids if permission_ids else set()
         self._x_orig_global_roles = None
         self._x_orig_permissions = None
+        self.custom_properties = _WithUpdatableFragments()
 
     display_name = _UpdatableProperty('_u_display_name')
     email = _UpdatableProperty('_u_email')
@@ -359,20 +361,22 @@ class User(_DatabaseObject):
         if user_json['groups']:
             if user_json['groups']['references']:
                 user._x_global_roles = {ref['group']['id'] for ref in user_json['groups']['references']}
+        if user_json['customProperties']:
+            user.custom_properties = cls.__custom_properties_parser.from_json(user_json['customProperties'],
+                                                                              _WithUpdatableFragments())
         return user
 
     def _to_full_json(self):
-        return self.__parser.to_full_json(self)
+        user_json = self.__parser.to_full_json(self)
+        if self.custom_properties:
+            user_json['customProperties'] = self.__custom_properties_parser.to_full_json(self.custom_properties)
+        return user_json
 
     def _to_diff_json(self):
-        result_json = self.__parser.to_diff_json(self)
-        # check roles
-        if self._x_orig_permissions:
-            added = self._x_permissions.difference(self._x_orig_permissions)
-            removed = self._x_orig_permissions.difference(self._x_permissions)
-            print(added)
-            print(removed)
-        return result_json
+        user_json = self.__parser.to_diff_json(self)
+        if self.custom_properties:
+            user_json['customProperties'] = self.__custom_properties_parser.to_diff_json(self.custom_properties)
+        return user_json
 
     def create(self, ignore_result=False):
         self._assert_c8y()
