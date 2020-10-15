@@ -54,7 +54,8 @@ class _DateUtil(object):
 
 class _WithUpdatableAttributes(object):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._updated_fields = None
 
     def get_updates(self):
@@ -90,9 +91,10 @@ class _DatabaseObject(_WithUpdatableAttributes):
 
 class _WithUpdatableFragments(object):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # the object id can only be set manually, e.g. when building an instance from json
-        self._updated_fields = None
+        self._updated_fields = None  # todo: why is this necessary to have?
         self._updated_fragments = None
         self.fragments = {}
 
@@ -145,7 +147,7 @@ class _WithUpdatableFragments(object):
             del self.__dict__['+diff_json+']
 
 
-class _DatabaseObjectWithFragments(_DatabaseObject, _WithUpdatableFragments):
+class _DatabaseObjectWithFragments(_WithUpdatableFragments, _DatabaseObject):
 
     def __init__(self, c8y=None):
         super().__init__(c8y)
