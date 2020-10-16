@@ -338,14 +338,15 @@ class User(_DatabaseObject):
             '_u_enabled': 'enabled',  # bool
             '_u_display_name': 'displayName',
             '_u_password': 'password',
-            '_u_phone': 'phone',
+            '_u_first_name': 'firstName',
+            '_u_last_name': 'lastName',
             '_u_require_password_reset': 'shouldResetPassword',
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
     __custom_properties_parser = _DatabaseObjectWithFragmentsParser({}, [])
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, phone=None, require_password_reset=None,
+                 password=None, first_name=None, last_name=None, phone=None, require_password_reset=None,
                  permission_ids=None, global_role_ids=None, inventory_roles=None):
         """
         :param c8y:
@@ -356,6 +357,9 @@ class User(_DatabaseObject):
         :param password:  the initial password for the user
             if omitted, a newly created user will be send a password reset link
             (for human users)
+        :param first_name:
+        :param last_name:
+        :param phone:
         :param permission_ids:  the initial set of roles (permissions) for this user
             a newly created user will be assigned these after creation
             Note: human users are usually assigned to groups (global roles)
@@ -370,6 +374,8 @@ class User(_DatabaseObject):
         self._u_display_name = display_name
         self._u_password = password
         self._u_phone = phone
+        self._u_first_name = first_name
+        self._u_last_name = last_name
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = False if self._u_password else True
         self._last_password_change = None
