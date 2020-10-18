@@ -21,19 +21,20 @@ class CumulocityRestApi:
         self.tfa_token = tfa_token
         self.__auth = f'{tenant_id}/{username}', password
         self.__default_headers = {'tfatoken': self.tfa_token} if self.tfa_token else {}
+        self.requests = requests.Session()
 
     def prepare_request(self, method, resource, body=None, additional_headers=None):
         hs = self.__default_headers
         if additional_headers:
             hs.update(additional_headers)
-        rq = requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.__auth)
+        rq = self.requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.__auth)
         if body:
             rq.json = body
         return rq.prepare()
 
     def get(self, resource, ordered=False):
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
-        r = requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        r = self.requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -46,7 +47,7 @@ class CumulocityRestApi:
         """Generic HTTP POST wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
-        r = requests.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        r = self.requests.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201 and r.status_code != 200:
@@ -65,7 +66,7 @@ class CumulocityRestApi:
             'file': (None, file.read())
         }
 
-        r = requests.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
+        r = self.requests.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -76,7 +77,7 @@ class CumulocityRestApi:
         """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
-        r = requests.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        r = self.requests.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
@@ -85,7 +86,7 @@ class CumulocityRestApi:
 
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}
-        r = requests.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
+        r = self.requests.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -93,7 +94,7 @@ class CumulocityRestApi:
 
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
-        r = requests.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        r = self.requests.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 204:
