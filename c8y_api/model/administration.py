@@ -388,6 +388,8 @@ class User(_DatabaseObject):
     display_name = _UpdatableProperty('_u_display_name')
     email = _UpdatableProperty('_u_email')
     phone = _UpdatableProperty('_u_phone')
+    first_name = _UpdatableProperty('_u_first_name')
+    last_name = _UpdatableProperty('_u_last_name')
     enabled = _UpdatableProperty('_u_enabled')
     require_password_reset = _UpdatableProperty('_u_require_password_reset')
     permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
