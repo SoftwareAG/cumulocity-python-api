@@ -11,7 +11,7 @@ class NamedObject(object):
 
     @classmethod
     def from_json(cls, object_json):
-        return NamedObject(id=object_json['id'], name=object_json['name'])
+        return NamedObject(id=object_json['id'], name=object_json.get('name', ''))
 
     def to_json(self):
         return {'id': self.id, 'name': self.name}
@@ -86,6 +86,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
         self._update_time = None
         self.child_devices = []
         self.child_assets = []
+        """List of NamedObject references to child assets."""
         self.child_additions = []
         self.parent_devices = []
         self.parent_assets = []
@@ -100,10 +101,14 @@ class ManagedObject(_DatabaseObjectWithFragments):
     @classmethod
     def from_json(cls, object_json):
         mo = cls._parser.from_json(object_json, ManagedObject())
-        # parse child assets
-        mo.child_assets = [NamedObject.from_json(j['managedObject'])
-                           for j in object_json['childAssets']['references']]
+        mo.child_devices = cls._parse_references(object_json['childDevices'])
+        mo.child_assets = cls._parse_references(object_json['childAssets'])
+        mo.child_additions = cls._parse_references(object_json['childAdditions'])
         return mo
+
+    @classmethod
+    def _parse_references(cls, base_json):
+        return [NamedObject.from_json(j['managedObject']) for j in base_json['references']]
 
     def to_full_json(self):
         return self._parser.to_full_json(self)
