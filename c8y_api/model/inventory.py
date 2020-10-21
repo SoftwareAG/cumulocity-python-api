@@ -233,7 +233,7 @@ class DeviceGroup(ManagedObject):
         object_json['c8y_IsDeviceGroup'] = {}
         return object_json
 
-    def _to_diff_json(self, is_parent):
+    def _to_diff_json(self):
         return super().to_diff_json()
 
     def add_group(self, name, owner=None, ignore_result=False):
@@ -287,7 +287,7 @@ class DeviceGroup(ManagedObject):
         self._assert_c8y()
         self._assert_id()
         # 1_ update main object
-        group_json = self._to_diff_json(is_parent=True)
+        group_json = self._to_diff_json()
         object_path = '/inventory/managedObjects/' + str(self.id)
         # json might actually be empty
         response_json = {}
