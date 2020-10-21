@@ -13,6 +13,9 @@ class NamedObject(object):
     def from_json(cls, object_json):
         return NamedObject(id=object_json['id'], name=object_json['name'])
 
+    def to_json(self):
+        return {'id': self.id, 'name': self.name}
+
 
 class Fragment(object):
 
@@ -36,27 +39,6 @@ class Fragment(object):
     def add_element(self, name, element):
         self.items[name] = element
         return self
-
-
-class ManagedObjectReference(_DatabaseObjectWithFragments):
-    __parser = _DatabaseObjectWithFragmentsParser(
-        {'managedObject': 'managedObject'},
-        [])
-
-    def __init__(self, c8y=None, reference=None):
-        super().__init__(c8y)
-        self.add_fragment(name='managedObject', id=reference)
-
-    @classmethod
-    def from_json(cls, object_json):
-        mor = cls.__parser.from_json(object_json, ManagedObjectReference())
-        return mor
-
-    def to_full_json(self):
-        return self.__parser.to_full_json(self)
-
-    def to_diff_json(self):
-        return self.__parser.to_diff_json(self)
 
 
 class ManagedObject(_DatabaseObjectWithFragments):
@@ -108,6 +90,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
         self.parent_devices = []
         self.parent_assets = []
         self.parent_additions = []
+        self._object_path = None
         self.is_device = False
 
     type = _UpdatableProperty(name='_u_type')
@@ -142,8 +125,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
         return self.c8y.post('/inventory/managedObjects', self.to_full_json())
 
     def update(self, object_id=None):
-        """
-        Write updated fields and fragments to database.
+        """Write updated fields and fragments to database.
 
         The id argument is optional if it is set within the object. The same update can be written to multiple
         different objects if the id argument is used.
@@ -157,35 +139,50 @@ class ManagedObject(_DatabaseObjectWithFragments):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
         self.c8y.delete('/inventory/managedObjects/' + str(self.id))
 
-    def add_child_asset(self, managed_object_child_id):
-        """
-        Add a child asset to this managed object.
+    def add_child_asset(self, child_id):
+        """Link a child asset to this managed object.
 
-        Provide the id of the managed object you want to add as a child asset
-        """
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAssets",
-                      ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
 
-    def add_child_device(self, managed_object_child_id):
+        :param child_id:  object ID of the child asset
         """
-        Add a child device to this managed object.
+        self._add_any_child('/childAssets', child_id)
 
-        Provide the id of the managed object you want to add as a child device
-        """
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childDevice",
-                      ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+    def add_child_device(self, child_id):
+        """Link a child device to this managed object.
 
-    def add_child_addition(self, managed_object_child_id):
-        """
-        Add a child addition to this managed object.
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
 
-        Provide the id of the managed object you want to add as a child addition
+        :param child_id:  object ID of the child device
         """
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAdditions",
-                      ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+        self._add_any_child('/childDevice', child_id)
+
+    def add_child_addition(self, child_id):
+        """Link a child addition to this managed object.
+
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
+
+        :param child_id:  object ID of the child addition
+        """
+        self._add_any_child('/childAdditions', child_id)
+
+    def _add_any_child(self, path, child_id):
+        self._assert_c8y()
+        self._assert_id()
+        self.c8y.post(self._build_object_path() + path,
+                      self._build_managed_object_reference(child_id))
+
+    def _build_object_path(self):
+        if not self._object_path:
+            self._object_path = '/inventory/managedObjects/' + str(self.id)
+        return self._object_path
+
+    @classmethod
+    def _build_managed_object_reference(cls, object_id):
+        return {'managedObject': {'id': object_id}}
 
 
 class Device(ManagedObject):
