@@ -6,7 +6,7 @@ import yaml
 from dataclasses import dataclass
 
 from c8y_api._util import debug
-from c8y_api.model.inventory import Inventory, Identity, Binary
+from c8y_api.model.inventory import Inventory, Identity, Binary, GroupInventory
 from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
 from c8y_api.model.measurements import Measurements
 
@@ -21,20 +21,20 @@ class CumulocityRestApi:
         self.tfa_token = tfa_token
         self.__auth = f'{tenant_id}/{username}', password
         self.__default_headers = {'tfatoken': self.tfa_token} if self.tfa_token else {}
-        self.requests = requests.Session()
+        self.session = requests.Session()
 
     def prepare_request(self, method, resource, body=None, additional_headers=None):
         hs = self.__default_headers
         if additional_headers:
             hs.update(additional_headers)
-        rq = self.requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.__auth)
+        rq = requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.__auth)
         if body:
             rq.json = body
         return rq.prepare()
 
     def get(self, resource, ordered=False):
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
-        r = self.requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        r = requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -43,11 +43,15 @@ class CumulocityRestApi:
             raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
         return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
 
-    def post(self, resource, json):
+    def post(self, resource, json, accept=None, content_type=None):
         """Generic HTTP POST wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
-        r = self.requests.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        if accept:
+            headers['Accept'] = accept
+        if content_type:
+            headers['Content-Type'] = content_type
+        r = self.session.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201 and r.status_code != 200:
@@ -66,7 +70,7 @@ class CumulocityRestApi:
             'file': (None, file.read())
         }
 
-        r = self.requests.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
+        r = self.session.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -77,7 +81,7 @@ class CumulocityRestApi:
         """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
-        r = self.requests.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        r = self.session.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
@@ -86,7 +90,7 @@ class CumulocityRestApi:
 
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}
-        r = self.requests.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
+        r = self.session.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -94,7 +98,7 @@ class CumulocityRestApi:
 
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
-        r = self.requests.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        r = self.session.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 204:
@@ -105,8 +109,9 @@ class CumulocityApi(CumulocityRestApi):
 
     def __init__(self, base_url, tenant_id, username, password, tfa_token=None):
         super().__init__(base_url, tenant_id, username, password, tfa_token)
-        self.__measurements = Measurements(self)  # todo: lazy?
-        self.__inventory = Inventory(self)  # todo: lazy?
+        self.__measurements = Measurements(self)
+        self.__inventory = Inventory(self)
+        self.__group_inventory = GroupInventory(self)
         self.__identity = Identity(self)
         self.__users = Users(self)
         self.__global_roles = GlobalRoles(self)
@@ -119,6 +124,10 @@ class CumulocityApi(CumulocityRestApi):
     @property
     def inventory(self):
         return self.__inventory
+
+    @property
+    def group_inventory(self):
+        return self.__group_inventory
 
     @property
     def identity(self):
@@ -149,8 +158,8 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
 
     def __init__(self, base_url, tenant_id, username, password):
         super().__init__(base_url, tenant_id, username, password)
-        self.__measurements = Measurements(self)  # todo: lazy?
-        self.__inventory = Inventory(self)  # todo: lazy?
+        self.__measurements = Measurements(self)
+        self.__inventory = Inventory(self)
 
     @classmethod
     def __build_default(cls):

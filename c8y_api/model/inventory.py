@@ -1,6 +1,17 @@
-from ._util import _DateUtil, _UpdatableProperty, _Query, \
-    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
 from c8y_api._util import error
+from c8y_api.model._util import _DateUtil, _UpdatableProperty, _Query, \
+    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
+
+
+class NamedObject(object):
+
+    def __init__(self, id=None, name=None):  # noqa
+        self.id = id
+        self.name = name
+
+    @classmethod
+    def from_json(cls, object_json):
+        return NamedObject(id=object_json['id'], name=object_json['name'])
 
 
 class Fragment(object):
@@ -71,7 +82,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     # todo: del mo.c8y_IsDevice  - how does this need to be written to DB? With a POST on the ID?
 
-    __parser = _DatabaseObjectWithFragmentsParser(
+    _parser = _DatabaseObjectWithFragmentsParser(
         {'id': 'id',
          '_u_type': 'type',
          '_u_name': 'name',
@@ -82,7 +93,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
          'childDevices', 'childAssets', 'childAdditions',
          'deviceParents', 'assetParents', 'additionParents'])
 
-    def __init__(self, c8y=None, type=None, name=None, owner=None):
+    def __init__(self, c8y=None, type=None, name=None, owner=None):  # noqa
         """Create a new ManagedObject from scratch."""
         super().__init__(c8y)
         # a direct update to the property backends is necessary to bypass
@@ -107,21 +118,17 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     @classmethod
     def from_json(cls, object_json):
-        mo = cls.__parser.from_json(object_json, ManagedObject())
-        # todo: references look different
-        mo.child_devices = object_json['childDevices']['references']
-        mo.child_assets = object_json['childAssets']['references']
-        mo.child_additions = object_json['childAdditions']['references']
-        mo.parent_devices = object_json['deviceParents']['references']
-        mo.parent_assets = object_json['assetParents']['references']
-        mo.parent_additions = object_json['additionParents']['references']
+        mo = cls._parser.from_json(object_json, ManagedObject())
+        # parse child assets
+        mo.child_assets = [NamedObject.from_json(j['managedObject'])
+                           for j in object_json['childAssets']['references']]
         return mo
 
     def to_full_json(self):
-        return self.__parser.to_full_json(self)
+        return self._parser.to_full_json(self)
 
     def to_diff_json(self):
-        return self.__parser.to_diff_json(self)
+        return self._parser.to_diff_json(self)
 
     @property
     def creation_time(self):
@@ -159,7 +166,8 @@ class ManagedObject(_DatabaseObjectWithFragments):
         Provide the id of the managed object you want to add as a child asset
         """
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAssets", ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAssets",
+                      ManagedObjectReference(reference=managed_object_child_id).to_full_json())
 
     def add_child_device(self, managed_object_child_id):
         """
@@ -168,7 +176,8 @@ class ManagedObject(_DatabaseObjectWithFragments):
         Provide the id of the managed object you want to add as a child device
         """
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childDevice", ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childDevice",
+                      ManagedObjectReference(reference=managed_object_child_id).to_full_json())
 
     def add_child_addition(self, managed_object_child_id):
         """
@@ -177,12 +186,13 @@ class ManagedObject(_DatabaseObjectWithFragments):
         Provide the id of the managed object you want to add as a child addition
         """
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAdditions", ManagedObjectReference(reference=managed_object_child_id).to_full_json())
+        self.c8y.post('/inventory/managedObjects/'+str(self.id)+"/childAdditions",
+                      ManagedObjectReference(reference=managed_object_child_id).to_full_json())
 
 
 class Device(ManagedObject):
 
-    def __init__(self, c8y=None, type=None, name=None, owner=None):
+    def __init__(self, c8y=None, type=None, name=None, owner=None):  # noqa
         super().__init__(c8y=c8y, type=type, name=name, owner=owner)
         self.is_device = True
 
@@ -197,6 +207,101 @@ class Device(ManagedObject):
         device_username = 'device_' + self.name
         super().delete()
         self.c8y.users.delete(device_username)
+
+
+class DeviceGroup(ManagedObject):
+
+    def __init__(self, c8y=None, name=None, owner=None):
+        # the 'type' of a device group can be c8y_DeviceGroup or c8y_DeviceSubgroup
+        # it will be set dynamically when used
+        super().__init__(c8y=c8y, type=None, name=name, owner=owner)
+        self._child_groups = None
+        self.is_device_group = True
+
+    @classmethod
+    def from_json(cls, object_json):
+        return cls._from_managed_object(super().from_json(object_json))
+
+    @classmethod
+    def _from_managed_object(cls, managed_object):
+        group = DeviceGroup(c8y=managed_object.c8y, name=managed_object.name, owner=managed_object.owner)
+        group.id = managed_object.id
+        group.child_assets = managed_object.child_assets
+        return group
+
+    def _to_json(self, is_parent):
+        object_json = super().to_full_json()
+        object_json['type'] = 'c8y_DeviceGroup' if is_parent else 'c8y_DeviceSubgroup'
+        object_json['c8y_IsDeviceGroup'] = {}
+        return object_json
+
+    def add_group(self, name, owner=None, ignore_result=False):
+        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._to_json(is_parent=False)
+        response_json = self._post_child_json(self.id, child_json)
+        if not ignore_result:
+            result = self.from_json(response_json)
+            result.c8y = self.c8y
+            return result
+
+    def add_device(self, device_id):
+        self._assert_id()
+        device_json = {'id': device_id}
+        self._post_child_json(self.id, device_json)
+
+    def add(self, *groups):
+        """Add child groups to this instance.
+        Groups can be nested to any level.
+
+        :param groups:  collection of groups to add as children
+        :return:  self reference to allow method chaining
+        """
+        if len(groups) == 1 and isinstance(groups, list):
+            self.add(*groups)
+        if not self._child_groups:
+            self._child_groups = []
+        self._child_groups.extend(groups)
+        return self
+
+    def create(self, ignore_result=False):
+        self._assert_c8y()
+        # 1_ create the group
+        group_json = self._to_json(is_parent=True)
+        response_json = self.c8y.post('/inventory/managedObjects', group_json)
+        group_id = response_json['id']
+        # 2_ create child groups recursively
+        if self._child_groups:
+            self._create_child_groups(parent_id=group_id, parent=self, groups=self._child_groups)
+        # 3_ parse/return result
+        if not ignore_result:
+            if self._child_groups:
+                # if there were child assets we need to read the object again
+                response_json = self.c8y.get(f'/inventory/managedObjects/{group_id}')
+            result = self.from_json(response_json)
+            result.c8y = self.c8y
+            return result
+
+    def delete(self):
+        self._assert_c8y()
+        self._assert_id()
+        self.c8y.delete('/inventory/managedObjects/' + str(self.id) + '?cascade=false')
+
+    def _create_child_groups(self, parent_id, parent, groups):
+        for group in groups:
+            # enrich child with defaults
+            group.c8y = parent.c8y
+            if not group.owner:
+                group.owner = parent.owner
+            # create as child assets
+            response_json = self._post_child_json(parent_id, group._to_json(is_parent=False))  # noqa
+            # recursively create further levels
+            if group._child_groups:  # noqa
+                child_id = response_json['id']
+                self._create_child_groups(parent_id=child_id, parent=group, groups=group._child_groups)  # noqa
+
+    def _post_child_json(self, parent_id, child_json):
+        self._assert_c8y()
+        path = f'/inventory/managedObjects/{parent_id}/childAssets'
+        return self.c8y.post(path, child_json, accept='application/vnd.com.nsn.cumulocity.managedObject+json')
 
 
 class Binary(ManagedObject):
@@ -214,12 +319,15 @@ class Inventory(_Query):
         managed_object.c8y = self.c8y  # inject c8y connection into instance
         return managed_object
 
-    def get_all(self, type=None, fragment=None, page_size=1000):
-        return [x for x in self.select(type, fragment, page_size)]
+    def get_all(self, type=None, fragment=None, name=None, page_size=1000):  # noqa
+        return [x for x in self.select(type=type    , fragment=fragment, name=name, page_size=page_size)]
 
-    def select(self, type=None, fragment=None, page_size=1000):
+    def select(self, type=None, fragment=None, name=None, page_size=1000):  # noqa
         """Lazy implementation."""
-        base_query = self._build_base_query(type=type, fragment=fragment, page_size=page_size)
+        query = None
+        if name:
+            query = f"name eq '{name}'"
+        base_query = self._build_base_query(type=type, fragment=fragment, query=query, page_size=page_size)
         page_number = 1
         while True:
             # todo: it should be possible to stream the JSON content as well
@@ -239,7 +347,7 @@ class Inventory(_Query):
 
         :param managed_objects  a list of ManagedObject instances
         """
-        super()._create(lambda mo: mo._to_full_json(), *managed_objects)
+        super()._create(lambda mo: mo._to_full_json(), *managed_objects)  # noqa
 
     def update(self, object_model, *object_ids):
         """Apply a change to a number of existing objects.
@@ -247,7 +355,7 @@ class Inventory(_Query):
         Takes a list of ID of already existing managed objects and applies a
         change within the database to all of them one by one.
 
-        Uses the Cumulocity connection of this Inventiry instance.
+        Uses the Cumulocity connection of this Inventory instance.
 
         :param object_model  ManagedObject instance holding the change structure
             like an added fragment of updated value.
@@ -256,16 +364,67 @@ class Inventory(_Query):
         """
         if object_model.id:
             raise ValueError("The change model must not specify an ID.")
-        update_json = object_model._to_diff_json()
+        update_json = object_model._to_diff_json()  # noqa
         for object_id in object_ids:
             self.c8y.put(self.resource + '/' + str(object_id), update_json)
 
 
 class DeviceInventory(Inventory):
 
+    def select(self, type=None, fragment=None, name=None, page_size=100):
+        """
+        :param fragment ignored, the fragment type  is set fixed to c8y_IsDevice
+        """
+        super().select(type=type, fragment='c8y_IsDevice', name=name, page_size=page_size)
+
+    def get_all(self, type=None, fragment=None, name=None, page_size=100):
+        """
+        :param fragment ignored, the fragment type  is set fixed to c8y_IsDevice
+        """
+        return super().get_all(type=type, fragment='c8y_IsDevice', name=name, page_size=page_size)
+
     def delete(self, *device_ids):
         """Delete both the Device managed object as well as the registered device credentials from database."""
         pass
+
+
+class GroupInventory(Inventory):
+
+    def get(self, group_id):
+        return DeviceGroup._from_managed_object(super().get(group_id))  # noqa
+
+    def select(self, type=None, fragment=None, name=None, page_size=100):
+        """
+        :param type  ignored, the type is set fixed to c8y_DeviceGroup
+        """
+        query = None
+        if name:
+            query = f"name eq '{name}'"
+        base_query = self._build_base_query(type='c8y_DeviceGroup', fragment=fragment, query=query, page_size=page_size)
+        page_number = 1
+        while True:
+            # todo: it should be possible to stream the JSON content as well
+            results = [DeviceGroup.from_json(x) for x in self._get_page(base_query, page_number)]
+            if not results:
+                break
+            for result in results:
+                result.c8y = self.c8y  # inject c8y connection into instance
+                yield result
+            page_number = page_number + 1
+
+    def get_all(self, type=None, fragment=None, name=None, page_size=100):
+        """
+        :param type  ignored, the type is set fixed to c8y_DeviceGroup
+        """
+        return [x for x in self.select(fragment=fragment, name=name, page_size=page_size)]
+
+    def create(self, *groups):
+        if len(groups) == 1 and isinstance(groups, list):
+            self.create(*groups)
+        for group in groups:
+            if not group.c8y:
+                group.c8y = self
+            group.create(True)
 
 
 class Binaries(object):
@@ -365,8 +524,6 @@ class Identity(object):
     def get_managed_object_id(self, external_id, external_type):
         try:
             response = self.c8y.get(f'/identity/externalIds/{external_type}/{external_id}')
-            return ExternalId._from_json(response)
+            return ExternalId._from_json(response)  # noqa
         except KeyError:
             return None
-
-
