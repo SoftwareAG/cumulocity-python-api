@@ -3,20 +3,14 @@ from c8y_api.model import DeviceGroup
 
 c8y = CumulocityApi()
 
-# iterate through groups
-print("\nIterate through groups")
 
-
-def list_children(indent, group_id):
+def print_group_with_children(indent, group_id):
     g = c8y.group_inventory.get(group_id)
     print(f"{indent}'{g.name}', ID {g.id}")
     next_indent = '  ' + indent
     for c in g.child_assets:
-        list_children(next_indent, c.id)
+        print_group_with_children(next_indent, c.id)
 
-
-for x in c8y.group_inventory.select():
-    list_children(' ', x.id)
 
 # top level device groups can be created standalone
 print("\nCreating a top level group")
@@ -40,12 +34,16 @@ tree.add(
         DeviceGroup(name='tree-child-3'))
     )
 tree.create()
-# todo: navigate through children
 
 # existing groups can be modified
 existing_parent = c8y.group_inventory.get_all(name='tree-parent')[0]
 existing_parent.add(DeviceGroup(name='new-child-1'), DeviceGroup(name='new-child-2'))
-# existing_parent.update()
+existing_parent.update()
+
+# iterate through groups
+print("\nIterate through groups")
+for x in c8y.group_inventory.select():
+    print_group_with_children(' ', x.id)
 
 # groups can be deleted - this automatically deletes any children
 print("\nIterating and deleting:")

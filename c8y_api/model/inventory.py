@@ -80,8 +80,6 @@ class ManagedObject(_DatabaseObjectWithFragments):
         mo.flag_update('c8y_CustomReferences')
     """
 
-    # todo: del mo.c8y_IsDevice  - how does this need to be written to DB? With a POST on the ID?
-
     _parser = _DatabaseObjectWithFragmentsParser(
         {'id': 'id',
          '_u_type': 'type',
@@ -215,7 +213,7 @@ class DeviceGroup(ManagedObject):
         # the 'type' of a device group can be c8y_DeviceGroup or c8y_DeviceSubgroup
         # it will be set dynamically when used
         super().__init__(c8y=c8y, type=None, name=name, owner=owner)
-        self._child_groups = None
+        self._added_child_groups = None
         self.is_device_group = True
 
     @classmethod
@@ -234,6 +232,9 @@ class DeviceGroup(ManagedObject):
         object_json['type'] = 'c8y_DeviceGroup' if is_parent else 'c8y_DeviceSubgroup'
         object_json['c8y_IsDeviceGroup'] = {}
         return object_json
+
+    def _to_diff_json(self, is_parent):
+        return super().to_diff_json()
 
     def add_group(self, name, owner=None, ignore_result=False):
         child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._to_json(is_parent=False)
@@ -257,9 +258,9 @@ class DeviceGroup(ManagedObject):
         """
         if len(groups) == 1 and isinstance(groups, list):
             self.add(*groups)
-        if not self._child_groups:
-            self._child_groups = []
-        self._child_groups.extend(groups)
+        if not self._added_child_groups:
+            self._added_child_groups = []
+        self._added_child_groups.extend(groups)
         return self
 
     def create(self, ignore_result=False):
@@ -269,13 +270,37 @@ class DeviceGroup(ManagedObject):
         response_json = self.c8y.post('/inventory/managedObjects', group_json)
         group_id = response_json['id']
         # 2_ create child groups recursively
-        if self._child_groups:
-            self._create_child_groups(parent_id=group_id, parent=self, groups=self._child_groups)
+        if self._added_child_groups:
+            self._create_child_groups(parent_id=group_id, parent=self, groups=self._added_child_groups)
         # 3_ parse/return result
         if not ignore_result:
-            if self._child_groups:
+            if self._added_child_groups:
                 # if there were child assets we need to read the object again
                 response_json = self.c8y.get(f'/inventory/managedObjects/{group_id}')
+            result = self.from_json(response_json)
+            result.c8y = self.c8y
+            return result
+
+    def update(self, ignore_result=False):
+        # this will update any updated fields of this object as well as
+        # create and link child groups added
+        self._assert_c8y()
+        self._assert_id()
+        # 1_ update main object
+        group_json = self._to_diff_json(is_parent=True)
+        object_path = '/inventory/managedObjects/' + str(self.id)
+        # json might actually be empty
+        response_json = {}
+        if group_json:
+            response_json = self.c8y.post(object_path, group_json)
+        # 2_ create child groups recursively
+        if self._added_child_groups:
+            self._create_child_groups(parent_id=self.id, parent=self, groups=self._added_child_groups)
+        # 3_ parse/return result
+        if not ignore_result:
+            if self._added_child_groups:
+                # if there were child assets we need to read the object again
+                response_json = self.c8y.get(f'/inventory/managedObjects/{self.id}')
             result = self.from_json(response_json)
             result.c8y = self.c8y
             return result
@@ -294,9 +319,9 @@ class DeviceGroup(ManagedObject):
             # create as child assets
             response_json = self._post_child_json(parent_id, group._to_json(is_parent=False))  # noqa
             # recursively create further levels
-            if group._child_groups:  # noqa
+            if group._added_child_groups:  # noqa
                 child_id = response_json['id']
-                self._create_child_groups(parent_id=child_id, parent=group, groups=group._child_groups)  # noqa
+                self._create_child_groups(parent_id=child_id, parent=group, groups=group._added_child_groups)  # noqa
 
     def _post_child_json(self, parent_id, child_json):
         self._assert_c8y()
@@ -315,22 +340,52 @@ class Inventory(_Query):
         super().__init__(c8y, 'inventory/managedObjects')
 
     def get(self, object_id):
+        """Select a specific managed object.
+
+        :param object_id:  ID of the managed object
+        :return:  a ManagedObject instance
+        :raises:  KeyError if the ID is not defined within the database
+        """
         managed_object = ManagedObject.from_json(self._get_object(object_id))
         managed_object.c8y = self.c8y  # inject c8y connection into instance
         return managed_object
 
     def get_all(self, type=None, fragment=None, name=None, page_size=1000):  # noqa
-        return [x for x in self.select(type=type    , fragment=fragment, name=name, page_size=page_size)]
+        """ Select managed objects by various parameters.
+
+        In contract to the select method this version is not lazy. It will
+        collect the entire result set before returning.
+
+        :param type:  type string of objects to select; can be custom or a
+            predefined one like 'c8y_*'
+        :param fragment:  fragment string that is present within the objects
+        :param name:  name string of the objects to select; no partial
+            matching/patterns are supported
+        :param page_size:  number of objects to fetch per request
+        :return:  List of ManagedObject instances
+        """
+        return [x for x in self.select(type=type, fragment=fragment, name=name, page_size=page_size)]
 
     def select(self, type=None, fragment=None, name=None, page_size=1000):  # noqa
-        """Lazy implementation."""
+        """ Select managed objects by various parameters.
+
+        This is a lazy implementation; results are fetched in pages but
+        parsed and returned one by one.
+
+        :param type:  type string of objects to select; can be custom or a
+            predefined one like 'c8y_*'
+        :param fragment:  fragment string that is present within the objects
+        :param name:  name string of the objects to select; no partial
+            matching/patterns are supported
+        :param page_size:  number of objects to fetch per request
+        :return:  Generator of ManagedObject instances
+        """
         query = None
         if name:
             query = f"name eq '{name}'"
         base_query = self._build_base_query(type=type, fragment=fragment, query=query, page_size=page_size)
         page_number = 1
         while True:
-            # todo: it should be possible to stream the JSON content as well
             results = [ManagedObject.from_json(x) for x in self._get_page(base_query, page_number)]
             if not results:
                 break
@@ -371,15 +426,48 @@ class Inventory(_Query):
 
 class DeviceInventory(Inventory):
 
-    def select(self, type=None, fragment=None, name=None, page_size=100):
+    def get(self, device_id):
+        """Select a specific device object.
+
+        :param device_id:  ID of the device object
+        :return:  a Device instance
+        :raises:  KeyError if the ID is not defined within the database
         """
-        :param fragment ignored, the fragment type  is set fixed to c8y_IsDevice
+        device = Device.from_json(self._get_object(device_id))
+        device.c8y = self.c8y
+        return device
+
+    def select(self, type=None, name=None, page_size=100):  # noqa
+        """ Select managed objects by various parameters.
+
+        This is a lazy implementation; results are fetched in pages but
+        parsed and returned one by one.
+
+        Every device object defines a special c8y_IsDevice fragment,
+        hence filtering by fragment is not possible.
+
+        :param type:  type string of objects to select; can be custom or a
+            predefined one like 'c8y_*'
+        :param name:  name string of the objects to select; no partial
+            matching/patterns are supported
+        :param page_size:  number of objects to fetch per request
         """
         super().select(type=type, fragment='c8y_IsDevice', name=name, page_size=page_size)
 
-    def get_all(self, type=None, fragment=None, name=None, page_size=100):
-        """
-        :param fragment ignored, the fragment type  is set fixed to c8y_IsDevice
+    def get_all(self, type=None, name=None, page_size=100):  # noqa
+        """ Select managed objects by various parameters.
+
+        In contract to the select method this version is not lazy. It will
+        collect the entire result set before returning.
+
+        Every device object defines a special c8y_IsDevice fragment,
+        hence filtering by fragment is not possible.
+
+        :param type:  type string of objects to select; can be custom or a
+            predefined one like 'c8y_*'
+        :param name:  name string of the objects to select; no partial
+            matching/patterns are supported
+        :param page_size:  number of objects to fetch per request
         """
         return super().get_all(type=type, fragment='c8y_IsDevice', name=name, page_size=page_size)
 
@@ -391,11 +479,30 @@ class DeviceInventory(Inventory):
 class GroupInventory(Inventory):
 
     def get(self, group_id):
-        return DeviceGroup._from_managed_object(super().get(group_id))  # noqa
+        """Select a specific device object.
 
-    def select(self, type=None, fragment=None, name=None, page_size=100):
+        :param group_id:  ID of the device group object
+        :return:  a DeviceGroup instance
+        :raises:  KeyError if the ID is not defined within the database
         """
-        :param type  ignored, the type is set fixed to c8y_DeviceGroup
+        group = DeviceGroup.from_json(self._get_object(group_id))
+        group.c8y = self.c8y
+        return group
+
+    def select(self, fragment=None, name=None, page_size=100):  # noqa
+        """ Select managed objects by various parameters.
+
+        This is a lazy implementation; results are fetched in pages but
+        parsed and returned one by one.
+
+        The type of all DeviceGroup objects is fixed 'c8y_DeviceGroup',
+        hence filtering by type is not possible.
+
+        :param fragment:  fragment string that is present within the objects
+        :param name:  name string of the objects to select; no partial
+            matching/patterns are supported
+        :param page_size:  number of objects to fetch per request
+        :return:  Generator of ManagedObject instances
         """
         query = None
         if name:
@@ -403,7 +510,6 @@ class GroupInventory(Inventory):
         base_query = self._build_base_query(type='c8y_DeviceGroup', fragment=fragment, query=query, page_size=page_size)
         page_number = 1
         while True:
-            # todo: it should be possible to stream the JSON content as well
             results = [DeviceGroup.from_json(x) for x in self._get_page(base_query, page_number)]
             if not results:
                 break
@@ -412,13 +518,29 @@ class GroupInventory(Inventory):
                 yield result
             page_number = page_number + 1
 
-    def get_all(self, type=None, fragment=None, name=None, page_size=100):
-        """
-        :param type  ignored, the type is set fixed to c8y_DeviceGroup
+    def get_all(self, fragment=None, name=None, page_size=100):  # noqa
+        """ Select managed objects by various parameters.
+
+        In contract to the select method this version is not lazy. It will
+        collect the entire result set before returning.
+
+        The type of all DeviceGroup objects is fixed 'c8y_DeviceGroup',
+        hence filtering by type is not possible.
+
+        :param fragment:  fragment string that is present within the objects
+        :param name:  name string of the objects to select; no partial
+            matching/patterns are supported
+        :param page_size:  number of objects to fetch per request
+        :return:  List of ManagedObject instances
         """
         return [x for x in self.select(fragment=fragment, name=name, page_size=page_size)]
 
     def create(self, *groups):
+        """Batch create a collection of groups and entire group trees.
+
+        :param groups:  collection of DeviceGroup instances; each can
+            define children as needed.
+        """
         if len(groups) == 1 and isinstance(groups, list):
             self.create(*groups)
         for group in groups:
