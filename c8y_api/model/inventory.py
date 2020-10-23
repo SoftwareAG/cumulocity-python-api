@@ -93,6 +93,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
         self.parent_additions = []
         self._object_path = None
         self.is_device = False
+        self.is_device_group = False
 
     type = _UpdatableProperty(name='_u_type')
     name = _UpdatableProperty(name='_u_name')
@@ -229,9 +230,9 @@ class DeviceGroup(ManagedObject):
         group.child_assets = managed_object.child_assets
         return group
 
-    def _to_json(self, is_parent):
+    def _to_json(self, is_root):
         object_json = super().to_full_json()
-        object_json['type'] = 'c8y_DeviceGroup' if is_parent else 'c8y_DeviceSubgroup'
+        object_json['type'] = 'c8y_DeviceGroup' if is_root else 'c8y_DeviceSubgroup'
         object_json['c8y_IsDeviceGroup'] = {}
         return object_json
 
@@ -239,7 +240,7 @@ class DeviceGroup(ManagedObject):
         return super().to_diff_json()
 
     def add_group(self, name, owner=None, ignore_result=False):
-        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._to_json(is_parent=False)
+        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._to_json(is_root=False)
         response_json = self._post_child_json(self.id, child_json)
         if not ignore_result:
             result = self.from_json(response_json)
@@ -268,7 +269,7 @@ class DeviceGroup(ManagedObject):
     def create(self, ignore_result=False):
         self._assert_c8y()
         # 1_ create the group
-        group_json = self._to_json(is_parent=True)
+        group_json = self._to_json(is_root=True)
         response_json = self.c8y.post('/inventory/managedObjects', group_json)
         group_id = response_json['id']
         # 2_ create child groups recursively
@@ -319,7 +320,7 @@ class DeviceGroup(ManagedObject):
             if not group.owner:
                 group.owner = parent.owner
             # create as child assets
-            response_json = self._post_child_json(parent_id, group._to_json(is_parent=False))  # noqa
+            response_json = self._post_child_json(parent_id, group._to_json(is_root=False))  # noqa
             # recursively create further levels
             if group._added_child_groups:  # noqa
                 child_id = response_json['id']
