@@ -23,6 +23,9 @@ for role_id in current_user.global_role_ids:
     g = c8y.global_roles.get(role_id)
     print(f" - {g.name} ({g.id})")
 
+for u in c8y.users.get_all(page_size=2):
+    print(u)
+
 print("\nCreate new human users with password:")
 new_user = User(username='sou', email='sou@softwareag.com', password='password', enabled=True,
                 global_role_ids=[8])
@@ -41,6 +44,7 @@ db_user.require_password_reset = True
 db_user.permission_ids = {'ROLE_AUDIT_READ'}
 db_user.global_role_ids.remove(8)
 db_user.global_role_ids.add(3)
+db_user.global_role_ids.add(73)
 db_user.custom_properties.add_attribute(name='custom_attribute', value=True)
 db_user.custom_properties.add_fragment(name='custom_fragment', value=1, origin='custom')
 print(f"  Delta JSON: {db_user._to_diff_json()}")
