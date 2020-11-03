@@ -243,6 +243,10 @@ class _UpdatableProperty(object):
         obj._signal_updated_field(self.name)
         obj.__dict__[self.name] = value
 
+    def __delete__(self, obj):
+        obj._signal_updated_field(self.name)
+        obj.__dict__[self.name] = None
+
 
 class _UpdatableThingProperty(object):
 
