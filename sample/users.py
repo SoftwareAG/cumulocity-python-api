@@ -40,11 +40,12 @@ print(f"  Permissions:   {db_user.global_role_ids}")
 print(f"  Global Roles:: {db_user.permission_ids}")
 
 print("\nUpdate user in DB:")
+db_user.owner = 'Christoph.Souris@softwareag.com'
 db_user.require_password_reset = True
 db_user.permission_ids = {'ROLE_AUDIT_READ'}
-db_user.global_role_ids.remove(8)
-db_user.global_role_ids.add(3)
-db_user.global_role_ids.add(73)
+db_user.global_role_ids.remove(8)  # Cockpit User
+db_user.global_role_ids.add(2)  # admins
+db_user.global_role_ids.add(1)  # business
 db_user.custom_properties.add_attribute(name='custom_attribute', value=True)
 db_user.custom_properties.add_fragment(name='custom_fragment', value=1, origin='custom')
 print(f"  Delta JSON: {db_user._to_diff_json()}")
