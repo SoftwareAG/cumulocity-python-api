@@ -34,7 +34,7 @@ class CumulocityRestApi:
 
     def get(self, resource, ordered=False):
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
-        r = requests.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        r = self.session.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
