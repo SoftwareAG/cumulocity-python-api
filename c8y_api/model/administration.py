@@ -627,7 +627,7 @@ class Users(_Query):
                 yield user
             page_number = page_number + 1
 
-    def get_all(self, username=None, groups=None):
+    def get_all(self, username=None, groups=None, page_size=1000):
         """Select and retrieve User instances as list.
 
         The result can be limited by username (prefix) and/or group membership.
@@ -635,9 +635,11 @@ class Users(_Query):
         :param username: A user's username or a prefix thereof
         :param groups: a scalar or list of int (actual group ID), string (group names),
             or actual Group instances
-        :rtype List of User
+         :param page_size:  Maximum number of entries fetched per requests;
+            this is a performance setting
+        :rtype: List of User
         """
-        return [x for x in self.select(username, groups)]
+        return [x for x in self.select(username, groups, page_size)]
 
     def create(self, *users):
         super()._create(lambda u: u._to_full_json(), *users)
@@ -716,15 +718,17 @@ class GlobalRoles(_Query):
                     yield result
                 page_number = page_number + 1
 
-    def get_all(self, username=None):
+    def get_all(self, username=None, page_size=1000):
         """Retrieve global roles.
 
-        :param  username  retrieve global roles assigned to a specified user
+        :param username:  retrieve global roles assigned to a specified user
             If omitted, all available global roles are returned
+        :param page_size:  Maximum number of entries fetched per requests;
+            this is a performance setting.
 
-        :rtype List of GlobalRole
+        :rtype: List of GlobalRole
         """
-        return [x for x in self.select(username)]
+        return [x for x in self.select(username, page_size)]
 
     def assign_users(self, role_id, usernames):
         """Add users to a global role.
