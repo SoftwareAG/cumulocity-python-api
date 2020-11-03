@@ -27,7 +27,7 @@ class Permission(_DatabaseObject):
             'type': 'type',
             'scope': 'scope'})
 
-    def __init__(self, level=PermissionLevel.ANY, scope=PermissionScope.ANY, type='*'):
+    def __init__(self, level=PermissionLevel.ANY, scope=PermissionScope.ANY, type='*'):  # noqa
         """
         :param level: one of ADMIN, READ, * (default)
         :param type: type on which to restrict or * (default)
@@ -49,17 +49,17 @@ class Permission(_DatabaseObject):
 
 
 class ReadPermission(Permission):
-    def __init__(self, scope=PermissionScope.ANY, type='*'):
+    def __init__(self, scope=PermissionScope.ANY, type='*'):  # noqa
         super().__init__(level=PermissionLevel.READ, scope=scope, type=type)
 
 
 class WritePermission(Permission):
-    def __init__(self, scope=PermissionScope.ANY, type='*'):
+    def __init__(self, scope=PermissionScope.ANY, type='*'):  # noqa
         super().__init__(level=PermissionLevel.WRITE, scope=scope, type=type)
 
 
 class AnyPermission(Permission):
-    def __init__(self, scope=PermissionScope.ANY, type='*'):
+    def __init__(self, scope=PermissionScope.ANY, type='*'):  # noqa
         super().__init__(level=PermissionLevel.ANY, scope=scope, type=type)
 
 
@@ -70,7 +70,7 @@ class InventoryRole(_DatabaseObject):
             '_u_name': 'name',
             '_u_description': 'description'})
 
-    def __init__(self, id=None, c8y=None, name=None, description=None, permissions=None):
+    def __init__(self, id=None, c8y=None, name=None, description=None, permissions=None):  # noqa
         """
         :param c8y:
         :param name: name of the inventory role
@@ -295,6 +295,7 @@ class User(_DatabaseObject):
             '_user_id': 'id',
             'username': 'userName',
             '_u_owner': 'owner',
+            '_u_delegated_by': 'delegatedBy',
             '_u_email': 'email',
             '_u_enabled': 'enabled',  # bool
             '_u_display_name': 'displayName',
@@ -308,7 +309,7 @@ class User(_DatabaseObject):
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
                  password=None, first_name=None, last_name=None, phone=None, require_password_reset=None,
-                 owner=None, permission_ids=None, global_role_ids=None, inventory_roles=None):
+                 owner=None, delegated_by=None, permission_ids=None, global_role_ids=None):
         """
         :param c8y:
         :param username:
@@ -322,6 +323,7 @@ class User(_DatabaseObject):
         :param last_name:
         :param phone:
         :param owner:  specify the parent/owner user by username
+        :param delegated_by:  specify delegate user by username
         :param permission_ids:  the initial set of roles (permissions) for this user
             a newly created user will be assigned these after creation
             Note: human users are usually assigned to groups (global roles)
@@ -332,6 +334,7 @@ class User(_DatabaseObject):
         self.user_id = None
         self.username = username
         self._u_owner = owner
+        self._u_delegated_by = delegated_by
         self._u_email = email
         self._u_enabled = enabled
         self._u_display_name = display_name
@@ -349,6 +352,7 @@ class User(_DatabaseObject):
         self.custom_properties = _WithUpdatableFragments()
 
     owner = _UpdatableProperty('_u_owner')
+    delegated_by = _UpdatableProperty('_u_delegated_by')
     display_name = _UpdatableProperty('_u_display_name')
     email = _UpdatableProperty('_u_email')
     phone = _UpdatableProperty('_u_phone')
@@ -380,8 +384,6 @@ class User(_DatabaseObject):
 
     def _to_full_json(self):
         user_json = self.__parser.to_full_json(self)
-        if self.owner:
-            user_json['owner'] = self.owner
         if self.custom_properties:
             user_json['customProperties'] = self.__custom_properties_parser.to_full_json(self.custom_properties)
         return user_json
@@ -398,14 +400,18 @@ class User(_DatabaseObject):
         # 1: create the user itself
         base_path = f'/user/{self.c8y.tenant_id}/users'
         self.c8y.post(base_path, self._to_full_json())
-        # 2: assign to owner of defined
+        user_path = self._build_user_path()
+        # 2: assign to owner if defined
         if self.owner:
-            self.c8y.put(base_path + '/owner', {'owner': self.owner})
-        # 3: assign user to global roles
+            self.c8y.put(user_path + '/owner', self._build_owner_reference())
+        # 3: assign delegate if defined
+        #   -> no need, is already created through the base JSON
+        # if self.delegated_by:
+        #     self.c8y.put(user_path + '/delegatedBy', {self._build_delegate_reference())
+        # 4: assign user to global roles
         for group_id in self.global_role_ids:
             self.c8y.global_roles.assign_users(group_id, [self.username])
-        # 4: assign single permissions to user
-        user_path = self._build_user_path()
+        # 5: assign single permissions to user
         user_roles_path = user_path + '/roles'
         for role_id in self.permission_ids:
             ref_json = self._build_role_reference(role_id)
@@ -434,8 +440,19 @@ class User(_DatabaseObject):
         self.c8y.put(user_path, diff_json)
         # 2: if owner was changed, update separately
         if 'owner' in diff_json:
-            self.c8y.put(user_path + '/owner', {'owner': self.owner})
-        # 3: assign/unassign user from global roles
+            owner_path = user_path + '/owner'
+            if not self.owner:
+                self.c8y.delete(owner_path)
+            else:
+                self.c8y.put(owner_path, self._build_owner_reference())
+        # 3: if delegate is defined, update separately
+        if 'delegatedBy' in diff_json:
+            delegate_path = user_path + '/delegatedBy'
+            if not self.delegated_by:
+                self.c8y.delete(delegate_path)
+            else:
+                self.c8y.put(delegate_path, self._build_delegate_reference(self.delegated_by))
+        # 4: assign/unassign user from global roles
         if self._x_orig_global_roles:
             added = self._x_global_roles.difference(self._x_orig_global_roles)
             removed = self._x_orig_global_roles.difference(self._x_global_roles)
@@ -445,7 +462,7 @@ class User(_DatabaseObject):
             if removed:
                 for gid in removed:
                     self.c8y.global_roles.unassign_users(gid, [self.username])
-        # 4: add/remove permissions
+        # 5: add/remove permissions
         if self._x_orig_permissions:
             added = self._x_permissions.difference(self._x_orig_permissions)
             removed = self._x_orig_permissions.difference(self._x_permissions)
@@ -495,7 +512,7 @@ class User(_DatabaseObject):
         """
         self._assert_c8y()
         roles_path = self._build_user_path() + '/roles/inventory'
-        assignment_json = {'managedObject': group_id, 'roles': [{'id': id} for id in role_ids]}
+        assignment_json = {'managedObject': group_id, 'roles': [{'id': rid} for rid in role_ids]}
         self.c8y.post(roles_path, assignment_json)
 
     def _build_user_path(self):
@@ -506,6 +523,13 @@ class User(_DatabaseObject):
 
     def _build_user_reference(self):
         return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
+
+    def _build_owner_reference(self):
+        return {'owner': self.owner}
+
+    @staticmethod
+    def _build_delegate_reference(user_id):
+        return {'delegatedBy': user_id}
 
     def _assert_username(self):
         if not self.username:
@@ -620,7 +644,7 @@ class Users(_Query):
         return [x for x in self.select(username, groups, page_size)]
 
     def create(self, *users):
-        super()._create(lambda u: u._to_full_json(), *users)
+        super()._create(lambda u: u._to_full_json(), *users)   # noqa
 
 
 class GlobalRoles(_Query):

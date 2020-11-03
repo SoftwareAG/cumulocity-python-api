@@ -28,7 +28,7 @@ for u in c8y.users.get_all(page_size=2):
 
 print("\nCreate new human users with password:")
 new_user = User(username='sou', email='sou@softwareag.com', password='password', enabled=True,
-                global_role_ids=[8])
+                delegated_by=c8y.username, global_role_ids=[8])
 new_user.custom_properties.add_attribute('test', True)
 print(f"  JSON: {new_user._to_full_json()}")
 new_user.c8y = c8y
@@ -40,7 +40,8 @@ print(f"  Permissions:   {db_user.global_role_ids}")
 print(f"  Global Roles:: {db_user.permission_ids}")
 
 print("\nUpdate user in DB:")
-db_user.owner = 'Christoph.Souris@softwareag.com'
+db_user.owner = c8y.username
+del db_user.delegated_by
 db_user.require_password_reset = True
 db_user.permission_ids = {'ROLE_AUDIT_READ'}
 db_user.global_role_ids.remove(8)  # Cockpit User
