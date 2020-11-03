@@ -369,7 +369,7 @@ class _Query(object):  # todo: better name
         return params
 
     def _build_object_path(self, object_id):
-        return self.resource + '/' +str(object_id)
+        return self.resource + '/' + str(object_id)
 
     def _build_base_query(self, **kwargs):
         params = _Query.__prepare_query_parameters(**kwargs)
