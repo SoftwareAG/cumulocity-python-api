@@ -1,6 +1,6 @@
 from c8y_api._util import error
 from c8y_api.model._util import _DateUtil, _UpdatableProperty, _Query, \
-    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
+    _DatabaseObject, _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
 
 
 class NamedObject(object):
@@ -590,44 +590,41 @@ class Binaries(object):
         self.c8y.delete(f'/inventory/binaries/{binary_id}')
 
 
-class ExternalId(object):
+class ExternalId(_DatabaseObject):
 
     def __init__(self, c8y=None, external_id=None, external_type=None, managed_object_id=None):
-        self.c8y = c8y
+        super().__init__(c8y=c8y)
         self.external_id = external_id
         self.external_type = external_type
         self.managed_object_id = managed_object_id
 
     @staticmethod
-    def _from_json(identity_json):
+    def from_json(identity_json):
         external_type = identity_json['type']
         external_id = identity_json['externalId']
         managed_object_id = identity_json['managedObject']['id']
         return ExternalId(external_id=external_id, external_type=external_type, managed_object_id=managed_object_id)
 
     def create(self):
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        body_json = {
-            'externalId': self.external_id,
-            'type': self.external_type}
-        self.c8y.post(f'/identity/globalIds/{self.managed_object_id}/externalIds', body_json)
+        self._assert_c8y()
+        self.c8y.identity.create(self.external_id, self.external_type, self.managed_object_id)
 
     def delete(self):
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete(f'/identity/externalIds/{self.external_type}/{self.external_id}')
+        self._assert_c8y()
+        self.c8y.identity.delete(self.external_id, self.external_type)
 
-    def get_managed_object_id(self):
-        if self.managed_object_id is None:
-            self.managed_object_id = self.c8y.get(f'/identity/externalIds/{self.external_type}/{self.external_id}')
+    def get_id(self):
+        self._assert_c8y()
+        return self.c8y.identity.get_id(self.external_id, self.external_type)
 
-        return self.managed_object_id
+    def get_object(self):
+        self._assert_c8y()
+        return self.c8y.identity.get_object(self.external_id, self.external_type)
 
-    def __str__(self):
-        return str({
-            'external_id': self.external_id,
-            'external_type': self.external_type,
-            'managed_object_id': self.managed_object_id
-        })
+    def __repr__(self):
+        return {'external_id': self.external_id,
+                'external_type': self.external_type,
+                'object_id': self.managed_object_id}
 
 
 class Identity(object):
@@ -641,14 +638,24 @@ class Identity(object):
         body_json = {
             'externalId': external_id,
             'type': external_type}
-        self.c8y.post(f'/identity/globalIds/{managed_object_id}/externalIds', body_json)
+        path = f'/identity/globalIds/{managed_object_id}/externalIds'
+        self.c8y.post(path, body_json)
 
     def delete(self, external_id, external_type):
-        self.c8y.delete(f'/identity/externalIds/{external_type}/{external_id}')
+        self.c8y.delete(self._build_object_path(external_id, external_type))
 
-    def get_managed_object_id(self, external_id, external_type):
-        try:
-            response = self.c8y.get(f'/identity/externalIds/{external_type}/{external_id}')
-            return ExternalId._from_json(response)  # noqa
-        except KeyError:
-            return None
+    def get(self, external_id, external_type):
+        ExternalId.from_json(self._get_raw(external_id, external_type))
+
+    def get_id(self, external_id, external_type):
+        return self._get_raw(external_id, external_type)['managedObject']['id']
+
+    def get_object(self, external_id, external_type):
+        return self.c8y.inventory.get(self.get_id(external_id, external_type))
+
+    def _get_raw(self, external_id, external_type):
+        return self.c8y.get(self._build_object_path(external_id, external_type))
+
+    @staticmethod
+    def _build_object_path(external_id, external_type):
+        return f'/identity/externalIds/{external_type}/{external_id}'

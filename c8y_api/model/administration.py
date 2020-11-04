@@ -156,7 +156,6 @@ class InventoryRoleAssignment(_DatabaseObject):
         return j
 
     def to_diff_json(self):
-        # TODO improve by csou
         return self.to_full_json()
 
     def create(self, ignore_result=False):
@@ -269,7 +268,7 @@ class GlobalRole(_DatabaseObject):
             removed = self._x_orig_permissions.difference(self._x_permissions)
             roles_path = object_path + '/roles'
             for pid in added:
-                self.c8y.post(roles_path, self._build_role_reference(pid))  # todo re-use from create
+                self.c8y.post(roles_path, self._build_role_reference(pid))
             for pid in removed:
                 self.c8y.delete(roles_path + '/' + pid)
         # 3 get updated object as result
@@ -552,7 +551,6 @@ class InventoryRoles(_Query):
         base_query = self._build_base_query(page_size=page_size)
         page_number = 1
         while True:
-            # todo: it should be possible to stream the JSON content as well
             results = [InventoryRole.from_json(x) for x in self._get_page(base_query, page_number)]
             if not results:
                 break
