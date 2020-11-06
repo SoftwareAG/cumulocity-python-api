@@ -228,6 +228,8 @@ class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
 
     @staticmethod
     def __format_updated_fragments(obj):
+        if not obj._updated_fragments:
+            return {}
         return {name: fragment for name, fragment in obj.fragments.items() if name in obj._updated_fragments}
 
 
@@ -290,6 +292,10 @@ class _UpdatableSetProperty(object):
         assert isinstance(value, set)
         self._preserve_original(obj)
         obj.__dict__[self.prop_name] = value
+
+    def __delete__(self, obj):
+        self._preserve_original(obj)
+        obj.__dict__[self.prop_name] = None
 
     def _preserve_original(self, obj):
         if not obj.__dict__[self.orig_name]:

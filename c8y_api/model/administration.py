@@ -308,7 +308,7 @@ class User(_DatabaseObject):
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
                  password=None, first_name=None, last_name=None, phone=None, require_password_reset=None,
-                 owner=None, delegated_by=None, permission_ids=None, global_role_ids=None):
+                 owner=None, delegated_by=None, permission_ids=None, global_role_ids=None, application_ids=None):
         """
         :param c8y:
         :param username:
@@ -344,8 +344,10 @@ class User(_DatabaseObject):
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = False if self._u_password else True
         self._last_password_change = None
+        self._x_application_ids = application_ids if application_ids else set()
         self._x_global_roles = global_role_ids if global_role_ids else set()
         self._x_permissions = permission_ids if permission_ids else set()
+        self._x_orig_application_ids = None
         self._x_orig_global_roles = None
         self._x_orig_permissions = None
         self.custom_properties = _WithUpdatableFragments()
@@ -358,6 +360,7 @@ class User(_DatabaseObject):
     first_name = _UpdatableProperty('_u_first_name')
     last_name = _UpdatableProperty('_u_last_name')
     enabled = _UpdatableProperty('_u_enabled')
+    application_ids = _UpdatableSetProperty('_x_application_ids', '_x_orig_application_ids')
     require_password_reset = _UpdatableProperty('_u_require_password_reset')
     permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
     global_role_ids = _UpdatableSetProperty('_x_global_roles', '_x_orig_global_roles')
@@ -370,6 +373,8 @@ class User(_DatabaseObject):
     @classmethod
     def from_json(cls, user_json):
         user = cls.__parser.from_json(user_json, User())
+        if 'applications' in user_json:
+            user.application_ids = set([x['id'] for x in user_json['applications']])
         if user_json['roles']:
             if user_json['roles']['references']:
                 user._x_permissions = {ref['role']['id'] for ref in user_json['roles']['references']}
@@ -383,12 +388,16 @@ class User(_DatabaseObject):
 
     def _to_full_json(self):
         user_json = self.__parser.to_full_json(self)
+        if self.application_ids:
+            user_json['applications'] = self._build_application_references(self.application_ids)
         if self.custom_properties:
             user_json['customProperties'] = self.__custom_properties_parser.to_full_json(self.custom_properties)
         return user_json
 
     def _to_diff_json(self):
         user_json = self.__parser.to_diff_json(self)
+        if self._x_orig_application_ids:
+            user_json['applications'] = self._build_application_references(self._x_application_ids)
         if self.custom_properties:
             user_json['customProperties'] = self.__custom_properties_parser.to_diff_json(self.custom_properties)
         return user_json
@@ -529,6 +538,12 @@ class User(_DatabaseObject):
     @staticmethod
     def _build_delegate_reference(user_id):
         return {'delegatedBy': user_id}
+
+    @staticmethod
+    def _build_application_references(ids):
+        if not ids:
+            return []
+        return [{'id': str(aid), 'type': 'MICROSERVICE'} for aid in ids]
 
     def _assert_username(self):
         if not self.username:
