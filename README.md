@@ -1,4 +1,4 @@
-# c8y-python-api
+# cumulocity-python-api
 
 ## Installation
 After downloading the project, install the requirements by running 
