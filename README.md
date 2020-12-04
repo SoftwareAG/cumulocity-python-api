@@ -1,5 +1,7 @@
 # cumulocity-python-api
 
+This project is a Python client for the Cumulocity REST API to make it easier to develop programs, scripts, device agents or microservices in Python.
+
 ## Installation
 After downloading the project, install the requirements by running 
 
