@@ -7,12 +7,14 @@
 from .administration import *
 from .measurements import *
 from .inventory import *
+from .events import *
 
-__all__ = ['administration', 'inventory', 'measurements',
+__all__ = ['administration', 'inventory', 'measurements', 'events',
            'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
            'Permission', 'ReadPermission', 'WritePermission', 'AnyPermission', 'PermissionLevel', 'PermissionScope',
            'ManagedObject', 'Device', 'DeviceGroup', 'Fragment', 'NamedObject',
            'Inventory', 'DeviceInventory', 'GroupInventory',
            'Identity', 'ExternalId', 'Binary', 'Binaries',
            'Measurement', 'Measurements', 'Value', 'Count', 'Grams', 'Kilograms', 'Kelvin', 'Celsius',
+           'Event', 'Events',
            'Meters', 'Centimeters', 'Liters', 'CubicMeters']
