@@ -6,20 +6,20 @@ This project is a Python client for the Cumulocity REST API to make it easier to
 After downloading the project, install the requirements by running 
 
 ```
-cd c8y-python-api
+cd cumulocity-python-api
 pip install -r requirements.txt
 ```
 
 It is recommended to do this in a virtual environment instead of installing the requirements globally:
 
 ```
-cd c8y-python-api
+cd cumulocity-python-api
 python3 -m venv c8y
 source c8y/bin/activate
 pip install -r requirements.txt
 ```
 
-To run the samples in the *test* folder, add the *main* folder to your PYTHONPATH:
+To run the samples in the *sample* folder, add the *c8y_api* folder to your PYTHONPATH:
 
 ```
 export PYTHONPATH=<<path to project>>/c8y-python-api/main
