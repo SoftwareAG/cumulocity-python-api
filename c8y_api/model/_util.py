@@ -422,6 +422,29 @@ class _Query(object):  # todo: better name
         for o in objects:
             self.c8y.post(self.resource, jsonify_func(o))
 
-    def delete(self, *object_ids):
+    def _update(self, jsonify_func, *objects):
+        for o in objects:
+            self.c8y.put(self.resource + '/' + str(o.id), jsonify_func(o))
+
+    def _apply_to(self, jsonify_func, model, *object_ids):
+        model_json = jsonify_func(model)
+        for object_id in object_ids:
+            self.c8y.put(self.resource + '/' + str(object_id), model_json)
+
+    def delete(self, *objects):
+        """Delete one or more objects within the database.
+
+        The objects can be specified as instances of an database object
+        (then, the id field needs to be defined) or simply as ID (integers
+        or strings).
+
+        :param objects:  Objects within Cumulocity specified as database
+            object instances or by ID
+        :returns:  None
+        """
+        try:
+            object_ids = [o.id for o in objects]
+        except AttributeError:
+            object_ids = objects
         for object_id in object_ids:
             self.c8y.delete(self.resource + '/' + str(object_id))
