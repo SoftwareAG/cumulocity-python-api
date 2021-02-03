@@ -124,14 +124,18 @@ class Alarm(_DatabaseObjectWithFragments):
     def delete(self):
         """Delete this object within the database.
 
-        For this to function, the object ID must be defined. This is
-        always the case if the instance was built by the API.
+        An alarm is identified through its type and source. These fields
+        must be defined for this to function. This is always the case if
+        the instance was built by the API.
 
         See also functions Alarms.delete and Alarms.delete_by
         """
         self._assert_c8y()
-        self._assert_id()
-        self.c8y.delete(self.__RESOURCE + self.id)
+        if not self.type:
+            raise ValueError("The alarm type must be set to allow unambiguous identification.")
+        if not self.source:
+            raise ValueError("The alarm source must be set to allow unambiguous identification.")
+        self.c8y.alarms.delete_by(type=self.type, source=self.source)
 
 
 class Alarms(_Query):
@@ -208,11 +212,24 @@ class Alarms(_Query):
         """"""
         super()._apply_to(Alarm.to_diff_json, alarm, *alarm_ids)
 
-    # function delete is defined in super class
+    def delete(self, *alarms):
+        """Delete alarm objects within the database.
+
+        Note: within Cumulocity alarms are identified by type and source.
+        These fields must be defined within the provided objects for this
+        operation to function.
+
+        :param alarms:  Collection of Alarm instances.
+        :returns:  None
+        """
+        for a in alarms:
+            a.delete()
 
     def delete_by(self, type=None, source=None, fragment=None,  # noqa (type)
                   status=None, severity=None, resolved=None,
                   before=None, after=None, min_age=None, max_age=None):
+        """Delete alarm objects within the database by query.
+        """
         # build a base query
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             status=None, severity=None, resolved=None,
