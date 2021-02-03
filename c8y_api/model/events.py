@@ -139,8 +139,7 @@ class Events(_Query):
         :param events:  collection of Event instances
         :returns:  None
         """
-        for event in events:
-            self.c8y.post('/event/events', event.to_json())
+        self._create(Event.to_json, *events)
 
     def update(self, *events):
         for event in events:
