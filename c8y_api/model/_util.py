@@ -28,6 +28,9 @@ class _DictWrapper(object):
             self.on_update()
         self.items[name] = value
 
+    def __str__(self):
+        return self.__dict__['items'].__str__()
+
 
 class _DateUtil(object):
 
@@ -140,7 +143,8 @@ class _WithUpdatableFragments(object):
         return fragment_name in self.fragments
 
     def get_updates(self):
-        return list(self._updated_fields) + list(self._updated_fragments)
+        return ([] if not self._updated_fields else list(self._updated_fields)) \
+               + ([] if not self._updated_fragments else list(self._updated_fragments))
 
     def _signal_updated_fragment(self, name):
         if not self._updated_fragments:
@@ -254,6 +258,22 @@ class _UpdatableProperty(object):
     def __delete__(self, obj):
         obj._signal_updated_field(self.name)
         obj.__dict__[self.name] = None
+
+
+class _NotUpdatableProperty(object):
+
+    def __init__(self, prop_name, orig_name):
+        self.prop_name = prop_name
+        self.orig_name = orig_name
+
+    def __get__(self, obj, _):
+        return obj.__dict__[self.prop_name]
+
+    def __set__(self, obj, value):
+        raise TypeError(f"Attribute '{self.orig_name}' is read-only.")
+
+    def __delete__(self, obj):
+        raise TypeError(f"Attribute '{self.orig_name}' is read-only.")
 
 
 class _UpdatableThingProperty(object):
