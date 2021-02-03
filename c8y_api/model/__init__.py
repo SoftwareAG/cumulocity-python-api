@@ -8,6 +8,7 @@ from .administration import *
 from .measurements import *
 from .inventory import *
 from .events import *
+from .alarms import *
 
 __all__ = ['administration', 'inventory', 'measurements', 'events',
            'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
@@ -16,5 +17,5 @@ __all__ = ['administration', 'inventory', 'measurements', 'events',
            'Inventory', 'DeviceInventory', 'GroupInventory',
            'Identity', 'ExternalId', 'Binary', 'Binaries',
            'Measurement', 'Measurements', 'Value', 'Count', 'Grams', 'Kilograms', 'Kelvin', 'Celsius',
-           'Event', 'Events',
+           'Event', 'Events', 'Alarm', 'Alarms',
            'Meters', 'Centimeters', 'Liters', 'CubicMeters']

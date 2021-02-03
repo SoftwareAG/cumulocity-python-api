@@ -17,6 +17,7 @@ from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
 from c8y_api.model.measurements import Measurements
 from c8y_api.model.applications import Applications
 from c8y_api.model.events import Events
+from c8y_api.model.alarms import Alarms
 
 
 class CumulocityRestApi:
@@ -126,6 +127,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__inventory_roles = InventoryRoles(self)
         self.__applications = Applications(self)
         self.__events = Events(self)
+        self.__alarms = Alarms(self)
 
     @property
     def measurements(self):
@@ -162,6 +164,10 @@ class CumulocityApi(CumulocityRestApi):
     @property
     def events(self):
         return self.__events
+
+    @property
+    def alarms(self):
+        return self.__alarms
 
 
 class CumulocityDeviceRegistry(CumulocityRestApi):
