@@ -12,7 +12,7 @@ import yaml
 from dataclasses import dataclass
 
 from c8y_api._util import debug
-from c8y_api.model.inventory import Inventory, Identity, Binary, GroupInventory
+from c8y_api.model.inventory import Inventory, Identity, Binary, GroupInventory, DeviceInventory
 from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
 from c8y_api.model.measurements import Measurements
 from c8y_api.model.applications import Applications
@@ -121,6 +121,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__measurements = Measurements(self)
         self.__inventory = Inventory(self)
         self.__group_inventory = GroupInventory(self)
+        self.__device_inventory = DeviceInventory(self)
         self.__identity = Identity(self)
         self.__users = Users(self)
         self.__global_roles = GlobalRoles(self)
@@ -140,6 +141,10 @@ class CumulocityApi(CumulocityRestApi):
     @property
     def group_inventory(self):
         return self.__group_inventory
+
+    @property
+    def device_inventory(self):
+        return self.__device_inventory
 
     @property
     def identity(self):
