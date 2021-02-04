@@ -119,11 +119,15 @@ class Measurement(_DatabaseObjectWithFragments):
             return None
 
     def create(self):
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post(self.__RESOURCE, self.to_json())
+        self._assert_c8y()
+        result_json = self.c8y.post(self.__RESOURCE, self.to_json())
+        result = Measurement.from_json(result_json)
+        result.c8y = self.c8y
+        return result
 
     def delete(self):
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
+        self._assert_c8y()
+        self._assert_id()
         self.c8y.delete(self.__RESOURCE + self.id)
 
 
