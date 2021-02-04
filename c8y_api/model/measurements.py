@@ -60,12 +60,15 @@ class Count(Value):
 
 class Measurement(_DatabaseObjectWithFragments):
 
+    __RESOURCE = '/measurement/measurements/'
+
     __parser = _DatabaseObjectWithFragmentsParser(
         to_json_mapping={'id': 'id',
-                         'type': 'type'},
+                         'type': 'type',
+                         'time': 'time'},
         no_fragments_list=['self', 'time', 'source'])
 
-    def __init__(self, c8y=None, type=None, source=None, time=None):
+    def __init__(self, c8y=None, type=None, source=None, time=None):  # noqa (type)
         """ Create a new Measurement.
 
         :param c8y:  Cumulocity connection reference; needs to be set for the
@@ -94,12 +97,12 @@ class Measurement(_DatabaseObjectWithFragments):
     def from_json(cls, measurement_json):
         obj = cls.__parser.from_json(measurement_json, Measurement())
         obj.source = measurement_json['source']['id']
-        obj.time = measurement_json['time']
         return obj
 
     def to_json(self):
         measurement_json = self.__parser.to_full_json(self)
-        measurement_json['time'] = self.time if self.time else _DateUtil.to_timestring(_DateUtil.now())
+        if not self.time:
+            measurement_json['time'] = _DateUtil.to_timestring(_DateUtil.now())
         measurement_json['source'] = {'id': self.source}
         return measurement_json
 
@@ -117,11 +120,11 @@ class Measurement(_DatabaseObjectWithFragments):
 
     def create(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.post('/measurement/measurements', self.to_json())
+        self.c8y.post(self.__RESOURCE, self.to_json())
 
     def delete(self):
         assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete('/measurement/measurements/' + self.id)
+        self.c8y.delete(self.__RESOURCE + self.id)
 
 
 class Measurements(_Query):
@@ -134,7 +137,7 @@ class Measurements(_Query):
         measurement.c8y = self.c8y  # inject c8y connection into instance
         return measurement
 
-    def select(self, type=None, source=None, fragment=None,
+    def select(self, type=None, source=None, fragment=None,  # noqa (type)
                before=None, after=None, min_age=None, max_age=None, reverse=False,
                limit=None, page_size=1000):
         """Lazy implementation."""
@@ -158,7 +161,7 @@ class Measurements(_Query):
                 break
             page_number = page_number + 1
 
-    def get_all(self, type=None, source=None, fragment=None,
+    def get_all(self, type=None, source=None, fragment=None,  # noqa (type)
                 before=None, after=None, min_age=None, max_age=None, reverse=False,
                 limit=None, page_size=1000):
         """Will get everything and return as a single result."""
@@ -166,7 +169,7 @@ class Measurements(_Query):
                                        before=before, after=after, min_age=min_age, max_age=max_age,
                                        reverse=reverse, limit=limit, page_size=page_size)]
 
-    def get_last(self, type=None, source=None, fragment=None, before=None, min_age=None):
+    def get_last(self, type=None, source=None, fragment=None, before=None, min_age=None):  # noqa (type)
         """Will just get the last available measurement."""
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             before=before, min_age=min_age, reverse=True, block_size=1)
@@ -174,6 +177,15 @@ class Measurements(_Query):
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
 
-    def create(self, *measurements):
-        self._create(lambda m: m.to_json(), *measurements)
+    def delete_by(self, type=None, source=None, fragment=None,  # noqa (type)
+                before=None, after=None, min_age=None, max_age=None):
+        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+                                            before=before, after=after, min_age=min_age, max_age=max_age)
+        # remove &page_number= from the end
+        query = base_query[:base_query.rindex('&')]
+        self.c8y.delete(query)
 
+    # delete function is defined in super class
+
+    def create(self, *measurements):
+        self._create(Measurement.to_json, *measurements)
