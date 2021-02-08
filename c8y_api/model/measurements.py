@@ -194,7 +194,7 @@ class Measurements(_Query):
     def select(self, type=None, source=None, fragment=None,  # noqa (type)
                before=None, after=None, min_age=None, max_age=None, reverse=False,
                limit=None, page_size=1000):
-        """ Query the database for measurements and iterate of the results.
+        """ Query the database for measurements and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
         fetched from the database as long there is a consumer for them.
@@ -203,7 +203,7 @@ class Measurements(_Query):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        :param type:  Measurement type
+        :param type:  Alarm type
         :param source:  Database ID of a source device
         :param fragment:  Name of a present custom/standard fragment
         :param before:  Datetime object or ISO date/time string. Only
