@@ -98,13 +98,13 @@ class InventoryRole(_DatabaseObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['permissions'] = list(map(lambda p: p.to_full_json(), self.permissions))
+        j['permissions'] = list(map(lambda p: p.to_json(), self.permissions))
         return j
 
     def to_diff_json(self):
         j = self.__parser.to_diff_json(self)
         # the permission list can only be specified as a whole
-        j['permissions'] = list(map(lambda p: p.to_full_json(), self.permissions))
+        j['permissions'] = list(map(lambda p: p.to_json(), self.permissions))
         return j
 
     def create(self, ignore_result=False):
@@ -158,7 +158,7 @@ class InventoryRoleAssignment(_DatabaseObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['roles'] = list(map(lambda r: r.to_full_json(), self.roles))
+        j['roles'] = list(map(lambda r: r.to_json(), self.roles))
         return j
 
     def to_diff_json(self):
