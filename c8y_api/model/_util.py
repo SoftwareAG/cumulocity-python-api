@@ -97,6 +97,13 @@ class _DatabaseObject(_WithUpdatableAttributes):
         if not self.id:
             raise ValueError("The object ID must be set to allow direct object access.")
 
+    @classmethod
+    def _to_datetime(cls, field):
+        if field:
+            return _DateUtil.to_datetime(field)
+        else:
+            return None
+
 
 class _WithUpdatableFragments(object):
 
