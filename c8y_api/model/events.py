@@ -31,15 +31,16 @@ class Event(_DatabaseObjectWithFragments):
     def __init__(self, c8y=None, type=None, time=None, source=None, text=None):  # noqa (type)
         """ Create a new Event object.
 
-        Custom fragments can be added to the object after creation, using the add
+        Custom fragments can be added to the object after creation, using
+        the add_fragment function.
 
-        :param c8y:  Cumulocity connection reference; needs to be set for the
-            direct manipulation (create, delete) to function
+        :param c8y:  Cumulocity connection reference; needs to be set for
+            the direct manipulation (create, delete) to function.
         :param type:   Event type
         :param time:   Datetime string or Python datetime object. A given
             datetime string needs to be in standard ISO format incl. timezone:
-            YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is returned by the Cumulocity REST
-            API. A given datetime object needs to be timezone aware.
+            YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is returned by the Cumulocity
+            REST API. A given datetime object needs to be timezone aware.
             For manual construction it is recommended to specify a datetime
             object as the formatting of a time string is never checked for
             performance reasons.
@@ -90,7 +91,8 @@ class Event(_DatabaseObjectWithFragments):
         return obj_json
 
     def to_diff_json(self):
-        """ Convert the changes made to this instance to a JSON representation.
+        """ Convert the changes made to this instance to a JSON
+        representation.
 
         The JSON format produced by this function is what is used by the
         Cumulocity REST API.
@@ -106,10 +108,7 @@ class Event(_DatabaseObjectWithFragments):
 
         :returns:  Standard Python datetime object
         """
-        if self.time:
-            return _DateUtil.to_datetime(self.time)
-        else:
-            return None
+        return super()._to_datetime(self.time)
 
     def create(self):
         """ Create a new representation of this object within the database.
@@ -124,7 +123,7 @@ class Event(_DatabaseObjectWithFragments):
         See also function Events.create which doesn't parse the result.
         """
         self._assert_c8y()
-        result_json = self.c8y.post('/event/events', self.to_json())
+        result_json = self.c8y.post(self.__RESOURCE, self.to_json())
         result = Event.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -145,7 +144,8 @@ class Event(_DatabaseObjectWithFragments):
         return result
 
     def apply_to(self, other_id):
-        """ Apply changes made to this object to another object in the database.
+        """ Apply changes made to this object to another object in the
+            database.
 
         :param other_id:  Database ID of the event to update.
         :returns:  A fresh Event instance representing the updated object
@@ -154,8 +154,6 @@ class Event(_DatabaseObjectWithFragments):
         See also function Events.apply_to which doesn't parse the result.
         """
         self._assert_c8y()
-        # if no field was updated, apparently the entire object should
-        # be applied, so we signal updates ourselves by touching all updatable fields
         # put diff json to another object (by ID)
         result_json = self.c8y.put(self.__RESOURCE + other_id, self.to_diff_json())
         result = Event.from_json(result_json)
@@ -280,7 +278,8 @@ class Events(_Query):
         super()._update(Event.to_diff_json, *events)
 
     def apply_to(self, event, *event_ids):
-        """ Apply changes made to a single instance to other objects in the database.
+        """ Apply changes made to a single instance to other objects in the
+        database.
 
         :param event:  An Event object serving as model for the update
         :param event_ids:  A collection of database IDS of events

@@ -121,10 +121,7 @@ class Alarm(_DatabaseObjectWithFragments):
 
         :returns:  Standard Python datetime object
         """
-        if self.time:
-            return _DateUtil.to_datetime(self.time)
-        else:
-            return None
+        return super()._to_datetime(self.time)
 
     def create(self):
         """ Create a new representation of this object within the database.

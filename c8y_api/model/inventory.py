@@ -5,68 +5,155 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api._util import error
-from c8y_api.model._util import _DateUtil, _UpdatableProperty, _Query, \
-    _DatabaseObject, _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
+from c8y_api.model._util import _UpdatableProperty, _Query, _DatabaseObject,\
+    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
 
 
 class NamedObject(object):
+    """ Represent a named object within the database.
 
+    This class is used to model Cumulocity references.
+    """
     def __init__(self, id=None, name=None):  # noqa
+        """ Create a new instance.
+
+        :param id:  Database ID of the object
+        :param name:  Name of the object
+        :returns:  New NamedObject instance
+        """
         self.id = id
         self.name = name
 
     @classmethod
     def from_json(cls, object_json):
+        """ Build a new instance from JSON.
+
+        The JSON is assumed to be in the format as it is used by the
+        Cumulocity REST API.
+
+        :param object_json:  JSON object (nested dictionary)
+            representing a named object within Cumulocity
+        :returns:  NamedObject instance
+        """
         return NamedObject(id=object_json['id'], name=object_json.get('name', ''))
 
     def to_json(self):
+        """ Convert the instance to JSON.
+
+        The JSON format produced by this function is what is used by the
+        Cumulocity REST API.
+
+        :returns:  JSON object (nested dictionary)
+        """
         return {'id': self.id, 'name': self.name}
 
 
 class Fragment(object):
+    """ Represent a custom fragment within database objects.
 
+    This class is used by other classes to represent custom fragments
+    within their data model.
+
+    For example, every measurement contains such a fragment, holding
+    the actual data points:
+    :: json
+        "pt_current": {
+            "CURR": {
+                "unit": "A",
+                "value": 50
+            }
+        }
+
+    A fragment has a name (*pt_current* in above example) and can virtually
+    define any substructure.
+    """
     def __init__(self, name, **kwargs):
+        """ Create a new fragment.
+
+        :param name:  Name of the fragment
+        :param kwargs:  Named elements of the fragment. Each element
+            can either be a simple value of a complex substructure
+            modelled as nested dictionary.
+        :returns:  New Fragment instance
+        """
         self.name = name
         self.items = kwargs
 
-    @staticmethod
-    def _from_json(name, body_json):
-        f = Fragment(name)
-        f.items = body_json
-        return f
-
     def __getattr__(self, name):
+        """ Get a specific element of the fragment.
+
+        :param name:  Name of the element
+        :returns:  Value of the element. May be a simple value or a
+            complex substructure defined as nested dictionary.
+        """
         item = self.items[name]
         return item if not isinstance(item, dict) else _DictWrapper(item)
 
-    def has(self, element_name):
-        return element_name in self.items
+    def has(self, name):
+        """ Check whether a specific element is defined.
+
+        :param name:  Name of the element
+        :returns:  True if the element is present, False otherwise
+        """
+        return name in self.items
 
     def add_element(self, name, element):
+        """ Add an element.
+
+        :param name:  Name of the element
+        :param element:  Value of the element, either a simple value or
+            a complex substructure defined as nested dictionary.
+        :returns:  self
+        """
         self.items[name] = element
         return self
 
 
 class ManagedObject(_DatabaseObjectWithFragments):
-    """
+    """ Represent a managed object within the database.
 
-    Updates to both fields and fragments are tracked automatically and will
+    Instances of this class are returned by functions of the corresponding
+    Inventory API. Use this class to create new or update managed objects.
+
+    Within Cumulocity a managed object is used to hold virtually any
+    *additional* (apart from measurements, events and alarms) information.
+    This custom information is modelled in *fragments*, named elements
+    of any structure.
+
+    Fragments are modelled as standard Python fields and can be accessed
+    directly if the names & structures are known:
+    :: python
+
+        x = mo.c8y_CustomFragment.values.x
+
+    Managed objects can be changed and such updates are written as
+    *differences* to the database. The API does the tracking of these
+    differences automatically - just use the ManagedObject class like
+    any other Python class.
+    :: python
 
         mo.owner = 'admin@cumulocity.com'
         mo.c8y_CustomFragment.region = 'EMEA'
         mo.add_fragment('c8y_CustomValue', value=12, uom='units')
 
-    Note: This does not work if a fragment is actually a field, not a structure own it's own.
-    A direct assignment to such a value fragment, like
+    Note: This does not work if a fragment is actually a field, not a
+    structure own it's own. A direct assignment to such a value fragment,
+    like
+    :: python
 
         mo.c8y_CustomReferences = [1, 2, 3]
 
-    is currently not supported nicely as it will not be recognised as an update. A manual update flagging is
-    required:
+    is currently not supported nicely as it will not be recognised as an
+    update. A manual update flagging is required:
+    :: python
 
         mo.c8y_CustomReferences = [1, 2, 3]
         mo.flag_update('c8y_CustomReferences')
+
+    See also https://cumulocity.com/guides/reference/inventory/#managed-object
     """
+
+    __RESOURCE = '/inventory/managedObjects/'
 
     _parser = _DatabaseObjectWithFragmentsParser(
         {'id': 'id',
@@ -80,7 +167,20 @@ class ManagedObject(_DatabaseObjectWithFragments):
          'deviceParents', 'assetParents', 'additionParents'])
 
     def __init__(self, c8y=None, type=None, name=None, owner=None):  # noqa
-        """Create a new ManagedObject from scratch."""
+        """ Create a new ManagedObject instance.
+
+        Custom fragments can be added to the object after creation, using
+        the add_fragment function.
+
+        :param c8y:  Cumulocity connection reference; needs to be set for the
+            direct manipulation (create, delete) to function
+        :param type:   ManagedObject type
+        :param name:   Descriptive name of the object
+        :param owner:   User ID of the owner for this object
+
+        :returns:  ManagedObject instance
+
+        """
         super().__init__(c8y)
         # a direct update to the property backends is necessary to bypass
         # the update notification; everything specified within the constructor is
@@ -100,6 +200,13 @@ class ManagedObject(_DatabaseObjectWithFragments):
         self._object_path = None
         self.is_device = False
         self.is_device_group = False
+        # trigger changes to updatable fields
+        if type:
+            self.type = type
+        if name:
+            self.name = name
+        if owner:
+            self.owner = owner
 
     type = _UpdatableProperty(name='_u_type')
     name = _UpdatableProperty(name='_u_name')
@@ -107,6 +214,15 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     @classmethod
     def from_json(cls, object_json):
+        """ Build a new ManagedObject instance from JSON.
+
+        The JSON is assumed to be in the format as it is used by the
+        Cumulocity REST API.
+
+        :param object_json:  JSON object (nested dictionary)
+            representing a managed object within Cumulocity
+        :returns:  ManagedObject object
+        """
         mo = cls._parser.from_json(object_json, ManagedObject())
         mo.child_devices = cls._parse_references(object_json['childDevices'])
         mo.child_assets = cls._parse_references(object_json['childAssets'])
@@ -117,67 +233,141 @@ class ManagedObject(_DatabaseObjectWithFragments):
     def _parse_references(cls, base_json):
         return [NamedObject.from_json(j['managedObject']) for j in base_json['references']]
 
-    def to_full_json(self):
+    def to_json(self):
+        """ Convert the instance to JSON.
+
+        The JSON format produced by this function is what is used by the
+        Cumulocity REST API.
+
+        Note: This JSON representation does not include child assets,
+        child devices and child additions.
+
+        :returns:  JSON object (nested dictionary)
+        """
         return self._parser.to_full_json(self)
 
     def to_diff_json(self):
+        """ Convert the changes made to this instance to a JSON representation.
+
+        The JSON format produced by this function is what is used by the
+        Cumulocity REST API.
+
+        Note: This JSON representation does not include child assets,
+        child devices and child additions, even if they changed.
+
+        :returns:  JSON object (nested dictionary)
+        """
         return self._parser.to_diff_json(self)
 
     @property
     def creation_time(self):
-        return _DateUtil.to_datetime(self._creation_time)
+        """ Convert the object's creation to a Python datetime object.
+
+        :returns:  Standard Python datetime object
+        """
+        return super()._to_datetime(self._creation_time)
 
     @property
     def update_time(self):
-        return _DateUtil.to_datetime(self._update_time)
+        """ Convert the object's creation to a Python datetime object.
+
+        :returns:  Standard Python datetime object
+        """
+        return super()._to_datetime(self._update_time)
 
     def create(self):
-        """Will write the object to the database as a new instance."""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        return self.c8y.post('/inventory/managedObjects', self.to_full_json())
+        """ Create a new representation of this object within the database.
 
-    def update(self, object_id=None):
-        """Write updated fields and fragments to database.
+        This function can be called multiple times to create multiple
+        instances of this object with different ID.
 
-        The id argument is optional if it is set within the object. The same update can be written to multiple
-        different objects if the id argument is used.
+        :returns:  A fresh ManagedObject instance representing the created
+            object within the database. This instance can be used to get
+            at the ID of the new managed object.
+
+        See also function Inventory.create which doesn't parse the result.
         """
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.put('/inventory/managedObjects/' +
-                     str(object_id if object_id else self.id), self.to_diff_json())
+        super()._assert_c8y()
+        result_json = self.c8y.post(self.__RESOURCE, self.to_json())
+        result = ManagedObject.from_json(result_json)
+        result.c8y = self.c8y
+        return result
+
+    def update(self):
+        """ Write changes to the database.
+
+        :returns:  A fresh ManagedObject instance representing the updated
+            object within the database.
+
+        See also function Inventory.update which doesn't parse the result.
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        result_json = self.c8y.put(self._build_object_path(), self.to_diff_json())
+        result = ManagedObject.from_json(result_json)
+        result.c8y = self.c8y
+        return result
+
+    def apply_to(self, other_id):
+        """ Apply changes made to this object to another object in the
+        database.
+
+        :param other_id:  Database ID of the event to update.
+        :returns:  A fresh ManagedObject instance representing the updated
+            object within the database.
+
+        See also function Inventory.apply_to which doesn't parse the result.
+        """
+        self._assert_c8y()
+        # put diff json to another object (by ID)
+        result_json = self.c8y.put(self.__RESOURCE + other_id, self.to_diff_json())
+        result = ManagedObject.from_json(result_json)
+        result.c8y = self.c8y
+        return result
 
     def delete(self):
-        """Will delete the object within the database."""
-        assert self.c8y, "Cumulocity connection reference must be set to allow direct database access."
-        self.c8y.delete('/inventory/managedObjects/' + str(self.id))
+        """ Delete this object within the database.
+
+        The database ID must be defined for this to function.
+
+        :returns:  None
+
+        See also function Inventory.delete to delete multiple objects.
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        self.c8y.delete(self._build_object_path())
 
     def add_child_asset(self, child_id):
-        """Link a child asset to this managed object.
+        """ Link a child asset to this managed object.
 
         This operation is executed immediately. No additional call to
         the `update` method is required.
 
         :param child_id:  object ID of the child asset
+        :returns:  None
         """
         self._add_any_child('/childAssets', child_id)
 
     def add_child_device(self, child_id):
-        """Link a child device to this managed object.
+        """ Link a child device to this managed object.
 
         This operation is executed immediately. No additional call to
         the `update` method is required.
 
         :param child_id:  object ID of the child device
+        :returns:  None
         """
         self._add_any_child('/childDevice', child_id)
 
     def add_child_addition(self, child_id):
-        """Link a child addition to this managed object.
+        """ Link a child addition to this managed object.
 
         This operation is executed immediately. No additional call to
         the `update` method is required.
 
         :param child_id:  object ID of the child addition
+        :returns:  None
         """
         self._add_any_child('/childAdditions', child_id)
 
@@ -189,7 +379,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     def _build_object_path(self):
         if not self._object_path:
-            self._object_path = '/inventory/managedObjects/' + str(self.id)
+            self._object_path = self.__RESOURCE + self.id
         return self._object_path
 
     @classmethod
@@ -203,8 +393,8 @@ class Device(ManagedObject):
         super().__init__(c8y=c8y, type=type, name=name, owner=owner)
         self.is_device = True
 
-    def to_full_json(self):
-        object_json = super().to_full_json()
+    def to_json(self):
+        object_json = super().to_json()
         object_json['c8y_IsDevice'] = {}
         return object_json
 
@@ -237,7 +427,7 @@ class DeviceGroup(ManagedObject):
         return group
 
     def _to_json(self, is_root):
-        object_json = super().to_full_json()
+        object_json = super().to_json()
         object_json['type'] = 'c8y_DeviceGroup' if is_root else 'c8y_DeviceSubgroup'
         object_json['c8y_IsDeviceGroup'] = {}
         return object_json
