@@ -422,6 +422,10 @@ class _Query(object):  # todo: better name
         for o in objects:
             self.c8y.post(self.resource, jsonify_func(o))
 
+    def _create_bulk(self, jsonify_func, collection_name, content_type, *objects):
+        bulk_json = {collection_name: [jsonify_func(o) for o in objects]}
+        self.c8y.post(self.resource, bulk_json, content_type=content_type)
+
     def _update(self, jsonify_func, *objects):
         for o in objects:
             self.c8y.put(self.resource + '/' + str(o.id), jsonify_func(o))
@@ -432,14 +436,14 @@ class _Query(object):  # todo: better name
             self.c8y.put(self.resource + '/' + str(object_id), model_json)
 
     def delete(self, *objects):
-        """Delete one or more objects within the database.
+        """ Delete one or more objects within the database.
 
         The objects can be specified as instances of an database object
         (then, the id field needs to be defined) or simply as ID (integers
         or strings).
 
-        :param objects:  Objects within Cumulocity specified as database
-            object instances or by ID
+        :param objects:  Objects within the database specified by ID
+            (str or int) or as API objects (with defined ID).
         :returns:  None
         """
         try:

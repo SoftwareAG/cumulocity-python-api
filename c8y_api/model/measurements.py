@@ -59,6 +59,14 @@ class Count(Value):
 
 
 class Measurement(_DatabaseObjectWithFragments):
+    """ Represents an instance of a measurement object in Cumulocity.
+
+    Instances of this class are returned by functions of the corresponding
+    Measurements API. Use this class to create new or update existing
+    measurements.
+
+    See also: https://cumulocity.com/guides/reference/measurements/#measurement
+    """
 
     __RESOURCE = '/measurement/measurements/'
 
@@ -69,7 +77,7 @@ class Measurement(_DatabaseObjectWithFragments):
         no_fragments_list=['self', 'time', 'source'])
 
     def __init__(self, c8y=None, type=None, source=None, time=None):  # noqa (type)
-        """ Create a new Measurement.
+        """ Create a new Measurement object.
 
         :param c8y:  Cumulocity connection reference; needs to be set for the
             direct manipulation (create, delete) to function
@@ -82,6 +90,7 @@ class Measurement(_DatabaseObjectWithFragments):
             For manual construction it is recommended to specify a datetime
             object as the formatting of a timestring is never checked for
             performance reasons.
+        :returns:  Measurement object
         """
         super().__init__(c8y)
         self.id = None
@@ -95,11 +104,27 @@ class Measurement(_DatabaseObjectWithFragments):
 
     @classmethod
     def from_json(cls, measurement_json):
+        """ Build a new Measurement instance from JSON.
+
+        The JSON is assumed to be in the format as it is used by the
+        Cumulocity REST API.
+
+        :param measurement_json:  JSON object (nested dictionary)
+            representing a measurement within Cumulocity
+        :returns:  Measurement object
+        """
         obj = cls.__parser.from_json(measurement_json, Measurement())
         obj.source = measurement_json['source']['id']
         return obj
 
     def to_json(self):
+        """ Convert the instance to JSON.
+
+        The JSON format produced by this function is what is used by the
+        Cumulocity REST API.
+
+        :returns:  JSON object (nested dictionary)
+        """
         measurement_json = self.__parser.to_full_json(self)
         if not self.time:
             measurement_json['time'] = _DateUtil.to_timestring(_DateUtil.now())
@@ -113,12 +138,21 @@ class Measurement(_DatabaseObjectWithFragments):
 
     @property
     def datetime(self):
+        """ Convert the measurement's time to a Python datetime object.
+
+        :returns:  Standard Python datetime object
+        """
         if self.time:
             return _DateUtil.to_datetime(self.time)
         else:
             return None
 
     def create(self):
+        """ Store the Measurement within the database.
+
+        :returns:  A fresh Measurement object representing what was
+            created within the database (including the ID).
+        """
         self._assert_c8y()
         result_json = self.c8y.post(self.__RESOURCE, self.to_json())
         result = Measurement.from_json(result_json)
@@ -126,17 +160,33 @@ class Measurement(_DatabaseObjectWithFragments):
         return result
 
     def delete(self):
+        """ Delete the Measurement within the database.
+
+        :returns: None
+        """
         self._assert_c8y()
         self._assert_id()
         self.c8y.delete(self.__RESOURCE + self.id)
 
 
 class Measurements(_Query):
+    """ A wrapper for the standard Measurements API.
+
+    This class can be used for get, search for, create, update and
+    delete measurements within the Cumulocity database.
+
+    See also: https://cumulocity.com/guides/reference/measurements/#measurement
+    """
 
     def __init__(self, c8y):
         super().__init__(c8y, 'measurement/measurements')
 
     def get(self, measurement_id):
+        """ Read a specific measurement from the database.
+
+        :param measurement_id:  database ID of a measurement (int or str)
+        :returns:  Measurement object
+        """
         measurement = Measurement.from_json(self._get_object(measurement_id))
         measurement.c8y = self.c8y  # inject c8y connection into instance
         return measurement
@@ -144,7 +194,35 @@ class Measurements(_Query):
     def select(self, type=None, source=None, fragment=None,  # noqa (type)
                before=None, after=None, min_age=None, max_age=None, reverse=False,
                limit=None, page_size=1000):
-        """Lazy implementation."""
+        """ Query the database for measurements and iterate of the results.
+
+        This function is implemented in a lazy fashion - results will only be
+        fetched from the database as long there is a consumer for them.
+
+        All parameters are considered to be filters, limiting the result set
+        to objects which meet the filters specification.  Filters can be
+        combined (within reason).
+
+        :param type:  Measurement type
+        :param source:  Database ID of a source device
+        :param fragment:  Name of a present custom/standard fragment
+        :param before:  Datetime object or ISO date/time string. Only
+            measurements assigned to a time before this date are returned.
+        :param after:  Datetime object or ISO date/time string. Only
+            measurements assigned to a time after this date are returned.
+        :param min_age:  Timedelta object. Only measurements of at least
+            this age are returned.
+        :param max_age:  Timedelta object. Only measurements with at most
+            this age are returned.
+
+        :param reverse:  Invert the order of results, starting with the
+            most recent one.
+        :param limit:  Limit the number of results to this number.
+        :param page_size:  Define the number of measurements which are read (and
+            parsed in one chunk). This is a performance related setting.
+
+        :returns:  Iterable of Measurement objects
+        """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
@@ -168,21 +246,54 @@ class Measurements(_Query):
     def get_all(self, type=None, source=None, fragment=None,  # noqa (type)
                 before=None, after=None, min_age=None, max_age=None, reverse=False,
                 limit=None, page_size=1000):
-        """Will get everything and return as a single result."""
+        """ Query the database for measurements and return the results
+        as list.
+
+        This function is a greedy version of the select function. All
+        available results are read immediately and returned as list.
+
+        :returns:  List of Measurement objects
+        """
         return [x for x in self.select(type=type, source=source, fragment=fragment,
                                        before=before, after=after, min_age=min_age, max_age=max_age,
                                        reverse=reverse, limit=limit, page_size=page_size)]
 
     def get_last(self, type=None, source=None, fragment=None, before=None, min_age=None):  # noqa (type)
-        """Will just get the last available measurement."""
+        """ Query the database and return the last matching measurement.
+
+        This function is a special variant of the select function. Only
+        the last matching result is returned.
+
+        :returns:  Measurement object
+        """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
-                                            before=before, min_age=min_age, reverse=True, block_size=1)
+                                            before=before, min_age=min_age, reverse=True, page_size=1)
         m = Measurement.from_json(self._get_page(base_query, "1")['measurements'][0])
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
 
     def delete_by(self, type=None, source=None, fragment=None,  # noqa (type)
                 before=None, after=None, min_age=None, max_age=None):
+        """ Query the database and delete matching measurements.
+
+         All parameters are considered to be filters, limiting the result set
+        to objects which meet the filters specification.  Filters can be
+        combined (within reason).
+
+        :param type:  Measurement type
+        :param source:  Database ID of a source device
+        :param fragment:  Name of a present custom/standard fragment
+        :param before:  Datetime object or ISO date/time string. Only
+            measurements assigned to a time before this date are returned.
+        :param after:  Datetime object or ISO date/time string. Only
+            measurements assigned to a time after this date are returned.
+        :param min_age:  Timedelta object. Only measurements of at least
+            this age are returned.
+        :param max_age:  Timedelta object. Only measurements with at most
+            this age are returned.
+
+        :returns: None
+        """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age)
         # remove &page_number= from the end
@@ -192,4 +303,9 @@ class Measurements(_Query):
     # delete function is defined in super class
 
     def create(self, *measurements):
-        self._create(Measurement.to_json, *measurements)
+        """ Bulk create a collection of measurements within the database.
+
+        :param measurements:  Collection of Measurement objects.
+        :returns:  None
+        """
+        self._create_bulk(Measurement.to_json, 'measurements', 'application/vnd.com.nsn.cumulocity.measurementcollection+json', *measurements)

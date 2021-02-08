@@ -61,6 +61,17 @@ for m in c8y.measurements.select(type=my_type, after=run_at, reverse=True):
     m.delete()
     print(f"  Measurement #{m.id} deleted.")
 
+# measurements can also be created in a bulk
+print("\nCreating measurements in a bulk ...")
+ms = [Measurement(type='Custom#'+str(i), source=device_id, time=run_at) for i in range(1, 6)]
+c8y.measurements.create(*ms)
+ids = []
+for m in c8y.measurements.get_all(source=device_id):
+    if m.type.startswith('Custom#'):
+        print(f"  Measurement #{m.id} created. Type: {m.type}")
+        ids.append(m.id)
+c8y.measurements.delete(*ids)
+
 # Specific timeframes can be specified with before/after parameters.
 # The API also provides an alternative mechanism via min/max age of entries
 # The select method evaluates lazy (by result page), the get_all method will
