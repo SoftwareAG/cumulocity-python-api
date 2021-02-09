@@ -187,8 +187,6 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
 
     def __init__(self, base_url, tenant_id, username, password):
         super().__init__(base_url, tenant_id, username, password)
-        self.__measurements = Measurements(self)
-        self.__inventory = Inventory(self)
 
     @classmethod
     def __build_default(cls):

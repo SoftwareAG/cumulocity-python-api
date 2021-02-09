@@ -640,7 +640,7 @@ class Inventory(_Query):
     def __init__(self, c8y):
         super().__init__(c8y, 'inventory/managedObjects')
 
-    def get(self, id):
+    def get(self, id):  # noqa (id)
         """ Retrieve a specific managed object from the database.
 
         :param id:  ID of the managed object
@@ -724,14 +724,22 @@ class Inventory(_Query):
 
 class DeviceInventory(Inventory):
 
-    def get(self, device_id):
+    def request(self, id):  # noqa (id)
+        """ Create a device request.
+        """
+        self.c8y.post('/devicecontrol/newDeviceRequests', {'id': id})
+
+    def accept(self, id):  # noqa (id)
+        self.c8y.put('/devicecontrol/newDeviceRequests/' + str(id), {'status': 'ACCEPTED'})
+
+    def get(self, id):  # noqa (id)
         """ Retrieve a specific device object.
 
-        :param device_id:  ID of the device object
+        :param id:  ID of the device object
         :return:  a Device instance
         :raises:  KeyError if the ID is not defined within the database
         """
-        device = Device.from_json(self._get_object(device_id))
+        device = Device.from_json(self._get_object(id))
         device.c8y = self.c8y
         return device
 
