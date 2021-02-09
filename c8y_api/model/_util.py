@@ -114,7 +114,17 @@ class _WithUpdatableFragments(object):
         self._updated_fragments = None
         self.fragments = {}
 
-    def add_attribute(self, name, value):
+    def set_attribute(self, name, value):
+        """ Set the value of a custom attribute.
+
+        Note: such attributes cannot be updated in a pythonic way, like
+        :: python
+            obj.my_attribute = 'value'  # not possible
+
+        Instead, they need to be set again:
+        :: python
+            obj.set_attribute('my_attribute', 'value')
+        """
         self.fragments[name] = value
         self._signal_updated_fragment(name)
 
@@ -424,6 +434,24 @@ class _Query(object):  # todo: better name
     def _get_page(self, base_query, page_number):
         result_json = self.c8y.get(base_query + str(page_number))
         return result_json[self.object_name]
+
+    def _iterate(self, base_query, limit, parse_func):
+        page_number = 1
+        num_results = 1
+        while True:
+            try:
+                results = [parse_func(x) for x in self._get_page(base_query, page_number)]
+                if not results:
+                    break
+                for result in results:
+                    result.c8y = self.c8y  # inject c8y connection into instance
+                    if limit and num_results > limit:
+                        raise StopIteration
+                    num_results = num_results + 1
+                    yield result
+            except StopIteration:
+                break
+            page_number = page_number + 1
 
     def _create(self, jsonify_func, *objects):
         for o in objects:

@@ -254,22 +254,7 @@ class Alarms(_Query):
                                             status=status, severity=severity, resolved=resolved,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        page_number = 1
-        num_results = 1
-        while True:
-            try:
-                results = [Alarm.from_json(x) for x in self._get_page(base_query, page_number)]
-                if not results:
-                    break
-                for result in results:
-                    result.c8y = self.c8y  # inject c8y connection into instance
-                    if limit and num_results > limit:
-                        raise StopIteration
-                    num_results = num_results + 1
-                    yield result
-            except StopIteration:
-                break
-            page_number = page_number + 1
+        return super()._iterate(base_query, limit, Alarm.from_json)
 
     def get_all(self, type=None, source=None, fragment=None, # noqa (type)
                 status=None, severity=None, resolved=None,

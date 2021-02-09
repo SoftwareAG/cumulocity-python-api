@@ -226,22 +226,7 @@ class Measurements(_Query):
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        page_number = 1
-        num_results = 1
-        while True:
-            try:
-                results = [Measurement.from_json(x) for x in self._get_page(base_query, page_number)]
-                if not results:
-                    break
-                for result in results:
-                    result.c8y = self.c8y  # inject c8y connection into instance
-                    if limit and num_results > limit:
-                        raise StopIteration
-                    num_results = num_results + 1
-                    yield result
-            except StopIteration:
-                break
-            page_number = page_number + 1
+        return super()._iterate(base_query, limit, Measurement.from_json)
 
     def get_all(self, type=None, source=None, fragment=None,  # noqa (type)
                 before=None, after=None, min_age=None, max_age=None, reverse=False,
