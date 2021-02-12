@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from dateutil import parser
 from copy import copy
 from urllib.parse import urlencode
+from _util import warning
 
 
 class _DictWrapper(object):
@@ -114,6 +115,66 @@ class _WithUpdatableFragments(object):
         self._updated_fragments = None
         self.fragments = {}
 
+    def __setitem__(self, name, fragment):
+        """ Add/set a custom fragment.
+
+        The fragment value can be a simple value or any JSON-like structure
+        (specified as nested dictionary).
+        :: python
+            obj['c8y_SimpleValue'] = 14
+            obj['c8y_ComplexValue'] = { 'x': 1, 'y': 2, 'text': 'message'}
+
+        :param name:  Name of the custom fragment
+        :param fragment:  custom value/structure to assign
+        :returns:  None
+        """
+        self.fragments[name] = fragment
+        self._signal_updated_fragment(name)
+
+    def __getitem__(self, name):
+        """ Get the value of a custom fragment.
+
+        Depending on the definition the value can be a scalar or a
+        complex structure (modelled as nested dictionary).
+
+        Access to fragments can also be done in dot notation.
+        :: python
+            msg = obj['c8y_Custom']['text']
+            msg = obj.c8y_Custom.text
+
+        :param name: Name of the custom fragment
+        """
+        # A fragment is a simple dictionary. By wrapping it into the _DictWrapper class
+        # it is ensured that the same access behaviour is ensured on all levels.
+        # All updated anywhere within the dictionary tree will be reported as an update
+        # to this instance.
+        # If the element is not a dictionary, it can be returned directly
+        item = self.fragments[name]
+        return item if not isinstance(item, dict) else \
+            _DictWrapper(self.fragments[name], lambda: self._signal_updated_fragment(name))
+
+    def __getattr__(self, name):
+        """ Get the value of a custom fragment.
+
+        Depending on the definition the value can be a scalar or a
+        complex structure (modelled as nested dictionary).
+
+        :param name: Name of the custom fragment
+        """
+        return self.__getitem__(name)
+
+    def __iadd__(self, other):
+        try:  # go for iterable
+            for i in other:
+                self.fragments[i.name] = i.items
+                self._signal_updated_fragment(i.name)
+        except TypeError:
+            self.__iadd__([other])
+        return self
+
+    def __contains__(self, name):
+        return name in self.fragments
+
     def set_attribute(self, name, value):
         """ Set the value of a custom attribute.
 
@@ -125,39 +186,25 @@ class _WithUpdatableFragments(object):
         :: python
             obj.set_attribute('my_attribute', 'value')
         """
-        self.fragments[name] = value
-        self._signal_updated_fragment(name)
+        warning("Function 'set_attribute' is deprecated and will be removed "
+                "in a future release. Please use the [] operator instead.")
+        self.__setitem__(name, value)
+        return self
 
     def add_fragment(self, name, **kwargs):
-        """Append a custom fragment to the object."""
-        self.fragments[name] = kwargs
-        self._signal_updated_fragment(name)
+        warning("Function 'add_fragment' is deprecated and will be removed "
+                "in a future release. Please use the [] or += operator instead.")
+        self.__setitem__(name, **kwargs)
         return self
 
     def add_fragments(self, *fragments):
-        """Bulk append a collection of fragments."""
-        # fragments might be given as a list, not argument vector
-        if len(fragments) == 1 and isinstance(fragments[0], list):
-            return self.add_fragments(*fragments[0])
-        for f in fragments:
-            self.fragments[f.name] = f.items
-            self._signal_updated_fragment(f.name)
+        warning("Function 'add_fragments' is deprecated and will be removed "
+                "in a future release. Please use the [] or += operator instead.")
+        self.__iadd__(fragments)
         return self
 
-    def __getattr__(self, name):
-        """Directly access a specific fragment."""
-        # A fragment is a simple dictionary. By wrapping it into the _DictWrapper class
-        # it is ensured that the same access behaviour is ensured on all levels.
-        # All updated anywhere within the dictionary tree will be reported as an update
-        # to this instance.
-        # If the element is not a dictionary, it can be returned directly
-        item = self.fragments[name]
-        return item if not isinstance(item, dict) else \
-            _DictWrapper(self.fragments[name], lambda: self._signal_updated_fragment(name))
-
-    def has(self, fragment_name):
-        """Check whether a specific fragment is defined."""
-        return fragment_name in self.fragments
+    def has(self, name):
+        return self.__contains__(name)
 
     def get_updates(self):
         return ([] if not self._updated_fields else list(self._updated_fields)) \

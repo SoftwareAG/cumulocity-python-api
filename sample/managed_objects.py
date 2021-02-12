@@ -14,9 +14,10 @@ api = CumulocityApi()
 # (1) Creating managed objects from scratch
 print("\nCreating custom managed objects ...")
 mo = ManagedObject(name='test')
-mo.set_attribute(name='c8y_attribute', value="some message string")
-mo.add_fragment(name='c8y_Fragment', region='EMEA')
-mo.add_fragments(Fragment('c8y_F1', v=1), Fragment('c8y_F2', v=2))
+mo['c8y_attribute'] = "some message string"
+mo['c8y_Fragment'] = {'region': 'EMEA'}
+# mo += Fragment('c8y_F1', v=1)
+# mo += Fragment('c8y_F2', v=2)
 mo.c8y = api  # needs to be defined for object-oriented database access
 mo1 = mo.create()
 print(f"  Created object #{mo1.id}.")
@@ -24,7 +25,6 @@ print(f"    Attribute: {mo1.c8y_attribute}")
 print(f"    Region:    {mo1.c8y_Fragment.region}")
 print(f"    Created:   {mo1.creation_time} (string)")
 print(f"    Updated:   {mo1.update_datetime} (datetime object)")
-print(f"    Region:    {mo1.c8y_Fragment.region}")
 
 mo2 = mo.create()
 print(f"  Created object #{mo2.id}.")
@@ -33,8 +33,8 @@ print(f"     {json.dumps(mo2.to_json())}")
 # (2) Changes are tracked automatically and can we written to the database
 print("\nWriting updates ...")
 mo1.c8y_attribute = "other message string"  # this doesn't flag the updated
-mo1.set_attribute('c8y_attribute' , "better message string")  # this flags the update
-mo1.c8y_Fragment.region = 'APJ'
+mo1['c8y_attribute'] = "better message string"  # this flags the update
+mo1.c8y_Fragment.region = 'APJ' # this flags an update as well
 mo1.type = "ChangedType"
 print(f"  Changes:   {mo1.get_updates()}")
 print(f"  Diff JSON: {mo1.to_diff_json()}")
@@ -46,8 +46,8 @@ print(f"    Attribute: {mo2.c8y_attribute}")
 print(f"    Region:    {mo2.c8y_Fragment.region}")
 
 # (4) Updates can be 'rolled out' to multiple others
-mo_chg = ManagedObject(type='NewType')\
-    .add_fragment('c8y_NewFragment', special=True)
+mo_chg = ManagedObject(type='NewType')
+mo_chg += Fragment('c8y_NewFragment', special=True)
 api.inventory.apply_to(mo_chg, mo1.id, mo2.id)
 
 # (5) Objects can be read by ID
