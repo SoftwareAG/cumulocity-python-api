@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from dateutil import parser
 from copy import copy
 from urllib.parse import urlencode
-from _util import warning
+from c8y_api._util import warning
 
 
 class _DictWrapper(object):
