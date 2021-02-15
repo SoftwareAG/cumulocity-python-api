@@ -197,7 +197,7 @@ class _WithUpdatableFragments(object):
     def add_fragment(self, name, **kwargs):
         warning("Function 'add_fragment' is deprecated and will be removed "
                 "in a future release. Please use the [] or += operator instead.")
-        self.__setitem__(name, **kwargs)
+        self.__setitem__(name, kwargs)
         return self
 
     @deprecated

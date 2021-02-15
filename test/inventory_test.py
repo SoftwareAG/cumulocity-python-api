@@ -1,5 +1,8 @@
-# Copyright (c) 2020 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
-# Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
 
 import uuid
 import pytest
@@ -150,7 +153,7 @@ def test_update_multiple(db_objects_from_type):
     update_mo = ManagedObject()
     update_mo.type = generate_uuid()
     update_mo.add_fragment('NewFragment', key='value')
-    c8y.inventory.update(update_mo, *ids)
+    c8y.inventory.apply_to(update_mo, *ids)
 
     mos = c8y.inventory.get_all(type=update_mo.type)
     assert len(mos) == len(ids)
@@ -158,10 +161,3 @@ def test_update_multiple(db_objects_from_type):
         assert mo.type == update_mo.type
         assert mo.NewFragment.key == 'value'
 
-
-def test_fail_update_multiple_with_id():
-    update_mo = ManagedObject()
-    update_mo.id = 'anything'
-    with pytest.raises(ValueError) as err:
-        c8y.inventory.update(update_mo, 'foo', 'bar')
-    assert 'ID' in str(err.value)
