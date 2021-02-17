@@ -27,6 +27,6 @@ steps:
 - script: |
     pip install pytest pytest-azurepipelines
     parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-    export PYTHONPATH=./c8y_api; $PYTHONPATH
+    export PYTHONPATH=$parent_path/c8y_api; $PYTHONPATH
     pytest
   displayName: 'pytest'
