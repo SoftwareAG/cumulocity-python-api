@@ -30,5 +30,6 @@ steps:
 
 - script: |
     pip install pytest pytest-azurepipelines
+    export PYTHONPATH=./c8y_api; $PYTHONPATH
     pytest
   displayName: 'pytest'
