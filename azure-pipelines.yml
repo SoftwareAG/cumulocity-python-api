@@ -32,7 +32,7 @@ steps:
 
 - script: |
     pip install pytest pytest-azurepipelines
-    export PYTHONPATH=/home/vsts/work/1/s/c8y_api; $PYTHONPATH
-    echo $PYTHONPATH
+    ls -al
+    ls -al dist
     pytest
   displayName: 'pytest'
