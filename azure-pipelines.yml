@@ -32,6 +32,7 @@ steps:
 
 - script: |
     pip install pytest pytest-azurepipelines
+    ls -al dist
     pip install dist/c8y_api-0.10.2b0-py3-none-any.whl
     pytest
   displayName: 'pytest'
