@@ -3,27 +3,48 @@
 This project is a Python client for the Cumulocity REST API to make it easier to develop programs, scripts, device agents or microservices in Python.
 
 ## Installation
-After downloading the project, install the requirements by running 
+
+### Prerequisites
+
+Before installing the module (or any module for that matter) consider creating
+a virtual environment for your project. This is generally preferred over 
+installing modules and dependencies globally:
+
+```shell
+cd <project-root>
+python3 -m venv venv
+source venv/bin/activate
+``` 
+
+### Installation using pip
+
+The module is released as standard Python wheel (_.whl_ file). It can be
+installed using pip using the following command:
 
 ```
-cd cumulocity-python-api
-pip install -r requirements.txt
+pip install <release wheel file>
 ```
 
-It is recommended to do this in a virtual environment instead of installing the requirements globally:
+This will install all necessary dependencies automatically.  For your
+references, the module's dependencies are also listed in file _requirements.txt_.
+ 
+### Manual installation
+
+The module sources can be used directly within your Python 3 project. Simply
+copy the _c8y_api_ folder to your sources root and install the requirements by
+running the following command. The _requirements.txt_ file is part of the sources.
 
 ```
-cd cumulocity-python-api
-python3 -m venv c8y
-source c8y/bin/activate
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
-To run the samples in the *sample* folder, add the *c8y_api* folder to your PYTHONPATH:
+If the _c8y_api_ folder is in your sources root folder all imports should
+work right away. Alternatively you can add _c8y_api_ to your _PYHTONPATH_:
 
 ```
-export PYTHONPATH=<<path to project>>/c8y-python-api/main
+export PYTHONPATH=<project-root>/c8y_api; $PYTHONPATH
 ```
+
 ## Licensing
 
 This project is licensed under the Apache 2.0 license - see <https://www.apache.org/licenses/LICENSE-2.0>

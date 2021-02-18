@@ -1,5 +1,8 @@
-# Copyright (c) 2020 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
-# Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api.app import CumulocityApi
 
@@ -9,7 +12,8 @@ c8y = CumulocityApi()
 
 
 def print_application(application):
-    print(f"Application #{application.id}: '{application.name}', type: {application.type}, availability: {application.availability}")
+    print(f"Application #{application.id}: '{application.name}', "
+          f"type: {application.type}, availability: {application.availability}")
 
 
 # Applications can be pulled by their ID

@@ -91,6 +91,8 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         headers = {'Accept': 'application/json', **self.__default_headers}
         r = self.session.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        if r.status_code == 404:
+            raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
@@ -100,6 +102,8 @@ class CumulocityRestApi:
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}
         r = self.session.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
+        if r.status_code == 404:
+            raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -108,6 +112,8 @@ class CumulocityRestApi:
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
         r = self.session.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        if r.status_code == 404:
+            raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 204:

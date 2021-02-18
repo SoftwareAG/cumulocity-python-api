@@ -34,7 +34,7 @@ print(f"     {json.dumps(mo2.to_json())}")
 print("\nWriting updates ...")
 mo1.c8y_attribute = "other message string"  # this doesn't flag the updated
 mo1['c8y_attribute'] = "better message string"  # this flags the update
-mo1.c8y_Fragment.region = 'APJ' # this flags an update as well
+mo1.c8y_Fragment.region = 'APJ'  # this flags an update as well
 mo1.type = "ChangedType"
 print(f"  Changes:   {mo1.get_updates()}")
 print(f"  Diff JSON: {mo1.to_diff_json()}")

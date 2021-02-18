@@ -4,11 +4,12 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+from deprecated import deprecated
 from datetime import datetime, timedelta, timezone
 from dateutil import parser
 from copy import copy
 from urllib.parse import urlencode
-from _util import warning
+from c8y_api._util import warning
 
 
 class _DictWrapper(object):
@@ -175,6 +176,7 @@ class _WithUpdatableFragments(object):
     def __contains__(self, name):
         return name in self.fragments
 
+    @deprecated
     def set_attribute(self, name, value):
         """ Set the value of a custom attribute.
 
@@ -191,12 +193,14 @@ class _WithUpdatableFragments(object):
         self.__setitem__(name, value)
         return self
 
+    @deprecated
     def add_fragment(self, name, **kwargs):
         warning("Function 'add_fragment' is deprecated and will be removed "
                 "in a future release. Please use the [] or += operator instead.")
-        self.__setitem__(name, **kwargs)
+        self.__setitem__(name, kwargs)
         return self
 
+    @deprecated
     def add_fragments(self, *fragments):
         warning("Function 'add_fragments' is deprecated and will be removed "
                 "in a future release. Please use the [] or += operator instead.")

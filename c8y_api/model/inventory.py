@@ -726,10 +726,20 @@ class DeviceInventory(Inventory):
 
     def request(self, id):  # noqa (id)
         """ Create a device request.
+
+        :param id:  Unique ID of the device (e.g. Serial, FMEI); this is
+            _not_ the database ID.
+        :returns: None
         """
         self.c8y.post('/devicecontrol/newDeviceRequests', {'id': id})
 
     def accept(self, id):  # noqa (id)
+        """ Accept a device request.
+
+        :param id:  Unique ID of the device (e.g. Serial, FMEI); this is
+            _not_ the database ID.
+        :returns: None
+        """
         self.c8y.put('/devicecontrol/newDeviceRequests/' + str(id), {'status': 'ACCEPTED'})
 
     def get(self, id):  # noqa (id)
@@ -904,33 +914,79 @@ class Binaries(object):
 
 
 class ExternalId(_DatabaseObject):
+    """ Represents an instance of an ExternalID in Cumulocity.
 
+    Instances of this class are returned by functions of the corresponding
+    Identity API. Use this class to create or remove external ID.
+
+    See also: https://cumulocity.com/guides/reference/identity/#external-id
+    """
     def __init__(self, c8y=None, external_id=None, external_type=None, managed_object_id=None):
+        """ Create a new ExternalId object.
+
+        :param c8y:  Cumulocity connection reference; needs to be set for
+            the direct manipulation (create, delete) to function.
+        :param external_id:  A string to be used as ID for external use
+        :param external_type:  Type of the external ID,
+            e.g. _com_cumulocity_model_idtype_SerialNumber_
+        :param managed_object_id:  Valid database ID of a managed object
+            within Cumulocity
+
+        :returns:  ExternalId object
+        """
         super().__init__(c8y=c8y)
         self.external_id = external_id
         self.external_type = external_type
         self.managed_object_id = managed_object_id
 
     @staticmethod
-    def from_json(identity_json):
-        external_type = identity_json['type']
-        external_id = identity_json['externalId']
-        managed_object_id = identity_json['managedObject']['id']
+    def from_json(object_json):
+        """ Build a new ExternalId instance from JSON.
+
+        The JSON is assumed to be in the format as it is used by the
+        Cumulocity REST API.
+
+        :param object_json:  JSON object (nested dictionary)
+            representing an external ID object within Cumulocity
+        :returns:  Event object
+        """
+        external_type = object_json['type']
+        external_id = object_json['externalId']
+        managed_object_id = object_json['managedObject']['id']
         return ExternalId(external_id=external_id, external_type=external_type, managed_object_id=managed_object_id)
 
     def create(self):
+        """ Store the external ID to the database.
+
+        :returns:  self
+        """
         self._assert_c8y()
         self.c8y.identity.create(self.external_id, self.external_type, self.managed_object_id)
+        return self
 
     def delete(self):
+        """ Remove the external ID from the database.
+
+        :returns:  self
+        """
         self._assert_c8y()
         self.c8y.identity.delete(self.external_id, self.external_type)
 
     def get_id(self):
+        """ Read the referenced managed object ID from database.
+
+        :returns:  Database ID referenced by the external_id and
+            external_type of this instance.
+        """
         self._assert_c8y()
         return self.c8y.identity.get_id(self.external_id, self.external_type)
 
     def get_object(self):
+        """ Read the referenced managed object from database.
+
+        :returns:  Database ID referenced by the external_id and
+            external_type of this instance.
+        """
         self._assert_c8y()
         return self.c8y.identity.get_object(self.external_id, self.external_type)
 
@@ -948,6 +1004,16 @@ class Identity(object):
         self.c8y = c8y
 
     def create(self, external_id, external_type, managed_object_id):
+        """ Create a new External ID within the database.
+
+        :param external_id:  A string to be used as ID as reference
+        :param external_type:  Type of the external ID,
+            e.g. _com_cumulocity_model_idtype_SerialNumber_
+        :param managed_object_id:  Valid database ID of a managed object
+            within Cumulocity
+
+        :returns: None
+        """
         body_json = {
             'externalId': external_id,
             'type': external_type}
@@ -955,15 +1021,47 @@ class Identity(object):
         self.c8y.post(path, body_json)
 
     def delete(self, external_id, external_type):
+        """ Remove an External ID from the database.
+
+        :param external_id:  The external ID used as reference
+        :param external_type:  Type of the external ID,
+            e.g. _com_cumulocity_model_idtype_SerialNumber_
+
+        :returns: None
+        """
         self.c8y.delete(self._build_object_path(external_id, external_type))
 
     def get(self, external_id, external_type):
-        ExternalId.from_json(self._get_raw(external_id, external_type))
+        """ Obtain a specific External ID from the database.
+
+        :param external_id:  The external ID used as reference
+        :param external_type:  Type of the external ID,
+            e.g. _com_cumulocity_model_idtype_SerialNumber_
+
+        :returns: ExternalID object
+        """
+        return ExternalId.from_json(self._get_raw(external_id, external_type))
 
     def get_id(self, external_id, external_type):
+        """ Read the ID of the referenced managed object by its external ID.
+
+        :param external_id:  The external ID used as reference
+        :param external_type:  Type of the external ID,
+            e.g. _com_cumulocity_model_idtype_SerialNumber_
+
+        :returns: A database ID (string)
+        """
         return self._get_raw(external_id, external_type)['managedObject']['id']
 
     def get_object(self, external_id, external_type):
+        """ Read a managed object by its external ID reference.
+
+        :param external_id:  A string to be used as ID for external use
+        :param external_type:  Type of the external ID,
+            e.g. _com_cumulocity_model_idtype_SerialNumber_
+
+        :returns: ManagedObject instance
+        """
         return self.c8y.inventory.get(self.get_id(external_id, external_type))
 
     def _get_raw(self, external_id, external_type):
