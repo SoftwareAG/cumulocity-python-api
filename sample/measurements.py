@@ -7,7 +7,7 @@
 import datetime as dt
 
 from c8y_api.app import CumulocityApi
-from c8y_api.model import Measurement, Device, Count, Value, Meters
+from c8y_api.model import Measurement, Fragment, Device, Count, Value, Meters
 
 run_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds')
 
@@ -16,19 +16,17 @@ c8y = CumulocityApi()
 
 # create a device and obtain ID
 d = Device(c8y, type='DemoClient')
-d.add_fragment('c8y_DemoClient')
+d += Fragment('c8y_DemoClient')
 d.create()
 device_id = c8y.inventory.get_all(fragment='c8y_DemoClient')[0].id
 
 m1 = Measurement(c8y=c8y, type='c8y_DemoMeasurement', source=device_id)
 # simple custom fragments can be added directly, special sub structures can
 # be added using standard dictionaries
-m1.add_fragment('c8y_CustomFragment',
-                user=c8y.username, message='Demo Measurement',
-                special={'doc': {'k1': 1, 'k2': 2}})
+m1['c8y_CustomFragment'] = {'user': c8y.username, 'message': 'Demo Measurement',
+                            'special': {'doc': {'k1': 1, 'k2': 2}}}
 # typical measurement fragment values can be added using the convenience classes
-m1.add_fragment('c8y_DemoMeasurement', Iterations=Count(-1),
-                L=Meters(12.4), X=Value(42, unit='x'))
+m1 += Fragment('c8y_DemoMeasurement', Iterations=Count(-1), L=Meters(12.4), X=Value(42, unit='x'))
 # when stored without defined time, the current time will be used automatically
 m1_created = m1.create()
 print(f"\nMeasurement #{m1_created.id} created:")
