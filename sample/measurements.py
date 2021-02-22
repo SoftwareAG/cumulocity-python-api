@@ -6,8 +6,10 @@
 
 import datetime as dt
 
+from c8y_api import CumulocityApi
+
 from c8y_api.app import CumulocityApi
-from c8y_api.model import Measurement, Fragment, Device, Count, Value, Meters
+from c8y_api.model import Measurement, Fragment, Device, Count, Value, Liters, Meters
 
 run_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds')
 
@@ -19,6 +21,7 @@ d = Device(c8y, type='DemoClient')
 d += Fragment('c8y_DemoClient')
 d.create()
 device_id = c8y.inventory.get_all(fragment='c8y_DemoClient')[0].id
+print(f"Created test device: ID {device_id}")
 
 m1 = Measurement(c8y=c8y, type='c8y_DemoMeasurement', source=device_id)
 # simple custom fragments can be added directly, special sub structures can
@@ -80,6 +83,26 @@ ms = c8y.measurements.get_all(min_age=dt.timedelta(days=1), max_age=dt.timedelta
 assert len(ms) == 3
 for m in ms:
     print(f"  Got measurement of type {m.type} at {m.time}")
+
+# Filtering can also be done via value name and series name.
+m1 = Measurement(source=device_id, time=run_at, type='CustomType')
+m1['valueType1'] = {'L': Meters(1)}
+m1['valueType2'] = {'N': Count(1)}
+m2 = Measurement(source=device_id, time=run_at, type='CustomType')
+m2['valueType2'] = {'V': Liters(2)}
+m2['valueType3'] = {'N': Count(2)}
+c8y.measurements.create(m1, m2)
+
+ms = c8y.measurements.get_all(source=device_id, value='valueType2')
+assert len(ms) == 2
+ms = c8y.measurements.get_all(source=device_id, value='valueType1')
+assert len(ms) == 1
+assert ms[0].valueType1.L.value == 1
+ms = c8y.measurements.get_all(source=device_id, series='N')
+assert len(ms) == 2
+ms = c8y.measurements.get_all(source=device_id, series='V')
+assert len(ms) == 1
+assert ms[0].valueType2.V.value == 2
 
 # cleanup assets
 # d.delete() does not work, because it is a new object without ID and no connection set

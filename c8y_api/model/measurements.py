@@ -191,7 +191,8 @@ class Measurements(_Query):
         measurement.c8y = self.c8y  # inject c8y connection into instance
         return measurement
 
-    def select(self, type=None, source=None, fragment=None,  # noqa (type)
+    def select(self, type=None, source=None,  # noqa (type)
+               fragment=None, value=None, series=None,
                before=None, after=None, min_age=None, max_age=None, reverse=False,
                limit=None, page_size=1000):
         """ Query the database for measurements and iterate over the results.
@@ -206,6 +207,8 @@ class Measurements(_Query):
         :param type:  Alarm type
         :param source:  Database ID of a source device
         :param fragment:  Name of a present custom/standard fragment
+        :param value:  Name/type of a present value fragment
+        :param series:  Name of a present series within a value fragment
         :param before:  Datetime object or ISO date/time string. Only
             measurements assigned to a time before this date are returned.
         :param after:  Datetime object or ISO date/time string. Only
@@ -224,11 +227,13 @@ class Measurements(_Query):
         :returns:  Iterable of Measurement objects
         """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+                                            valueFragmentType=value, valueFragmentSeries=series,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
         return super()._iterate(base_query, limit, Measurement.from_json)
 
-    def get_all(self, type=None, source=None, fragment=None,  # noqa (type)
+    def get_all(self, type=None, source=None,  # noqa (type)
+                fragment=None,  value=None, series=None,
                 before=None, after=None, min_age=None, max_age=None, reverse=False,
                 limit=None, page_size=1000):
         """ Query the database for measurements and return the results
@@ -239,11 +244,13 @@ class Measurements(_Query):
 
         :returns:  List of Measurement objects
         """
-        return [x for x in self.select(type=type, source=source, fragment=fragment,
+        return [x for x in self.select(type=type, source=source,
+                                       fragment=fragment, value=value, series=series,
                                        before=before, after=after, min_age=min_age, max_age=max_age,
                                        reverse=reverse, limit=limit, page_size=page_size)]
 
-    def get_last(self, type=None, source=None, fragment=None, before=None, min_age=None):  # noqa (type)
+    def get_last(self, type=None, source=None, fragment=None, value=None, series=None,  # noqa (type)
+                 before=None, min_age=None):
         """ Query the database and return the last matching measurement.
 
         This function is a special variant of the select function. Only
@@ -251,13 +258,15 @@ class Measurements(_Query):
 
         :returns:  Measurement object
         """
-        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+        base_query = self._build_base_query(type=type, source=source,
+                                            fragment=fragment, value=value, series=series,
                                             before=before, min_age=min_age, reverse=True, page_size=1)
         m = Measurement.from_json(self._get_page(base_query, "1")['measurements'][0])
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
 
-    def delete_by(self, type=None, source=None, fragment=None,  # noqa (type)
+    def delete_by(self, type=None, source=None,  # noqa (type)
+                fragment=None, value=None, series=None,
                 before=None, after=None, min_age=None, max_age=None):
         """ Query the database and delete matching measurements.
 
@@ -268,6 +277,8 @@ class Measurements(_Query):
         :param type:  Measurement type
         :param source:  Database ID of a source device
         :param fragment:  Name of a present custom/standard fragment
+        :param value:  Name/type of a present value fragment
+        :param series:  Name of a present series within a value fragment
         :param before:  Datetime object or ISO date/time string. Only
             measurements assigned to a time before this date are returned.
         :param after:  Datetime object or ISO date/time string. Only
@@ -279,7 +290,8 @@ class Measurements(_Query):
 
         :returns: None
         """
-        base_query = self._build_base_query(type=type, source=source, fragment=fragment,
+        base_query = self._build_base_query(type=type, source=source,
+                                            fragment=fragment, value=value, series=series,
                                             before=before, after=after, min_age=min_age, max_age=max_age)
         # remove &page_number= from the end
         query = base_query[:base_query.rindex('&')]
