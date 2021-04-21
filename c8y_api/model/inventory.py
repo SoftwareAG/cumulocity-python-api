@@ -753,7 +753,7 @@ class DeviceInventory(Inventory):
         device.c8y = self.c8y
         return device
 
-    def select(self, type=None, name=None, limit=None, page_size=100):  # noqa (type)
+    def select(self, type=None, name=None, limit=None, page_size=100):  # noqa (type, parameters)
         """ Query the database for devices and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -773,7 +773,7 @@ class DeviceInventory(Inventory):
         """
         return super().select(type=type, fragment='c8y_IsDevice', name=name, limit=limit, page_size=page_size)
 
-    def get_all(self, type=None, name=None, page_size=100):  # noqa
+    def get_all(self, type=None, name=None, page_size=100):  # noqa (type, parameters)
         """ Query the database for devices and return the results as list.
 
         This function is a greedy version of the select function. All
@@ -781,7 +781,7 @@ class DeviceInventory(Inventory):
 
         :returns:  List of Device objects
         """
-        return super().get_all(type=type, fragment='c8y_IsDevice', name=name, page_size=page_size)
+        return [x for x in self.select(type=type, name=name, page_size=page_size)]
 
     def delete(self, *devices):
         """ Delete one or more devices and the corresponding within the database.
