@@ -1,3 +1,8 @@
+
+![GitHub](https://img.shields.io/github/license/SoftwareAG/cumulocity-python-api)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/SoftwareAG/cumulocity-python-api)
+![GitHub Release Date](https://img.shields.io/github/release-date/SoftwareAG/cumulocity-python-api)
+
 # cumulocity-python-api
 
 This project is a Python client for the Cumulocity REST API to make it easier to develop programs, scripts, device agents or microservices in Python.
