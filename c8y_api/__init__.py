@@ -22,14 +22,19 @@ from c8y_api.model.alarms import Alarms
 
 class CumulocityRestApi:
 
-    def __init__(self, base_url, tenant_id, username, password, tfa_token=None):
+    def __init__(self, base_url, tenant_id, username, password, tfa_token=None, application_key=None):
         self.base_url = base_url
         self.tenant_id = tenant_id
         self.username = username
         self.password = password
         self.tfa_token = tfa_token
+        self.application_key = application_key
         self.__auth = f'{tenant_id}/{username}', password
-        self.__default_headers = {'tfatoken': self.tfa_token} if self.tfa_token else {}
+        self.__default_headers = {}
+        if self.tfa_token:
+            self.__default_headers['tfatoken'] = self.tfa_token
+        if self.application_key:
+            self.__default_headers['X-Cumulocity-Application-Key'] = self.application_key
         self.session = requests.Session()
 
     def prepare_request(self, method, resource, body=None, additional_headers=None):
@@ -52,10 +57,10 @@ class CumulocityRestApi:
             raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
         return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
 
-    def post(self, resource, json, accept=None, content_type=None):
+    def post(self, resource, json, accept='application/json', content_type=None):
         """Generic HTTP POST wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
-        headers = {'Accept': 'application/json', **self.__default_headers}
+        headers = self.__default_headers.copy()
         if accept:
             headers['Accept'] = accept
         if content_type:
@@ -86,10 +91,14 @@ class CumulocityRestApi:
             raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
-    def put(self, resource, json):
+    def put(self, resource, json, accept='application/json', content_type=None):
         """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
-        headers = {'Accept': 'application/json', **self.__default_headers}
+        headers = self.__default_headers.copy()
+        if accept:
+            headers['Accept'] = accept
+        if content_type:
+            headers['Content-Type'] = content_type
         r = self.session.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
@@ -122,8 +131,8 @@ class CumulocityRestApi:
 
 class CumulocityApi(CumulocityRestApi):
 
-    def __init__(self, base_url, tenant_id, username, password, tfa_token=None):
-        super().__init__(base_url, tenant_id, username, password, tfa_token)
+    def __init__(self, base_url, tenant_id, username, password, tfa_token=None, application_key=None):
+        super().__init__(base_url, tenant_id, username, password, tfa_token, application_key)
         self.__measurements = Measurements(self)
         self.__inventory = Inventory(self)
         self.__group_inventory = DeviceGroupInventory(self)

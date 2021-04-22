@@ -22,7 +22,7 @@ class CumulocityApi(NativeCumulocityApi):
     __bootstrap_instance = None
     __tenant_instances = {}
 
-    def __init__(self, tenant_id=None):
+    def __init__(self, tenant_id=None, application_key=None):
         self.baseurl = self.__get_env('C8Y_BASEURL')
         if tenant_id:
             self.tenant_id = tenant_id
@@ -33,12 +33,14 @@ class CumulocityApi(NativeCumulocityApi):
             auth = self.__get_auth(tenant_id)
             self.username = auth.username
             self.__password = auth.password
-            super().__init__(self.baseurl, self.tenant_id, auth.username, auth.password)
+            super().__init__(self.baseurl, self.tenant_id, auth.username, auth.password,
+                             tfa_token=None, application_key=application_key)
         else:
             self.tenant_id = self.__get_env('C8Y_TENANT')
             self.username = self.__get_env('C8Y_USER')
             self.__password = self.__get_env('C8Y_PASSWORD')
-            super().__init__(self.baseurl, self.tenant_id, self.username, self.__password)
+            super().__init__(self.baseurl, self.tenant_id, self.username, self.__password,
+                             tfa_token=None, application_key=application_key)
 
     @staticmethod
     def __get_env(name):
