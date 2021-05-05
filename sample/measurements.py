@@ -49,9 +49,17 @@ for i in range(0, 5):
     print(f"Created measurement #{m1_created.id} with time {m1_created.time}.")
     assert time != m1_created.time
 
+# get the last measurement
+my_type = 'c8y_DemoMeasurement'
+print(f"\nListing the latest Measurement for type '{my_type}' ...")
+m = c8y.measurements.get_last(type=my_type)
+v = m.c8y_DemoMeasurement.Iterations.value
+u = m.c8y_DemoMeasurement.Iterations.unit
+t = m.time
+print(f"  Got measurement at {t}: {v} {u}")
+
 # querying the database by type
 # other filters are possible: source, fragment, date
-my_type = 'c8y_DemoMeasurement'
 print(f"\nListing all Measurements for type '{my_type}' ...")
 for m in c8y.measurements.select(type=my_type, after=run_at, reverse=True):
     v = m.c8y_DemoMeasurement.Iterations.value

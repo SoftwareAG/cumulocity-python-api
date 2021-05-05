@@ -258,10 +258,15 @@ class Measurements(_Query):
 
         :returns:  Measurement object
         """
+        # at least one date qualifier is required for this query to function,
+        # so we enforce the 'after' filter if nothing else is specified
+        after = None
+        if not before and not min_age:
+            after = '1970-01-01'
         base_query = self._build_base_query(type=type, source=source,
-                                            fragment=fragment, value=value, series=series,
+                                            fragment=fragment, value=value, series=series, after=after,
                                             before=before, min_age=min_age, reverse=True, page_size=1)
-        m = Measurement.from_json(self._get_page(base_query, "1")['measurements'][0])
+        m = Measurement.from_json(self._get_page(base_query, "1")[0])
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
 
