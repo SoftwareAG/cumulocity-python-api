@@ -89,7 +89,7 @@ class Fragment(object):
         item = self.items[name]
         return item if not isinstance(item, dict) else _DictWrapper(item)
 
-    def has(self, name):
+    def has(self, name) -> bool:
         """ Check whether a specific element is defined.
 
         :param name:  Name of the element
@@ -232,7 +232,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
     def _parse_references(cls, base_json):
         return [NamedObject.from_json(j['managedObject']) for j in base_json['references']]
 
-    def to_json(self):
+    def to_json(self) -> dict:
         """ Convert the instance to JSON.
 
         The JSON format produced by this function is what is used by the
@@ -245,7 +245,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
         """
         return self._parser.to_full_json(self)
 
-    def to_diff_json(self):
+    def to_diff_json(self) -> dict:
         """ Convert the changes made to this instance to a JSON representation.
 
         The JSON format produced by this function is what is used by the
@@ -287,7 +287,8 @@ class ManagedObject(_DatabaseObjectWithFragments):
         See also function Inventory.create which doesn't parse the result.
         """
         super()._assert_c8y()
-        result_json = self.c8y.post(self.__RESOURCE, self.to_json())
+        result_json = self.c8y.post(self.__RESOURCE,
+                                    json=self.to_json(), accept=self.c8y.ACCEPT_MANAGED_OBJECT)
         result = ManagedObject.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -302,7 +303,8 @@ class ManagedObject(_DatabaseObjectWithFragments):
         """
         super()._assert_c8y()
         super()._assert_id()
-        result_json = self.c8y.put(self._build_object_path(), self.to_diff_json())
+        result_json = self.c8y.put(self._build_object_path(),
+                                   json=self.to_diff_json(), accept=self.c8y.ACCEPT_MANAGED_OBJECT)
         result = ManagedObject.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -312,14 +314,15 @@ class ManagedObject(_DatabaseObjectWithFragments):
         database.
 
         :param other_id:  Database ID of the event to update.
-        :returns:  A fresh ManagedObject instance representing the updated
+        :return:  A fresh :class:ManagedObject instance representing the updated
             object within the database.
 
-        See also function Inventory.apply_to which doesn't parse the result.
+        See also function :class:Inventory.apply_to which doesn't parse the result.
         """
         self._assert_c8y()
         # put diff json to another object (by ID)
-        result_json = self.c8y.put(self.__RESOURCE + other_id, self.to_diff_json())
+        result_json = self.c8y.put(self.__RESOURCE + str(other_id),
+                                   json=self.to_diff_json(), accept=self.c8y.ACCEPT_MANAGED_OBJECT)
         result = ManagedObject.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -640,7 +643,7 @@ class Inventory(_Query):
     def __init__(self, c8y):
         super().__init__(c8y, 'inventory/managedObjects')
 
-    def get(self, id):  # noqa (id)
+    def get(self, id) -> ManagedObject:  # noqa (id)
         """ Retrieve a specific managed object from the database.
 
         :param id:  ID of the managed object
@@ -651,7 +654,7 @@ class Inventory(_Query):
         managed_object.c8y = self.c8y  # inject c8y connection into instance
         return managed_object
 
-    def get_all(self, type=None, fragment=None, name=None, limit=None, page_size=1000):  # noqa (type)
+    def get_all(self, type=None, fragment=None, name=None, owner=None, limit=None, page_size=1000):  # noqa (type)
         """ Query the database for managed objects and return the results
         as list.
 
@@ -662,7 +665,7 @@ class Inventory(_Query):
         """
         return [x for x in self.select(type=type, fragment=fragment, name=name, limit=limit, page_size=page_size)]
 
-    def select(self, type=None, fragment=None, name=None, limit=None, page_size=1000):  # noqa (type)
+    def select(self, type=None, fragment=None, name=None, owner=None, limit=None, page_size=1000):  # noqa (type)
         """ Query the database for managed objects and iterate over the
         results.
 
@@ -680,7 +683,7 @@ class Inventory(_Query):
         :param page_size:  Define the number of events which are read (and
             parsed in one chunk). This is a performance related setting.
 
-        :returns:  Generator of ManagedObject instances
+        :yield:  ManagedObject instances
         """
         query = None
         if name:
@@ -769,7 +772,7 @@ class DeviceInventory(Inventory):
         :param page_size:  Define the number of events which are read (and
             parsed in one chunk). This is a performance related setting.
 
-        :returns:  Generator of Device objects
+        :yield:  Device objects
         """
         return super().select(type=type, fragment='c8y_IsDevice', name=name, limit=limit, page_size=page_size)
 
@@ -828,7 +831,7 @@ class DeviceGroupInventory(Inventory):
         :param name:  name string of the objects to select; no partial
             matching/patterns are supported
         :param page_size:  number of objects to fetch per request
-        :return:  Generator of ManagedObject instances
+        :yield:  ManagedObject instances
         """
         query = None
         if name:

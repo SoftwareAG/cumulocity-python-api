@@ -444,7 +444,7 @@ class _Query(object):  # todo: better name
         return '/' + resource.strip('/')
 
     @staticmethod
-    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None,
+    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None, owner=None,
                                    before=None, after=None, min_age=None, max_age=None,
                                    reverse=None, page_size=None, **kwargs):
         # min_age/max_age should be timedelta objects that can be used for
@@ -465,7 +465,7 @@ class _Query(object):  # todo: better name
         before = _DateUtil.ensure_timestring(before)
         after = _DateUtil.ensure_timestring(after)
 
-        params = {k: v for k, v in {'type': type, 'name': name,
+        params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
                                     'source': source, 'fragmentType': fragment,
                                     'dateFrom': after, 'dateTo': before, 'revert': str(reverse),
                                     'pageSize': page_size}.items() if v}
@@ -506,7 +506,7 @@ class _Query(object):  # todo: better name
 
     def _create(self, jsonify_func, *objects):
         for o in objects:
-            self.c8y.post(self.resource, jsonify_func(o))
+            self.c8y.post(self.resource, json=jsonify_func(o), accept=None)
 
     def _create_bulk(self, jsonify_func, collection_name, content_type, *objects):
         bulk_json = {collection_name: [jsonify_func(o) for o in objects]}
@@ -514,12 +514,13 @@ class _Query(object):  # todo: better name
 
     def _update(self, jsonify_func, *objects):
         for o in objects:
-            self.c8y.put(self.resource + '/' + str(o.id), jsonify_func(o))
+            self.c8y.put(self.resource + '/' + str(o.id), json=jsonify_func(o), accept=None)
 
     def _apply_to(self, jsonify_func, model, *object_ids):
         model_json = jsonify_func(model)
+        print(model_json)
         for object_id in object_ids:
-            self.c8y.put(self.resource + '/' + str(object_id), model_json)
+            self.c8y.put(self.resource + '/' + str(object_id), model_json, accept=None)
 
     def delete(self, *objects):
         """ Delete one or more objects within the database.

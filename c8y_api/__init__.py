@@ -22,6 +22,8 @@ from c8y_api.model.alarms import Alarms
 
 class CumulocityRestApi:
 
+    ACCEPT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
+
     def __init__(self, base_url, tenant_id, username, password, tfa_token=None, application_key=None):
         self.base_url = base_url
         self.tenant_id = tenant_id
@@ -70,7 +72,8 @@ class CumulocityRestApi:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201 and r.status_code != 200:
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
-        return r.json()
+        if r.content:
+            return r.json()
 
     def post_file(self, resource, file, binary_meta_information):
         assert isinstance(binary_meta_information, Binary)
@@ -106,7 +109,8 @@ class CumulocityRestApi:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
-        return r.json()
+        if r.content:
+            return r.json()
 
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}

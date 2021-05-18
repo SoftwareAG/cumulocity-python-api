@@ -713,7 +713,7 @@ class GlobalRoles(_Query):
         """
         if username:
             # select by username
-            query = f'user/{self.c8y.tenant_id}/users/{username}/groups?pageSize={page_size}&currentPage='
+            query = f'/user/{self.c8y.tenant_id}/users/{username}/groups?pageSize={page_size}&currentPage='
             page_number = 1
             while True:
                 response_json = self.c8y.get(query + str(page_number))
