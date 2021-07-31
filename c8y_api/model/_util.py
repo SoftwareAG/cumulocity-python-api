@@ -9,6 +9,8 @@ from datetime import datetime, timedelta, timezone
 from dateutil import parser
 from copy import copy
 from urllib.parse import urlencode
+
+from c8y_api import CumulocityRestApi
 from c8y_api._util import warning
 
 
@@ -103,8 +105,7 @@ class _DatabaseObject(_WithUpdatableAttributes):
     def _to_datetime(cls, field):
         if field:
             return _DateUtil.to_datetime(field)
-        else:
-            return None
+        return None
 
 
 class _WithUpdatableFragments(object):
@@ -226,9 +227,7 @@ class _WithUpdatableFragments(object):
 
 
 class _DatabaseObjectWithFragments(_WithUpdatableFragments, _DatabaseObject):
-
-    def __init__(self, c8y=None):
-        super().__init__(c8y)
+    pass
 
 
 class _DatabaseObjectParser(object):
@@ -302,7 +301,7 @@ class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
 
     @staticmethod
     def __format_fragments(obj):
-        return {name: fragment for name, fragment in obj.fragments.items()}
+        return dict(obj.fragments.items())
 
     @staticmethod
     def __format_updated_fragments(obj):
@@ -409,8 +408,7 @@ class _UpdatableSet(set):
                 return attr(*args, **kwargs)
             self.is_updated = True
             return func
-        else:
-            return attr
+        return attr
 
 
 class _UpdatableThing:
@@ -427,13 +425,12 @@ class _UpdatableThing:
                 return attr(*args, **kwargs)
             object.__getattribute__(self, 'on_access')()
             return func
-        else:
-            return attr
+        return attr
 
 
 class _Query(object):  # todo: better name
 
-    def __init__(self, c8y, resource: str):
+    def __init__(self, c8y: CumulocityRestApi, resource: str):
         self.c8y = c8y
         self.resource = _Query.__prepare_resource(resource)
         self.object_name = self.resource.split('/')[-1]

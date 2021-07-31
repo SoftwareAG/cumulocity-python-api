@@ -21,8 +21,13 @@ from c8y_api.model.alarms import Alarms
 
 
 class CumulocityRestApi:
+    """Cumulocity base REST API.
+
+    Provides REST access to a Cumulocity instance.
+    """
 
     ACCEPT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
+    CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
     def __init__(self, base_url, tenant_id, username, password, tfa_token=None, application_key=None):
         self.base_url = base_url
@@ -72,10 +77,15 @@ class CumulocityRestApi:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201 and r.status_code != 200:
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
-        if r.content:
+        if r.content:  # todo: do we need to test this?
             return r.json()
+        return {}
 
     def post_file(self, resource, file, binary_meta_information):
+        """Generic POST wrapper.
+
+        Used for posting binary data.
+        """
         assert isinstance(binary_meta_information, Binary)
         assert file is not None
 
@@ -109,8 +119,9 @@ class CumulocityRestApi:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
-        if r.content:
+        if r.content:  # todo: do we need to test this?
             return r.json()
+        return {}
 
     def put_file(self, resource, file, media_type):
         headers = {'Content-Type': media_type, **self.__default_headers}

@@ -19,9 +19,9 @@ class PermissionScope(object):
     ANY = '*'
     ALARM = 'ALARM'
     AUDIT = 'AUDIT'
-    EVENT = 'EVENT',
-    MEASUREMENT = 'MEASUREMENT',
-    MANAGED_OBJECT = 'MANAGED_OBJECT',
+    EVENT = 'EVENT'
+    MEASUREMENT = 'MEASUREMENT'
+    MANAGED_OBJECT = 'MANAGED_OBJECT'
     OPERATION = 'OPERATION'
 
 
@@ -115,6 +115,7 @@ class InventoryRole(_DatabaseObject):
             result = self.from_json(response_json)
             result.c8y = self.c8y
             return result
+        return None
 
     def update(self, ignore_result=False):
         """Will update the Inventory Role object"""
@@ -125,6 +126,7 @@ class InventoryRole(_DatabaseObject):
             result = self.from_json(response_json)
             result.c8y = self.c8y
             return result
+        return None
 
     def delete(self):
         """Will delete the object within the database."""
@@ -171,6 +173,7 @@ class InventoryRoleAssignment(_DatabaseObject):
         result_json = self.c8y.post(base_path, self.to_full_json())
         if not ignore_result:
             return self.from_json(result_json)
+        return None
 
     def update(self, ignore_result=False):
         """Will update the Inventory Role object"""
@@ -178,6 +181,7 @@ class InventoryRoleAssignment(_DatabaseObject):
         result_json = self.c8y.put(self._build_object_path(), self.to_diff_json())
         if not ignore_result:
             return self.from_json(result_json)
+        return None
 
     def delete(self):
         """Will delete the object within the database."""
@@ -248,6 +252,7 @@ class GlobalRole(_DatabaseObject):
             new_obj = self.from_json(self.c8y.get(object_path))
             new_obj.c8y = self.c8y
             return new_obj
+        return None
 
     def update(self, ignore_result=False):
         """
@@ -282,6 +287,7 @@ class GlobalRole(_DatabaseObject):
             updated_obj = self.from_json(self.c8y.get(object_path))
             updated_obj.c8y = self.c8y
             return updated_obj
+        return None
 
     def delete(self):
         self._assert_c8y()
@@ -348,7 +354,7 @@ class User(_DatabaseObject):
         self._u_first_name = first_name
         self._u_last_name = last_name
         self._u_require_password_reset = require_password_reset
-        self._password_reset_mail = False if self._u_password else True
+        self._password_reset_mail = not self._u_password
         self._last_password_change = None
         self._x_application_ids = application_ids if application_ids else set()
         self._x_global_roles = global_role_ids if global_role_ids else set()
@@ -380,7 +386,7 @@ class User(_DatabaseObject):
     def from_json(cls, user_json):
         user = cls.__parser.from_json(user_json, User())
         if 'applications' in user_json:
-            user.application_ids = set([x['id'] for x in user_json['applications']])
+            user.application_ids = {x['id'] for x in user_json['applications']}
         if user_json['roles']:
             if user_json['roles']['references']:
                 user._x_permissions = {ref['role']['id'] for ref in user_json['roles']['references']}
@@ -434,8 +440,10 @@ class User(_DatabaseObject):
             new_obj = self.from_json(self.c8y.get(user_path))
             new_obj.c8y = self.c8y
             return new_obj
+        return None
 
     def update(self, ignore_result=False):
+        # todo: this violates the principle of REST API Resemblance
         """
         Write changed aspects to database.
 
@@ -489,6 +497,7 @@ class User(_DatabaseObject):
             new_obj = self.from_json(self.c8y.get(user_path))
             new_obj.c8y = self.c8y
             return new_obj
+        return None
 
     def delete(self):
         self._assert_c8y()
@@ -590,7 +599,7 @@ class InventoryRoles(_Query):
             yield result
 
     def get_all_assignments(self, username):
-        return [x for x in self.select_assignments(username)]
+        return list(self.select_assignments(username))
 
 
 class Users(_Query):
@@ -660,7 +669,7 @@ class Users(_Query):
             this is a performance setting
         :rtype: List of User
         """
-        return [x for x in self.select(username, groups, page_size)]
+        return list(self.select(username, groups, page_size))
 
     def create(self, *users):
         super()._create(lambda u: u._to_full_json(), *users)   # noqa
@@ -749,7 +758,7 @@ class GlobalRoles(_Query):
 
         :rtype: List of GlobalRole
         """
-        return [x for x in self.select(username, page_size)]
+        return list(self.select(username, page_size))
 
     def assign_users(self, role_id, usernames):
         """Add users to a global role.

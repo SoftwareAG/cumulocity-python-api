@@ -4,6 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+from c8y_api import CumulocityRestApi
 from ._util import _DateUtil, _Query, _DictWrapper, \
     _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser
 
@@ -144,8 +145,7 @@ class Measurement(_DatabaseObjectWithFragments):
         """
         if self.time:
             return _DateUtil.to_datetime(self.time)
-        else:
-            return None
+        return None
 
     def create(self):
         """ Store the Measurement within the database.
@@ -178,7 +178,7 @@ class Measurements(_Query):
     See also: https://cumulocity.com/guides/reference/measurements/#measurement
     """
 
-    def __init__(self, c8y):
+    def __init__(self, c8y: CumulocityRestApi):
         super().__init__(c8y, 'measurement/measurements')
 
     def get(self, measurement_id):
@@ -244,10 +244,10 @@ class Measurements(_Query):
 
         :returns:  List of Measurement objects
         """
-        return [x for x in self.select(type=type, source=source,
-                                       fragment=fragment, value=value, series=series,
-                                       before=before, after=after, min_age=min_age, max_age=max_age,
-                                       reverse=reverse, limit=limit, page_size=page_size)]
+        return list(self.select(type=type, source=source,
+                                fragment=fragment, value=value, series=series,
+                                before=before, after=after, min_age=min_age, max_age=max_age,
+                                reverse=reverse, limit=limit, page_size=page_size))
 
     def get_last(self, type=None, source=None, fragment=None, value=None, series=None,  # noqa (type)
                  before=None, min_age=None):
@@ -310,4 +310,4 @@ class Measurements(_Query):
         :param measurements:  Collection of Measurement objects.
         :returns:  None
         """
-        self._create_bulk(Measurement.to_json, 'measurements', 'application/vnd.com.nsn.cumulocity.measurementcollection+json', *measurements)
+        self._create_bulk(Measurement.to_json, 'measurements', self.c8y.CONTENT_MEASUREMENT_COLLECTION, *measurements)

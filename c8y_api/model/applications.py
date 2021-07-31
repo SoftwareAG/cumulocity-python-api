@@ -93,4 +93,4 @@ class Applications(_Query):
         :param page_size:  number of objects to fetch per request
         :return:  Generator of Application instances
         """
-        return [x for x in self.select(name=name, tenant=tenant, owner=owner, user=user, page_size=page_size)]
+        return list(self.select(name=name, tenant=tenant, owner=owner, user=user, page_size=page_size))

@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._util import _DateUtil, _Query, _UpdatableProperty, \
+from c8y_api.model._util import _Query, _UpdatableProperty, \
     _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser
 
 
@@ -240,9 +240,9 @@ class Events(_Query):
 
         :returns:  List of Event objects
         """
-        return [x for x in self.select(type=type, source=source, fragment=fragment,
-                                       before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
-                                       limit=limit, page_size=page_size)]
+        return list(self.select(type=type, source=source, fragment=fragment,
+                                before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
+                                limit=limit, page_size=page_size))
 
     def create(self, *events):
         """Create event objects within the database.
