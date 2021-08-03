@@ -5,9 +5,11 @@
 # as specifically provided for in your License Agreement with Software AG.
 # pylint: disable=too-many-lines
 
+from c8y_api.model._base import _Query, _DatabaseObject, _DatabaseObjectWithFragments
+from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._updatable import _DictWrapper, _UpdatableProperty
+
 from c8y_api._util import error
-from c8y_api.model._util import _UpdatableProperty, _Query, _DatabaseObject,\
-    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
 
 
 class NamedObject(object):

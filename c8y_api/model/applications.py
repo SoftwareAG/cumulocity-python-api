@@ -4,7 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._util import _Query, _DatabaseObject, _DatabaseObjectParser
+from c8y_api.model._base import _DatabaseObject, _Query
+from c8y_api.model._parser import _DatabaseObjectParser
 
 
 class Application(_DatabaseObject):

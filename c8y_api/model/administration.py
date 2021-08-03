@@ -4,9 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from ._util import _DateUtil, _Query, _WithUpdatableFragments, \
-    _DatabaseObject, _DatabaseObjectParser, _DatabaseObjectWithFragmentsParser, \
-    _UpdatableProperty, _UpdatableSetProperty
+from c8y_api.model._util import _DateUtil
+from c8y_api.model._parser import _DatabaseObjectParser, _DatabaseObjectWithFragmentsParser
+from c8y_api.model._updatable import _UpdatableProperty, _UpdatableSetProperty
+from c8y_api.model._base import _Query, _DatabaseObject, _WithUpdatableFragments
 
 
 class PermissionLevel(object):

@@ -4,9 +4,12 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api import CumulocityRestApi
-from ._util import _DateUtil, _Query, _DictWrapper, \
-    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser
+from c8y_api._base_api import CumulocityRestApi
+
+from c8y_api.model._base import _Query, _DatabaseObjectWithFragments
+from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._updatable import _DictWrapper
+from c8y_api.model._util import _DateUtil
 
 
 class Value(dict):
