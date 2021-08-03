@@ -1,16 +1,15 @@
 import pytest
 
-
 from c8y_api.app import CumulocityApi
 from c8y_api.model import Device
-from utils import c8y, random_name
+from utils import RandomNameGenerator
 
 
 @pytest.fixture
-def random_devices(c8y):
+def random_devices(c8y: CumulocityApi):
     num = 3
-    typename = random_name()
-    basename = random_name()
+    typename = RandomNameGenerator.random_name()
+    basename = RandomNameGenerator.random_name()
 
     names = [f'{basename}-{i}' for i in range(0, num)]
     devices = [Device(c8y=c8y, type=typename, name=name) for name in names]

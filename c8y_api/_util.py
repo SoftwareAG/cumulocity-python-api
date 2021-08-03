@@ -12,9 +12,8 @@ logging.basicConfig(level=logging.INFO, format=__LOG_FORMAT)
 
 
 def log(lvl, msg, *args):
-    tuples, no_tuples = [], []
-    for a in args:
-        tuples.append(a) if isinstance(a, tuple) else no_tuples.append(a)
+    tuples,  = [a for a in args if isinstance(a, tuple)]
+    no_tuples = [a for a in args if not isinstance(a, tuple)]
     if tuples:
         msg = format_properties(msg, *tuples)
     logging.log(lvl, msg, *no_tuples)

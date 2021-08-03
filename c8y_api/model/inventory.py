@@ -3,10 +3,13 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
+# pylint: disable=too-many-lines
+
+from c8y_api.model._base import _Query, _DatabaseObject, _DatabaseObjectWithFragments
+from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._updatable import _DictWrapper, _UpdatableProperty
 
 from c8y_api._util import error
-from c8y_api.model._util import _UpdatableProperty, _Query, _DatabaseObject,\
-    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser, _DictWrapper
 
 
 class NamedObject(object):
@@ -663,7 +666,7 @@ class Inventory(_Query):
 
         :returns:  List of ManagedObject instances
         """
-        return [x for x in self.select(type=type, fragment=fragment, name=name, limit=limit, page_size=page_size)]
+        return list(self.select(type=type, fragment=fragment, name=name, limit=limit, page_size=page_size))
 
     def select(self, type=None, fragment=None, name=None, owner=None, limit=None, page_size=1000):  # noqa (type)
         """ Query the database for managed objects and iterate over the
@@ -757,6 +760,7 @@ class DeviceInventory(Inventory):
         return device
 
     def select(self, type=None, name=None, limit=None, page_size=100):  # noqa (type, parameters)
+        # pylint: disable=arguments-differ
         """ Query the database for devices and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -777,6 +781,7 @@ class DeviceInventory(Inventory):
         return super().select(type=type, fragment='c8y_IsDevice', name=name, limit=limit, page_size=page_size)
 
     def get_all(self, type=None, name=None, page_size=100):  # noqa (type, parameters)
+        # pylint: disable=arguments-differ
         """ Query the database for devices and return the results as list.
 
         This function is a greedy version of the select function. All
@@ -784,7 +789,7 @@ class DeviceInventory(Inventory):
 
         :returns:  List of Device objects
         """
-        return [x for x in self.select(type=type, name=name, page_size=page_size)]
+        return list(self.select(type=type, name=name, page_size=page_size))
 
     def delete(self, *devices):
         """ Delete one or more devices and the corresponding within the database.
@@ -808,6 +813,7 @@ class DeviceInventory(Inventory):
 class DeviceGroupInventory(Inventory):
 
     def get(self, group_id):
+        # pylint: disable=arguments-renamed
         """ Retrieve a specific device group object.
 
         :param group_id:  ID of the device group object
@@ -819,6 +825,7 @@ class DeviceGroupInventory(Inventory):
         return group
 
     def select(self, fragment=None, name=None, page_size=100):  # noqa
+        # pylint: disable=arguments-differ
         """ Select managed objects by various parameters.
 
         This is a lazy implementation; results are fetched in pages but
@@ -848,6 +855,7 @@ class DeviceGroupInventory(Inventory):
             page_number = page_number + 1
 
     def get_all(self, fragment=None, name=None, page_size=100):  # noqa
+        # pylint: disable=arguments-differ
         """ Select managed objects by various parameters.
 
         In contract to the select method this version is not lazy. It will
@@ -862,7 +870,7 @@ class DeviceGroupInventory(Inventory):
         :param page_size:  number of objects to fetch per request
         :return:  List of ManagedObject instances
         """
-        return [x for x in self.select(fragment=fragment, name=name, page_size=page_size)]
+        return list(self.select(fragment=fragment, name=name, page_size=page_size))
 
     def create(self, *groups):
         """Batch create a collection of groups and entire group trees.
@@ -890,11 +898,11 @@ class Binaries(object):
                 file = open(file_path, 'rb')
         except FileNotFoundError:
             error('File not found for file path: ', file_path)
-            return
+            return None
 
         if file is None:
             error('No File available to upload')
-            return
+            return None
 
         return self.c8y.post_file('/inventory/binaries', file, binary_meta_information)
 
@@ -994,9 +1002,9 @@ class ExternalId(_DatabaseObject):
         return self.c8y.identity.get_object(self.external_id, self.external_type)
 
     def __repr__(self):
-        return {'external_id': self.external_id,
+        return str({'external_id': self.external_id,
                 'external_type': self.external_type,
-                'object_id': self.managed_object_id}
+                'object_id': self.managed_object_id})
 
 
 class Identity(object):

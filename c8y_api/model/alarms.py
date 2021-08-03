@@ -4,8 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._util import _DateUtil, _Query, _UpdatableProperty, \
-    _DatabaseObjectWithFragments, _DatabaseObjectWithFragmentsParser
+from c8y_api.model._base import _Query, _DatabaseObjectWithFragments
+from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._updatable import _UpdatableProperty
+from c8y_api.model._util import _DateUtil
 
 
 class Alarm(_DatabaseObjectWithFragments):
@@ -267,10 +269,10 @@ class Alarms(_Query):
 
         :returns:  List of Alarm objects
         """
-        return [x for x in self.select(type=type, source=source, fragment=fragment,
-                                       status=status, severity=severity, resolved=resolved,
-                                       before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
-                                       limit=limit, page_size=page_size)]
+        return list(self.select(type=type, source=source, fragment=fragment,
+                                status=status, severity=severity, resolved=resolved,
+                                before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
+                                limit=limit, page_size=page_size))
 
     def create(self, *alarms):
         """ Create alarm objects within the database.

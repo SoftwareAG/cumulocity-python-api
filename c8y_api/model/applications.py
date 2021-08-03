@@ -4,7 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._util import _Query, _DatabaseObject, _DatabaseObjectParser
+from c8y_api.model._base import _DatabaseObject, _Query
+from c8y_api.model._parser import _DatabaseObjectParser
 
 
 class Application(_DatabaseObject):
@@ -93,4 +94,4 @@ class Applications(_Query):
         :param page_size:  number of objects to fetch per request
         :return:  Generator of Application instances
         """
-        return [x for x in self.select(name=name, tenant=tenant, owner=owner, user=user, page_size=page_size)]
+        return list(self.select(name=name, tenant=tenant, owner=owner, user=user, page_size=page_size))
