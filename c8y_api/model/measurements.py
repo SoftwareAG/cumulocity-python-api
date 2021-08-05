@@ -6,7 +6,7 @@
 
 from c8y_api._base_api import CumulocityRestApi
 
-from c8y_api.model._base import _Query, _DatabaseObjectWithFragments
+from c8y_api.model._base import CumulocityResource, _DatabaseObjectWithFragments
 from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
@@ -172,7 +172,7 @@ class Measurement(_DatabaseObjectWithFragments):
         self.c8y.delete(self.__RESOURCE + self.id)
 
 
-class Measurements(_Query):
+class Measurements(CumulocityResource):
     """ A wrapper for the standard Measurements API.
 
     This class can be used for get, search for, create, update and

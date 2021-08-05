@@ -7,7 +7,7 @@
 from c8y_api.model._util import _DateUtil
 from c8y_api.model._parser import SimpleObjectParser, _DatabaseObjectWithFragmentsParser
 from c8y_api.model._updatable import _UpdatableProperty, _UpdatableSetProperty
-from c8y_api.model._base import _Query, _DatabaseObject, _WithUpdatableFragments
+from c8y_api.model._base import CumulocityResource, _DatabaseObject, WithUpdatableFragments
 
 
 class PermissionLevel(object):
@@ -363,7 +363,7 @@ class User(_DatabaseObject):
         self._x_orig_application_ids = None
         self._x_orig_global_roles = None
         self._x_orig_permissions = None
-        self.custom_properties = _WithUpdatableFragments()
+        self.custom_properties = WithUpdatableFragments()
 
     owner = _UpdatableProperty('_u_owner')
     delegated_by = _UpdatableProperty('_u_delegated_by')
@@ -396,7 +396,7 @@ class User(_DatabaseObject):
                 user._x_global_roles = {ref['group']['id'] for ref in user_json['groups']['references']}
         if user_json['customProperties']:
             user.custom_properties = cls.__custom_properties_parser.from_json(user_json['customProperties'],
-                                                                              _WithUpdatableFragments())
+                                                                              WithUpdatableFragments())
         return user
 
     def _to_full_json(self):
@@ -566,7 +566,7 @@ class User(_DatabaseObject):
             raise ValueError("Username must be provided.")
 
 
-class InventoryRoles(_Query):
+class InventoryRoles(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/inventoryroles')
@@ -603,7 +603,7 @@ class InventoryRoles(_Query):
         return list(self.select_assignments(username))
 
 
-class Users(_Query):
+class Users(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
@@ -676,7 +676,7 @@ class Users(_Query):
         super()._create(lambda u: u._to_full_json(), *users)   # noqa
 
 
-class GlobalRoles(_Query):
+class GlobalRoles(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/groups')

@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._base import _DatabaseObject, _Query
+from c8y_api.model._base import _DatabaseObject, CumulocityResource
 from c8y_api.model._parser import SimpleObjectParser
 
 
@@ -33,7 +33,7 @@ class Application(_DatabaseObject):
         return application
 
 
-class Applications(_Query):
+class Applications(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y=c8y, resource='application/applications')

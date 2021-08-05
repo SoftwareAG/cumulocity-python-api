@@ -5,7 +5,7 @@
 # as specifically provided for in your License Agreement with Software AG.
 # pylint: disable=too-many-lines
 
-from c8y_api.model._base import _Query, _DatabaseObject, _DatabaseObjectWithFragments
+from c8y_api.model._base import CumulocityResource, _DatabaseObject, _DatabaseObjectWithFragments
 from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
 from c8y_api.model._updatable import _DictWrapper, _UpdatableProperty
 
@@ -641,7 +641,7 @@ class Binary(ManagedObject):
         super().__init__(c8y=c8y, type=media_type, name=filename)
 
 
-class Inventory(_Query):
+class Inventory(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'inventory/managedObjects')
@@ -1009,7 +1009,7 @@ class ExternalId(_DatabaseObject):
 
 class Identity(object):
     # the Identity API of C8Y uses inconsistent resource paths and therefore
-    # cannot use the generic _Query base class helper
+    # cannot use the generic CumulocityResource base class helper
 
     def __init__(self, c8y):
         self.c8y = c8y

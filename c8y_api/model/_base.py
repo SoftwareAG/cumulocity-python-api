@@ -5,13 +5,11 @@
 # as specifically provided for in your License Agreement with Software AG.
 from urllib.parse import urlencode
 
-from abc import ABC, abstractmethod
 from deprecated import deprecated
-from typing import Type, List
+from typing import List
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api._util import warning
-from c8y_api.model._parser import SimpleObjectParser
 
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
@@ -32,8 +30,14 @@ class CumulocityObject:
         if not self.id:
             raise ValueError("The object ID must be set to allow direct object access.")
 
+    @classmethod
+    def _to_datetime(cls, timestring):
+        if timestring:
+            return _DateUtil.to_datetime(timestring)
+        return None
 
-class SimpleObject(CumulocityObject, ABC):
+
+class SimpleObject(CumulocityObject):
     """Base class for all simple Cumulocity objects (without custom fragments)."""
 
     def __init__(self, c8y: CumulocityRestApi = None):
@@ -51,81 +55,7 @@ class SimpleObject(CumulocityObject, ABC):
             self._updated_fields.add(name)
 
 
-class ComplexObject(CumulocityObject, ABC):
-    """Base class for all simple Cumulocity objects (without custom fragments)."""
-
-
-class _WithUpdatableAttributes(object):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._updated_fields = None
-
-    def get_updates(self) -> list:
-        return list(self._updated_fields)
-
-    def _signal_updated_field(self, name):
-        if not self._updated_fields:
-            self._updated_fields = {name}
-        else:
-            self._updated_fields.add(name)
-        if '+full_json+' in self.__dict__:
-            del self.__dict__['+full_json+']
-        if '+diff_json+' in self.__dict__:
-            del self.__dict__['+diff_json+']
-
-
-class _DatabaseObject(_WithUpdatableAttributes):
-
-    _parser_instance = None
-
-    def __init__(self, c8y: CumulocityRestApi = None, mapping: dict = None):
-        # the object id can only be set manually, e.g. when building an instance from json
-        self._repr_cache = {}
-        self.c8y = c8y
-        self.id = None
-
-    @classmethod
-    @property
-    @abstractmethod
-    def _field_mapping(cls) -> dict:
-        """Get the field to JSON mapping for this class."""
-
-    @classmethod
-    @property
-    def parser(cls) -> SimpleObjectParser:
-        """Get the field to JSON mapping for this class."""
-        if not cls._parser_instance:
-            cls._parser_instance = SimpleObjectParser(cls._field_mapping)
-        return cls._parser_instance
-
-    @classmethod
-    def from_json(cls, json):
-        """Parse an instance of this object from Cumulocity JSON."""
-        return cls.parser.from_json(json)
-
-    def to_json(self, only_updated=False):
-        """Return the Cumulocity JSON representation of this object."""
-        if only_updated:
-            return self._parser.to_json(self, include=(self.get_updates()))
-        return self._parser.to_json(self)
-
-    def _assert_c8y(self):
-        if not self.c8y:
-            raise ValueError("Cumulocity connection reference must be set to allow direct database access.")
-
-    def _assert_id(self):
-        if not self.id:
-            raise ValueError("The object ID must be set to allow direct object access.")
-
-    @classmethod
-    def _to_datetime(cls, field):
-        if field:
-            return _DateUtil.to_datetime(field)
-        return None
-
-
-class _WithUpdatableFragments(object):
+class WithUpdatableFragments:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -237,30 +167,24 @@ class _WithUpdatableFragments(object):
             self._updated_fragments = {name}
         else:
             self._updated_fragments.add(name)
-        if '+full_json+' in self.__dict__:
-            del self.__dict__['+full_json+']
-        if '+diff_json+' in self.__dict__:
-            del self.__dict__['+diff_json+']
 
 
-class _DatabaseObjectWithFragments(_WithUpdatableFragments, _DatabaseObject):
-    pass
+class ComplexObject(SimpleObject, WithUpdatableFragments):
+    """Base class for all simple Cumulocity objects (without custom fragments)."""
 
 
-class _Query(object):  # todo: better name
+class CumulocityResource:
 
     def __init__(self, c8y: CumulocityRestApi, resource: str):
         self.c8y = c8y
-        self.resource = _Query.__prepare_resource(resource)
+        # ensure that the resource string starts with a slash and ends without.
+        self.resource = '/' + resource.strip('/')
+        # the default object name would be the resource path element just before
+        # the last event for e.g. /event/events
         self.object_name = self.resource.split('/')[-1]
 
     @staticmethod
-    def __prepare_resource(resource: str):
-        """Ensure that the resource string starts with a slash and ends without."""
-        return '/' + resource.strip('/')
-
-    @staticmethod
-    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None, owner=None,
+    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None, owner=None,  # noqa (type)
                                    before=None, after=None, min_age=None, max_age=None,
                                    reverse=None, page_size=None, **kwargs):
         # min_age/max_age should be timedelta objects that can be used for
@@ -292,7 +216,7 @@ class _Query(object):  # todo: better name
         return self.resource + '/' + str(object_id)
 
     def _build_base_query(self, **kwargs):
-        params = _Query.__prepare_query_parameters(**kwargs)
+        params = CumulocityResource.__prepare_query_parameters(**kwargs)
         return self.resource + '?' + urlencode(params) + '&currentPage='
 
     def _get_object(self, object_id):

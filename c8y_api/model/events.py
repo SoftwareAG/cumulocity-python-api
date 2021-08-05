@@ -4,12 +4,12 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._base import _Query, _DatabaseObjectWithFragments
+from c8y_api.model._base import CumulocityResource, ComplexObject
 from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
 from c8y_api.model._updatable import _UpdatableProperty
 
 
-class Event(_DatabaseObjectWithFragments):
+class Event(ComplexObject):
     """ Represent an instance of an event object in Cumulocity.
 
     Instances of this class are returned by functions of the corresponding
@@ -173,7 +173,7 @@ class Event(_DatabaseObjectWithFragments):
         self.c8y.delete(self.__RESOURCE + self.id)
 
 
-class Events(_Query):
+class Events(CumulocityResource):
     """ A wrapper for the standard Events API.
 
     This class can be used for get, search for, create, update and
