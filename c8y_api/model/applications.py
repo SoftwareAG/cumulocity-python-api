@@ -5,12 +5,12 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api.model._base import _DatabaseObject, _Query
-from c8y_api.model._parser import _DatabaseObjectParser
+from c8y_api.model._parser import SimpleObjectParser
 
 
 class Application(_DatabaseObject):
 
-    __parser = _DatabaseObjectParser({
+    __parser = SimpleObjectParser({
         'id': 'id',
         'name': 'name',
         'type': 'type',

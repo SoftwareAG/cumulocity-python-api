@@ -5,7 +5,7 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api.model._util import _DateUtil
-from c8y_api.model._parser import _DatabaseObjectParser, _DatabaseObjectWithFragmentsParser
+from c8y_api.model._parser import SimpleObjectParser, _DatabaseObjectWithFragmentsParser
 from c8y_api.model._updatable import _UpdatableProperty, _UpdatableSetProperty
 from c8y_api.model._base import _Query, _DatabaseObject, _WithUpdatableFragments
 
@@ -28,7 +28,7 @@ class PermissionScope(object):
 
 class Permission(_DatabaseObject):
 
-    __parser = _DatabaseObjectParser({
+    __parser = SimpleObjectParser({
             'id': 'id',
             'level': 'permission',
             'type': 'type',
@@ -72,7 +72,7 @@ class AnyPermission(Permission):
 
 class InventoryRole(_DatabaseObject):
 
-    __parser = _DatabaseObjectParser({
+    __parser = SimpleObjectParser({
             'id': 'id',
             '_u_name': 'name',
             '_u_description': 'description'})
@@ -136,7 +136,7 @@ class InventoryRole(_DatabaseObject):
 
 
 class InventoryRoleAssignment(_DatabaseObject):
-    __parser = _DatabaseObjectParser({
+    __parser = SimpleObjectParser({
             'id': 'id',
             'group': 'managedObject'})
 
@@ -200,7 +200,7 @@ class InventoryRoleAssignment(_DatabaseObject):
 
 class GlobalRole(_DatabaseObject):
 
-    __parser = _DatabaseObjectParser({
+    __parser = SimpleObjectParser({
             'id': 'id',
             '_u_name': 'name',
             '_u_description': 'description'})
@@ -303,7 +303,7 @@ class GlobalRole(_DatabaseObject):
 
 class User(_DatabaseObject):
 
-    __parser = _DatabaseObjectParser({
+    __parser = SimpleObjectParser({
             '_user_id': 'id',
             'username': 'userName',
             '_u_owner': 'owner',

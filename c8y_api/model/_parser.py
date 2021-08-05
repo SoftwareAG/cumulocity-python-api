@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-class _DatabaseObjectParser(object):
+class SimpleObjectParser(object):
     """A parser for simple (without fragments) Cumulocity database objects.
 
     The parser converts between an object and a JSON representation using
@@ -14,14 +14,56 @@ class _DatabaseObjectParser(object):
     def __init__(self, mapping):
         self.__to_json = mapping
         self.__to_python = {v: k for k, v in mapping.items()}
-        self.__full_json_repr = None
-        self.__diff_json_repr = None
 
-    def from_json(self, obj_json, new_obj):
+    def from_json(self, obj_json, new_obj, skip=None):
+        """Update a given object instance with data from a JSON object.
+
+        This function uses the parser's mapping definition, only fields
+        are parsed that are part if this.
+
+        Use the skip list to skip certain objects fields within the update
+        regardless whether they are defined in the mapping.
+
+        Params:
+            obj_json: JSON object (nested dict) to parse
+            new_obj:  object instance to update (usually newly created)
+            skip:  list of object field names to skip or None if nothing
+                should be skipped
+
+        Returns:
+            The updated object instance.
+        """
         for json_key, field_name in self.__to_python.items():
-            if json_key in obj_json:
-                new_obj.__dict__[field_name] = obj_json[json_key]
+            if not skip or field_name not in skip:
+                if json_key in obj_json:
+                    new_obj.__dict__[field_name] = obj_json[json_key]
         return new_obj
+
+    def to_json(self, obj: object, include=None, exclude=None):
+        """Build a JSON representation of an object.
+
+        Use the include list to limit the represented fields to a specific
+        subset (e.g. just the updated fields). Use the exclude list to ignore
+        certain fields in the representation.
+
+        If a field is present in both lists, it will be excluded.
+
+        Params:
+            include:  an iterable of object fields to include or None if all
+                fields should be included
+            exclude:  an iterable of object fields to exclude or None of no
+                field should be included
+
+        Returns:
+            A JSON representation (nested dict) of the object.
+        """
+        obj_json = {}
+        for name, value in obj.__dict__.items():
+            if not include or name in include:  # field is included
+                if not exclude or name not in exclude:  # field is not included
+                    if value and name in self.__to_json:
+                        obj_json[self.__to_json[name]] = value
+        return obj_json
 
     def to_full_json(self, obj, ignore_list=None):
         repr_key = '+full_json+'+str(ignore_list)+'+'
@@ -54,7 +96,7 @@ class _DatabaseObjectParser(object):
         return obj.__dict__['+diff_json+']
 
 
-class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
+class _DatabaseObjectWithFragmentsParser(SimpleObjectParser):
     """A parser for complex (with fragments) Cumulocity database objects.
 
     The parser converts between an object and a JSON representation using
@@ -66,7 +108,7 @@ class _DatabaseObjectWithFragmentsParser(_DatabaseObjectParser):
         super().__init__(to_json_mapping)
         self.__ignore_set = set(no_fragments_list + list(to_json_mapping.values()))
 
-    def from_json(self, obj_json, new_obj):
+    def from_json(self, obj_json, new_obj, skip=None):
         new_obj = super().from_json(obj_json, new_obj)
         new_obj.fragments = self.__parse_fragments(obj_json)
         return new_obj

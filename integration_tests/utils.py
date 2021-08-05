@@ -6,7 +6,7 @@ from requests import request
 from c8y_api.app import CumulocityApi
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def c8y():
     if 'C8Y_BASEURL' not in os.environ.keys():
         raise RuntimeError('Missing Cumulocity environment variables (C8Y_*). Cannot create CumulocityApi instance.')
@@ -19,7 +19,6 @@ class RandomNameGenerator:
     names_index = -1
 
     @classmethod
-    @pytest.fixture
     def random_name(cls):
         if not cls.names_cache or cls.names_index >= len(cls.names_cache):
             response = request('get', 'http://names.drycodes.com/10',

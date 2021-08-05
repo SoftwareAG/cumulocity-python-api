@@ -5,13 +5,54 @@
 # as specifically provided for in your License Agreement with Software AG.
 from urllib.parse import urlencode
 
+from abc import ABC, abstractmethod
 from deprecated import deprecated
+from typing import Type, List
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api._util import warning
+from c8y_api.model._parser import SimpleObjectParser
 
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
+
+
+class CumulocityObject:
+    """Base class for all Cumulocity database objects."""
+
+    def __init__(self, c8y: CumulocityRestApi = None):
+        self.c8y = c8y
+        self.id = None
+
+    def _assert_c8y(self):
+        if not self.c8y:
+            raise ValueError("Cumulocity connection reference must be set to allow direct database access.")
+
+    def _assert_id(self):
+        if not self.id:
+            raise ValueError("The object ID must be set to allow direct object access.")
+
+
+class SimpleObject(CumulocityObject, ABC):
+    """Base class for all simple Cumulocity objects (without custom fragments)."""
+
+    def __init__(self, c8y: CumulocityRestApi = None):
+        super().__init__(c8y=c8y)
+        # a list of updated fields
+        self._updated_fields = None
+
+    def get_updated_fields(self) -> List[str]:
+        return list(self._updated_fields)
+
+    def _signal_updated_field(self, name):
+        if not self._updated_fields:
+            self._updated_fields = {name}
+        else:
+            self._updated_fields.add(name)
+
+
+class ComplexObject(CumulocityObject, ABC):
+    """Base class for all simple Cumulocity objects (without custom fragments)."""
 
 
 class _WithUpdatableAttributes(object):
@@ -20,7 +61,7 @@ class _WithUpdatableAttributes(object):
         super().__init__(*args, **kwargs)
         self._updated_fields = None
 
-    def get_updates(self):
+    def get_updates(self) -> list:
         return list(self._updated_fields)
 
     def _signal_updated_field(self, name):
@@ -36,11 +77,38 @@ class _WithUpdatableAttributes(object):
 
 class _DatabaseObject(_WithUpdatableAttributes):
 
-    def __init__(self, c8y=None):
-        super().__init__()
+    _parser_instance = None
+
+    def __init__(self, c8y: CumulocityRestApi = None, mapping: dict = None):
         # the object id can only be set manually, e.g. when building an instance from json
+        self._repr_cache = {}
         self.c8y = c8y
         self.id = None
+
+    @classmethod
+    @property
+    @abstractmethod
+    def _field_mapping(cls) -> dict:
+        """Get the field to JSON mapping for this class."""
+
+    @classmethod
+    @property
+    def parser(cls) -> SimpleObjectParser:
+        """Get the field to JSON mapping for this class."""
+        if not cls._parser_instance:
+            cls._parser_instance = SimpleObjectParser(cls._field_mapping)
+        return cls._parser_instance
+
+    @classmethod
+    def from_json(cls, json):
+        """Parse an instance of this object from Cumulocity JSON."""
+        return cls.parser.from_json(json)
+
+    def to_json(self, only_updated=False):
+        """Return the Cumulocity JSON representation of this object."""
+        if only_updated:
+            return self._parser.to_json(self, include=(self.get_updates()))
+        return self._parser.to_json(self)
 
     def _assert_c8y(self):
         if not self.c8y:
