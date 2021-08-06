@@ -4,13 +4,13 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._base import CumulocityResource, _DatabaseObjectWithFragments
-from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._base import CumulocityResource, ComplexObject
+from c8y_api.model._parser import ComplexObjectParser
 from c8y_api.model._updatable import _UpdatableProperty
 from c8y_api.model._util import _DateUtil
 
 
-class Alarm(_DatabaseObjectWithFragments):
+class Alarm(ComplexObject):
     """ Represent an instance of an alarm object in Cumulocity.
 
     Instances of this class are returned by functions of the corresponding
@@ -21,7 +21,7 @@ class Alarm(_DatabaseObjectWithFragments):
 
     __RESOURCE = '/alarm/alarms/'
 
-    __parser = _DatabaseObjectWithFragmentsParser({
+    __parser = ComplexObjectParser({
         'id': 'id',
         'type': 'type',
         'time': 'time',

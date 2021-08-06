@@ -6,8 +6,8 @@
 
 from c8y_api._base_api import CumulocityRestApi
 
-from c8y_api.model._base import CumulocityResource, _DatabaseObjectWithFragments
-from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._base import CumulocityResource, ComplexObject
+from c8y_api.model._parser import ComplexObjectParser
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
 
@@ -62,7 +62,7 @@ class Count(Value):
         super().__init__(value, '#')
 
 
-class Measurement(_DatabaseObjectWithFragments):
+class Measurement(ComplexObject):
     """ Represents an instance of a measurement object in Cumulocity.
 
     Instances of this class are returned by functions of the corresponding
@@ -74,7 +74,7 @@ class Measurement(_DatabaseObjectWithFragments):
 
     __RESOURCE = '/measurement/measurements/'
 
-    __parser = _DatabaseObjectWithFragmentsParser(
+    __parser = ComplexObjectParser(
         to_json_mapping={'id': 'id',
                          'type': 'type',
                          'time': 'time'},

@@ -5,9 +5,9 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api.model._util import _DateUtil
-from c8y_api.model._parser import SimpleObjectParser, _DatabaseObjectWithFragmentsParser
+from c8y_api.model._parser import SimpleObjectParser, ComplexObjectParser
 from c8y_api.model._updatable import _UpdatableProperty, _UpdatableSetProperty
-from c8y_api.model._base import CumulocityResource, _DatabaseObject, WithUpdatableFragments
+from c8y_api.model._base import CumulocityResource, SimpleObject, WithUpdatableFragments
 
 
 class PermissionLevel(object):
@@ -26,7 +26,7 @@ class PermissionScope(object):
     OPERATION = 'OPERATION'
 
 
-class Permission(_DatabaseObject):
+class Permission(SimpleObject):
 
     __parser = SimpleObjectParser({
             'id': 'id',
@@ -70,7 +70,7 @@ class AnyPermission(Permission):
         super().__init__(level=PermissionLevel.ANY, scope=scope, type=type)
 
 
-class InventoryRole(_DatabaseObject):
+class InventoryRole(SimpleObject):
 
     __parser = SimpleObjectParser({
             'id': 'id',
@@ -135,7 +135,7 @@ class InventoryRole(_DatabaseObject):
         self.c8y.delete(f'/user/inventoryroles/{self.id}')
 
 
-class InventoryRoleAssignment(_DatabaseObject):
+class InventoryRoleAssignment(SimpleObject):
     __parser = SimpleObjectParser({
             'id': 'id',
             'group': 'managedObject'})
@@ -198,7 +198,7 @@ class InventoryRoleAssignment(_DatabaseObject):
             raise ValueError("Username must be provided.")
 
 
-class GlobalRole(_DatabaseObject):
+class GlobalRole(SimpleObject):
 
     __parser = SimpleObjectParser({
             'id': 'id',
@@ -301,7 +301,7 @@ class GlobalRole(_DatabaseObject):
         return {'role': {'self': 'user/roles/' + role_id}}
 
 
-class User(_DatabaseObject):
+class User(SimpleObject):
 
     __parser = SimpleObjectParser({
             '_user_id': 'id',
@@ -317,7 +317,7 @@ class User(_DatabaseObject):
             '_u_require_password_reset': 'shouldResetPassword',
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
-    __custom_properties_parser = _DatabaseObjectWithFragmentsParser({}, [])
+    __custom_properties_parser = ComplexObjectParser({}, [])
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
                  password=None, first_name=None, last_name=None, phone=None, require_password_reset=None,

@@ -5,7 +5,7 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api.model._base import CumulocityResource, ComplexObject
-from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._parser import ComplexObjectParser
 from c8y_api.model._updatable import _UpdatableProperty
 
 
@@ -20,7 +20,7 @@ class Event(ComplexObject):
 
     __RESOURCE = '/event/events/'
 
-    __parser = _DatabaseObjectWithFragmentsParser({
+    __parser = ComplexObjectParser({
         'id': 'id',
         'type': 'type',
         'time': 'time',

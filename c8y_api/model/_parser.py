@@ -96,7 +96,7 @@ class SimpleObjectParser(object):
         return obj.__dict__['+diff_json+']
 
 
-class _DatabaseObjectWithFragmentsParser(SimpleObjectParser):
+class ComplexObjectParser(SimpleObjectParser):
     """A parser for complex (with fragments) Cumulocity database objects.
 
     The parser converts between an object and a JSON representation using

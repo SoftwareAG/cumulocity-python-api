@@ -5,8 +5,8 @@
 # as specifically provided for in your License Agreement with Software AG.
 # pylint: disable=too-many-lines
 
-from c8y_api.model._base import CumulocityResource, _DatabaseObject, _DatabaseObjectWithFragments
-from c8y_api.model._parser import _DatabaseObjectWithFragmentsParser
+from c8y_api.model._base import CumulocityResource,SimpleObject, ComplexObject
+from c8y_api.model._parser import ComplexObjectParser
 from c8y_api.model._updatable import _DictWrapper, _UpdatableProperty
 
 from c8y_api._util import error
@@ -112,7 +112,7 @@ class Fragment(object):
         return self
 
 
-class ManagedObject(_DatabaseObjectWithFragments):
+class ManagedObject(ComplexObject):
     """ Represent a managed object within the database.
 
     Instances of this class are returned by functions of the corresponding
@@ -158,7 +158,7 @@ class ManagedObject(_DatabaseObjectWithFragments):
 
     __RESOURCE = '/inventory/managedObjects/'
 
-    _parser = _DatabaseObjectWithFragmentsParser(
+    _parser = ComplexObjectParser(
         {'id': 'id',
          '_u_type': 'type',
          '_u_name': 'name',
@@ -924,7 +924,7 @@ class Binaries(object):
         self.c8y.delete(f'/inventory/binaries/{binary_id}')
 
 
-class ExternalId(_DatabaseObject):
+class ExternalId(SimpleObject):
     """ Represents an instance of an ExternalID in Cumulocity.
 
     Instances of this class are returned by functions of the corresponding

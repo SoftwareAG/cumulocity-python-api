@@ -4,11 +4,11 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._base import _DatabaseObject, CumulocityResource
+from c8y_api.model._base import SimpleObject, CumulocityResource
 from c8y_api.model._parser import SimpleObjectParser
 
 
-class Application(_DatabaseObject):
+class Application(SimpleObject):
 
     __parser = SimpleObjectParser({
         'id': 'id',
