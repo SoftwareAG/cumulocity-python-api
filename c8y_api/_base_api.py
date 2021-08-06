@@ -31,7 +31,15 @@ class CumulocityRestApi:
             self.__default_headers['tfatoken'] = self.tfa_token
         if self.application_key:
             self.__default_headers['X-Cumulocity-Application-Key'] = self.application_key
-        self.session = requests.Session()
+        self.session = self._create_session()
+
+    def _create_session(self) -> requests.Session:
+        s = requests.Session()
+        s.auth = self.__auth
+        s.headers = {'Accept': 'application/json'}
+        if self.application_key:
+            s.headers.update({'X-Cumulocity-Application-Key': self.application_key})
+        return s
 
     def prepare_request(self, method, resource, body=None, additional_headers=None):
         hs = self.__default_headers
@@ -42,9 +50,10 @@ class CumulocityRestApi:
             rq.json = body
         return rq.prepare()
 
-    def get(self, resource, ordered=False):
+    def get(self, resource, params=None, accept=None, ordered=False):
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
-        r = self.session.get(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        headers = {'Accept': accept} if accept else None
+        r = self.session.get(self.base_url + resource, params=params, headers=headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -53,15 +62,17 @@ class CumulocityRestApi:
             raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
         return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
 
-    def post(self, resource, json, accept='application/json', content_type=None):
+    def post(self, resource, json, accept=None, content_type=None):
         """Generic HTTP POST wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
-        headers = self.__default_headers.copy()
-        if accept:
-            headers['Accept'] = accept
-        if content_type:
-            headers['Content-Type'] = content_type
-        r = self.session.post(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        headers = None
+        if accept or content_type:
+            headers = {}
+            if accept:
+                headers['Accept'] = accept
+            if content_type:
+                headers['Content-Type'] = content_type
+        r = self.session.post(self.base_url + resource, json=json, headers=headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201 and r.status_code != 200:
@@ -129,7 +140,5 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code != 204:
+        if r.status_code != 204 and r.status_code != 200:
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
-
-

@@ -3,3 +3,4 @@ PyYAML~=5.4.1
 requests~=2.25.1
 Deprecated~=1.2.11
 pytest~=6.2.2
+responses~=0.13
