@@ -7,7 +7,7 @@
 # pylint: disable=protected-access
 
 import base64
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 import json
 import pytest
@@ -39,6 +39,28 @@ def httpbin_basic() -> CumulocityRestApi:
     )
 
 
+def assert_auth_header(c8y, headers):
+    """Assert that the given auth header is correctly formatted."""
+    auth_header = headers['Authorization'].lstrip('Basic ')
+    expected = f'{c8y.tenant_id}/{c8y.username}:{c8y.password}'
+    assert base64.b64decode(auth_header) == expected.encode('utf-8')
+
+
+def assert_accept_header(headers, accept='application/json'):
+    """Assert that the accept header matches the expectation."""
+    assert headers['Accept'] == accept
+
+
+def assert_content_header(headers, content_type='application/json'):
+    """Assert that the content-type header matches the expectation."""
+    assert headers['Content-Type'] == content_type
+
+
+def assert_application_key_header(c8y, headers):
+    """Assert that the application key header matches the expectation."""
+    assert headers['X-Cumulocity-Application-Key'] == c8y.application_key
+
+
 @pytest.mark.online
 def test_basic_auth_get(httpbin_basic):
     """Verify that the basic auth headers are added for the REST requests."""
@@ -46,28 +68,7 @@ def test_basic_auth_get(httpbin_basic):
 
     # first we verify that the auth is there for GET requests
     response = c8y.get('/anything')
-    auth_header = response['headers']['Authorization'].lstrip('Basic ')
-    expected = f'{c8y.tenant_id}/{c8y.username}:{c8y.password}'
-    assert base64.b64decode(auth_header) == expected.encode('utf-8')
-
-
-def assert_auth_header(c8y, headers):
-    auth_header = headers['Authorization'].lstrip('Basic ')
-    expected = f'{c8y.tenant_id}/{c8y.username}:{c8y.password}'
-    assert base64.b64decode(auth_header) == expected.encode('utf-8')
-
-
-def assert_accept_header(c8y, headers, accept='application/json'):
-    assert headers['Accept'] == accept
-
-
-def assert_content_header(c8y, headers, content_type='application/json'):
-    assert headers['Content-Type'] == content_type
-
-
-def assert_application_key_header(c8y, headers):
-    assert headers['X-Cumulocity-Application-Key'] == c8y.application_key
-
+    assert_auth_header(c8y, response['headers'])
 
 
 def test_post_defaults(mock_c8y: CumulocityRestApi):
@@ -86,8 +87,8 @@ def test_post_defaults(mock_c8y: CumulocityRestApi):
         assert json.loads(request_body)['request']
 
         assert_auth_header(mock_c8y, request_headers)
-        assert_accept_header(mock_c8y, request_headers)
-        assert_content_header(mock_c8y, request_headers)
+        assert_accept_header(request_headers)
+        assert_content_header(request_headers)
         assert_application_key_header(mock_c8y, request_headers)
 
         assert response['result']
@@ -101,7 +102,8 @@ def test_post_explicits(mock_c8y: CumulocityRestApi):
                  url=mock_c8y.base_url + '/resource',
                  status=201,
                  json={'result': True})
-        response = mock_c8y.post('/resource', accept='custom/accept', content_type='custom/content', json={'request': True})
+        response = mock_c8y.post('/resource', accept='custom/accept',
+                                 content_type='custom/content', json={'request': True})
 
         request_body = rsps.calls[0].request.body
         request_headers = rsps.calls[0].request.headers
@@ -109,8 +111,8 @@ def test_post_explicits(mock_c8y: CumulocityRestApi):
         assert json.loads(request_body)['request']
 
         assert_auth_header(mock_c8y, request_headers)
-        assert_accept_header(mock_c8y, request_headers, 'custom/accept')
-        assert_content_header(mock_c8y, request_headers, 'custom/content')
+        assert_accept_header(request_headers, 'custom/accept')
+        assert_content_header(request_headers, 'custom/content')
         assert_application_key_header(mock_c8y, request_headers)
 
         assert response['result']
@@ -178,3 +180,39 @@ def test_get_404():
         with pytest.raises(KeyError) as error:
             c8y.get('some/key')
         assert 'some/key' in str(error)
+
+
+def test_delete_defaults(mock_c8y: CumulocityRestApi):
+    """Verify the basic funtionality of the DELETE requests."""
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(method=responses.DELETE,
+                 url=mock_c8y.base_url + '/resource',
+                 status=204)
+        mock_c8y.delete('/resource')
+
+        request_headers = rsps.calls[0].request.headers
+        assert_auth_header(mock_c8y, request_headers)
+        assert_application_key_header(mock_c8y, request_headers)
+
+
+def test_empty_response(mock_c8y: CumulocityRestApi):
+    """Verify that an empty GET/POST/PUT responses doesn't break the code."""
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(method=responses.GET,
+                 url=mock_c8y.base_url + '/resource',
+                 status=200)
+        mock_c8y.get('/resource')
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(method=responses.POST,
+                 url=mock_c8y.base_url + '/resource',
+                 status=201)
+        mock_c8y.post('/resource', json={})
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(method=responses.PUT,
+                 url=mock_c8y.base_url + '/resource',
+                 status=200)
+        mock_c8y.put('/resource', json={})

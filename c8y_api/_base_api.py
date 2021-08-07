@@ -50,7 +50,7 @@ class CumulocityRestApi:
             rq.json = body
         return rq.prepare()
 
-    def get(self, resource, params=None, accept=None, ordered=False):
+    def get(self, resource, params=None, accept=None, ordered=False) -> dict:
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
         headers = {'Accept': accept} if accept else None
         r = self.session.get(self.base_url + resource, params=params, headers=headers)
@@ -60,9 +60,11 @@ class CumulocityRestApi:
             raise SyntaxError(f"Invalid GET request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 200:
             raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
-        return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
+        if r.content:
+            return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
+        return {}
 
-    def post(self, resource, json, accept=None, content_type=None):
+    def post(self, resource, json, accept=None, content_type=None) -> dict:
         """Generic HTTP POST wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
         headers = None
@@ -104,7 +106,7 @@ class CumulocityRestApi:
             raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
-    def put(self, resource, json, accept='application/json', content_type=None):
+    def put(self, resource, json, accept='application/json', content_type=None) -> dict:
         """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
         headers = self.__default_headers.copy()
