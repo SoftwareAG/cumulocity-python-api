@@ -5,6 +5,8 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 import sys
+from typing import Union
+
 import requests
 import collections
 
@@ -52,8 +54,8 @@ class CumulocityRestApi:
 
     def get(self, resource, params=None, accept=None, ordered=False) -> dict:
         """Generic HTTP GET wrapper, dealing with standard error returning a JSON body object."""
-        headers = {'Accept': accept} if accept else None
-        r = self.session.get(self.base_url + resource, params=params, headers=headers)
+        additional_headers = self._prepare_headers(accept=accept)
+        r = self.session.get(self.base_url + resource, params=params, headers=additional_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -67,14 +69,8 @@ class CumulocityRestApi:
     def post(self, resource, json, accept=None, content_type=None) -> dict:
         """Generic HTTP POST wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
-        headers = None
-        if accept or content_type:
-            headers = {}
-            if accept:
-                headers['Accept'] = accept
-            if content_type:
-                headers['Content-Type'] = content_type
-        r = self.session.post(self.base_url + resource, json=json, headers=headers)
+        additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
+        r = self.session.post(self.base_url + resource, json=json, headers=additional_headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201 and r.status_code != 200:
@@ -106,15 +102,11 @@ class CumulocityRestApi:
             raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
-    def put(self, resource, json, accept='application/json', content_type=None) -> dict:
+    def put(self, resource, json, accept=None, content_type=None) -> dict:
         """Generic HTTP PUT wrapper, dealing with standard error returning a JSON body object."""
         assert isinstance(json, dict)
-        headers = self.__default_headers.copy()
-        if accept:
-            headers['Accept'] = accept
-        if content_type:
-            headers['Content-Type'] = content_type
-        r = self.session.put(self.base_url + resource, json=json, auth=self.__auth, headers=headers)
+        additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
+        r = self.session.put(self.base_url + resource, json=json, headers=additional_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -137,10 +129,32 @@ class CumulocityRestApi:
 
     def delete(self, resource):
         """Generic HTTP DELETE wrapper, dealing with standard error returning a JSON body object."""
-        r = self.session.delete(self.base_url + resource, auth=self.__auth, headers=self.__default_headers)
+        r = self.session.delete(self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 204 and r.status_code != 200:
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
+
+    @classmethod
+    def _prepare_headers(cls, **kwargs) -> Union[dict, None]:
+        """Format a set of named arguments into a header dictionary.
+
+        This will format the argument name into Header-Case (from snake_case).
+
+        Params:
+            kwargs: A list of named header values, each can be None
+
+        Returns:
+            dict: A properly formatted header dictionary for use with requests
+            None: If not of the arguments have an actual value
+        """
+        if not any(kwargs.values()):
+            return None
+
+        def format_key(key):
+            # split by '_', uppercase the first character, lowercase the rest and join with '-'
+            return '-'.join([part[0].upper() + part[1:].lower() for part in key.split('_')])
+
+        return {format_key(key): value for key, value in kwargs.items() if value}

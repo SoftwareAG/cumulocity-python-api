@@ -61,6 +61,18 @@ def assert_application_key_header(c8y, headers):
     assert headers['X-Cumulocity-Application-Key'] == c8y.application_key
 
 
+@pytest.mark.parametrize('args, expected', [
+    ({'accept': 'application/json'}, {'Accept': 'application/json'}),
+    ({'content_tYPe': 'content/TYPE'}, {'Content-Type': 'content/TYPE'}),
+    ({'some': 'thing', 'mORE_Of_this': 'same'}, {'Some': 'thing', 'More-Of-This': 'same'}),
+    ({'empty': None, 'accept': 'accepted'}, {'Accept': 'accepted'}),
+    ({'empty1': None, 'empty2': None}, None)
+])
+def test_prepare_headers(args, expected):
+    """Verify header preparation."""
+    assert CumulocityRestApi._prepare_headers(**args) == expected
+
+
 @pytest.mark.online
 def test_basic_auth_get(httpbin_basic):
     """Verify that the basic auth headers are added for the REST requests."""
