@@ -4,9 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._base import CumulocityResource, ComplexObject
+from c8y_api.model._base import CumulocityResource, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
-from c8y_api.model._updatable import _UpdatableProperty
 from c8y_api.model._util import _DateUtil
 
 
@@ -74,8 +73,8 @@ class Alarm(ComplexObject):
         if severity:
             self.severity = severity
 
-    status = _UpdatableProperty('_u_status')
-    severity = _UpdatableProperty('_u_severity')
+    status = SimpleObject.UpdatableProperty('_u_status')
+    severity = SimpleObject.UpdatableProperty('_u_severity')
 
     @classmethod
     def from_json(cls, alarm_json):

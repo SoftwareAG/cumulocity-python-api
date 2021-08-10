@@ -5,9 +5,9 @@
 # as specifically provided for in your License Agreement with Software AG.
 # pylint: disable=too-many-lines
 
-from c8y_api.model._base import CumulocityResource,SimpleObject, ComplexObject
+from c8y_api.model._base import CumulocityResource, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
-from c8y_api.model._updatable import _DictWrapper, _UpdatableProperty
+from c8y_api.model._updatable import _DictWrapper
 
 from c8y_api._util import error
 
@@ -210,9 +210,9 @@ class ManagedObject(ComplexObject):
         if owner:
             self.owner = owner
 
-    type = _UpdatableProperty(name='_u_type')
-    name = _UpdatableProperty(name='_u_name')
-    owner = _UpdatableProperty(name='_u_owner')
+    type = SimpleObject.UpdatableProperty(name='_u_type')
+    name = SimpleObject.UpdatableProperty(name='_u_name')
+    owner = SimpleObject.UpdatableProperty(name='_u_owner')
 
     @classmethod
     def from_json(cls, object_json):

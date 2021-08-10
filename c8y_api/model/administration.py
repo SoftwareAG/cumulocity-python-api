@@ -4,10 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.model._util import _DateUtil
+from c8y_api.model._base import CumulocityResource, SimpleObject
 from c8y_api.model._parser import SimpleObjectParser, ComplexObjectParser
-from c8y_api.model._updatable import _UpdatableProperty, _UpdatableSetProperty
-from c8y_api.model._base import CumulocityResource, SimpleObject, WithUpdatableFragments
+from c8y_api.model._updatable import _UpdatableSetProperty
+from c8y_api.model._util import _DateUtil
 
 
 class PermissionLevel(object):
@@ -88,8 +88,8 @@ class InventoryRole(SimpleObject):
         self._u_description = description
         self.permissions = permissions if permissions else []
 
-    name = _UpdatableProperty('_u_name')
-    description = _UpdatableProperty('_u_description')
+    name = SimpleObject.UpdatableProperty('_u_name')
+    description = SimpleObject.UpdatableProperty('_u_description')
 
     @classmethod
     def from_json(cls, object_json):
@@ -213,8 +213,8 @@ class GlobalRole(SimpleObject):
         self._x_permissions = permission_ids if permission_ids else set()
         self._x_orig_permissions = self._x_permissions
 
-    name = _UpdatableProperty('_u_name')
-    description = _UpdatableProperty('_u_description')
+    name = SimpleObject.UpdatableProperty('_u_name')
+    description = SimpleObject.UpdatableProperty('_u_description')
     permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
 
     @classmethod
@@ -363,18 +363,18 @@ class User(SimpleObject):
         self._x_orig_application_ids = None
         self._x_orig_global_roles = None
         self._x_orig_permissions = None
-        self.custom_properties = WithUpdatableFragments()
+        # self.custom_properties = WithUpdatableFragments()
 
-    owner = _UpdatableProperty('_u_owner')
-    delegated_by = _UpdatableProperty('_u_delegated_by')
-    display_name = _UpdatableProperty('_u_display_name')
-    email = _UpdatableProperty('_u_email')
-    phone = _UpdatableProperty('_u_phone')
-    first_name = _UpdatableProperty('_u_first_name')
-    last_name = _UpdatableProperty('_u_last_name')
-    enabled = _UpdatableProperty('_u_enabled')
+    owner = SimpleObject.UpdatableProperty('_u_owner')
+    delegated_by = SimpleObject.UpdatableProperty('_u_delegated_by')
+    display_name = SimpleObject.UpdatableProperty('_u_display_name')
+    email = SimpleObject.UpdatableProperty('_u_email')
+    phone = SimpleObject.UpdatableProperty('_u_phone')
+    first_name = SimpleObject.UpdatableProperty('_u_first_name')
+    last_name = SimpleObject.UpdatableProperty('_u_last_name')
+    enabled = SimpleObject.UpdatableProperty('_u_enabled')
     application_ids = _UpdatableSetProperty('_x_application_ids', '_x_orig_application_ids')
-    require_password_reset = _UpdatableProperty('_u_require_password_reset')
+    require_password_reset = SimpleObject.UpdatableProperty('_u_require_password_reset')
     permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
     global_role_ids = _UpdatableSetProperty('_x_global_roles', '_x_orig_global_roles')
 
@@ -394,25 +394,25 @@ class User(SimpleObject):
         if user_json['groups']:
             if user_json['groups']['references']:
                 user._x_global_roles = {ref['group']['id'] for ref in user_json['groups']['references']}
-        if user_json['customProperties']:
-            user.custom_properties = cls.__custom_properties_parser.from_json(user_json['customProperties'],
-                                                                              WithUpdatableFragments())
+        # if user_json['customProperties']:
+        #     user.custom_properties = cls.__custom_properties_parser.from_json(user_json['customProperties'],
+        #                                                                       WithUpdatableFragments())
         return user
 
     def _to_full_json(self):
         user_json = self.__parser.to_full_json(self)
         if self.application_ids:
             user_json['applications'] = self._build_application_references(self.application_ids)
-        if self.custom_properties:
-            user_json['customProperties'] = self.__custom_properties_parser.to_full_json(self.custom_properties)
+        # if self.custom_properties:
+        #     user_json['customProperties'] = self.__custom_properties_parser.to_full_json(self.custom_properties)
         return user_json
 
     def _to_diff_json(self):
         user_json = self.__parser.to_diff_json(self)
         if self._x_orig_application_ids:
             user_json['applications'] = self._build_application_references(self._x_application_ids)
-        if self.custom_properties:
-            user_json['customProperties'] = self.__custom_properties_parser.to_diff_json(self.custom_properties)
+        # if self.custom_properties:
+        #     user_json['customProperties'] = self.__custom_properties_parser.to_diff_json(self.custom_properties)
         return user_json
 
     def create(self, ignore_result=False):

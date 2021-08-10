@@ -12,8 +12,8 @@ class SimpleObjectParser(object):
     """
 
     def __init__(self, mapping):
-        self.__to_json = mapping
-        self.__to_python = {v: k for k, v in mapping.items()}
+        self._obj_to_json = {**mapping, 'id': 'id'}
+        self._json_to_object = {v: k for k, v in self._obj_to_json.items()}
 
     def from_json(self, obj_json, new_obj, skip=None):
         """Update a given object instance with data from a JSON object.
@@ -33,7 +33,7 @@ class SimpleObjectParser(object):
         Returns:
             The updated object instance.
         """
-        for json_key, field_name in self.__to_python.items():
+        for json_key, field_name in self._json_to_object.items():
             if not skip or field_name not in skip:
                 if json_key in obj_json:
                     new_obj.__dict__[field_name] = obj_json[json_key]
@@ -59,10 +59,10 @@ class SimpleObjectParser(object):
         """
         obj_json = {}
         for name, value in obj.__dict__.items():
-            if not include or name in include:  # field is included
-                if not exclude or name not in exclude:  # field is not included
-                    if value and name in self.__to_json:
-                        obj_json[self.__to_json[name]] = value
+            if include is None or name in include:  # field is included
+                if exclude is None or name not in exclude:  # field is not included
+                    if value and name in self._obj_to_json:
+                        obj_json[self._obj_to_json[name]] = value
         return obj_json
 
     def to_full_json(self, obj, ignore_list=None):
@@ -73,8 +73,8 @@ class SimpleObjectParser(object):
             obj_json = {}
             for name, value in obj.__dict__.items():
                 if name not in ignore_list:
-                    if value and name in self.__to_json:
-                        obj_json[self.__to_json[name]] = value
+                    if value and name in self._obj_to_json:
+                        obj_json[self._obj_to_json[name]] = value
             obj.__dict__[repr_key] = obj_json
         return obj.__dict__[repr_key]
 
@@ -91,7 +91,7 @@ class SimpleObjectParser(object):
             obj_json = {}
             if obj._updated_fields:
                 for name in obj._updated_fields:
-                    obj_json[self.__to_json[name]] = obj.__dict__[name]
+                    obj_json[self._obj_to_json[name]] = obj.__dict__[name]
             obj.__dict__['+diff_json+'] = obj_json
         return obj.__dict__['+diff_json+']
 
@@ -106,15 +106,20 @@ class ComplexObjectParser(SimpleObjectParser):
 
     def __init__(self, to_json_mapping, no_fragments_list):
         super().__init__(to_json_mapping)
-        self.__ignore_set = set(no_fragments_list + list(to_json_mapping.values()))
+        self.__ignore_set = {*no_fragments_list, *to_json_mapping.values(), 'self', 'id'}
 
     def from_json(self, obj_json, new_obj, skip=None):
         new_obj = super().from_json(obj_json, new_obj)
         new_obj.fragments = self.__parse_fragments(obj_json)
         return new_obj
 
+    def to_json(self, obj, include=None, exclude=None):
+        obj_json = super().to_json(obj, include, exclude)
+        obj_json.update(self.__format_fragments(obj))
+        return obj_json
+
     def to_full_json(self, obj, ignore_list=None):
-        obj_json = super().to_full_json(obj, ignore_list)
+        obj_json = super().to_json(obj, exclude=self.__ignore_set)
         obj_json.update(self.__format_fragments(obj))
         return obj_json
 
@@ -128,7 +133,7 @@ class ComplexObjectParser(SimpleObjectParser):
 
     @staticmethod
     def __format_fragments(obj):
-        return dict(obj.fragments.items())
+        return dict(obj.__dict__['fragments'].items())
 
     @staticmethod
     def __format_updated_fragments(obj):

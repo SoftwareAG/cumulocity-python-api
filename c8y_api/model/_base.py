@@ -3,16 +3,18 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
-from urllib.parse import urlencode
 
+from __future__ import annotations
+
+from urllib.parse import urlencode
 from deprecated import deprecated
-from typing import List
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api._util import warning
 
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
+from c8y_api.model._parser import SimpleObjectParser
 
 
 class CumulocityObject:
@@ -40,29 +42,83 @@ class CumulocityObject:
 class SimpleObject(CumulocityObject):
     """Base class for all simple Cumulocity objects (without custom fragments)."""
 
+    # Note: SimpleObject derives from multiple base classes. The last doesn
+    # not need to be aware of this, all others are passing unknown initialization
+    # arguments (kwargs) to other super classes. Hence, the order of super
+    # classes is relevant
+
+    _parser = SimpleObjectParser({})
+    _ignored_fields = {'c8y', 'id', 'self'}
+
+    class UpdatableProperty:
+        """Providing updatable properties for SimpleObject instances.
+
+        An updatable property is watched - write access will be recorded
+        within the SimpleObject instance to be able to provide incremental
+        updates to objects within Cumulocity."""
+
+        def __init__(self, name):
+            self.internal_name = name
+
+        def __get__(self, obj, _):
+            return obj.__dict__[self.internal_name]
+
+        def __set__(self, obj, value):
+            obj._signal_updated_field(self.internal_name)
+            obj.__dict__[self.internal_name] = value
+
+        def __delete__(self, obj):
+            obj._signal_updated_field(self.internal_name)
+            obj.__dict__[self.internal_name] = None
+
     def __init__(self, c8y: CumulocityRestApi = None):
         super().__init__(c8y=c8y)
-        # a list of updated fields
         self._updated_fields = None
 
-    def get_updated_fields(self) -> List[str]:
-        return list(self._updated_fields)
+    @classmethod
+    def from_json(cls, json: dict, obj: SimpleObject) -> SimpleObject:
+        return cls._parser.from_json(json, obj)
 
-    def _signal_updated_field(self, name):
+    def to_json(self, only_updated=False) -> dict:
+        """Create a representation of this object in Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the object. It is used for object
+        creation and update within Cumulocity, so for example the 'id'
+        field is never included.
+
+        Params:
+            only_updated(bool): Whether the result should be limited to
+                changed fields only (for object updates). Default: False
+
+        Returns:
+            A JSON (nested dict) object.
+        """
+        include = None if not only_updated else self._updated_fields if self._updated_fields else set()
+        exclude = {'id'}
+        return self._parser.to_json(self, include, exclude)
+
+    def to_full_json(self) -> dict:
+        return self.to_json()
+
+    def to_diff_json(self) -> dict:
+        return self.to_json(only_updated=True)
+
+    def _signal_updated_field(self, internal_name):
         if not self._updated_fields:
-            self._updated_fields = {name}
+            self._updated_fields = {internal_name}
         else:
-            self._updated_fields.add(name)
+            self._updated_fields.add(internal_name)
 
 
-class WithUpdatableFragments:
+class ComplexObject(SimpleObject):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # the object id can only be set manually, e.g. when building an instance from json
-        self._updated_fields = None  # todo: why is this necessary to have?
+    def __init__(self, c8y: CumulocityRestApi = None, **kwargs):
+        super().__init__(c8y)
         self._updated_fragments = None
         self.fragments = {}
+        for key, value in kwargs.items():
+            self.fragments[key] = value
 
     def __setitem__(self, name, fragment):
         """ Add/set a custom fragment.
@@ -167,10 +223,6 @@ class WithUpdatableFragments:
             self._updated_fragments = {name}
         else:
             self._updated_fragments.add(name)
-
-
-class ComplexObject(SimpleObject, WithUpdatableFragments):
-    """Base class for all simple Cumulocity objects (without custom fragments)."""
 
 
 class CumulocityResource:

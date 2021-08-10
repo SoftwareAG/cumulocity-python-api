@@ -1,3 +1,12 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+
+from typing import Set
+
+
 class _DictWrapper(object):
 
     def __init__(self, dictionary, on_update=None):
@@ -20,10 +29,26 @@ class _DictWrapper(object):
         return self.__dict__['items'].__str__()
 
 
+class UpdatableFields:
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._updated_fields = None
+
+    def _signal_updated_field(self, name):
+        if not self._updated_fields:
+            self._updated_fields = {name}
+        else:
+            self._updated_fields.add(name)
+
+    def _get_updated_fields(self) -> Set[str]:
+        return self._updated_fields if self._updated_fields else set()
+
+
 class _UpdatableProperty(object):
 
-    def __init__(self, name=None):
-        self.name = name
+    def __init__(self, name):
+        self.name = '_' + name
 
     def __get__(self, obj, _):
         return obj.__dict__[self.name]
