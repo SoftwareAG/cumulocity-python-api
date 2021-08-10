@@ -2,7 +2,7 @@ import pytest
 
 from c8y_api.app import CumulocityApi
 from c8y_api.model import Device
-from utils import c8y, RandomNameGenerator
+from conftest import c8y, RandomNameGenerator
 
 
 @pytest.fixture(scope='function')
