@@ -4,6 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+from __future__ import annotations
+
+from typing import Type
+
 from c8y_api._base_api import CumulocityRestApi
 
 from c8y_api.model._base import CumulocityResource, ComplexObject
@@ -13,51 +17,67 @@ from c8y_api.model._util import _DateUtil
 
 
 class Value(dict):
+    """Generic datapoint."""
     def __init__(self, value, unit):
         super().__init__(value=value, unit=unit)
 
 
 class Grams(Value):
+    """Weight datapoint (Grams)."""
     def __init__(self, value):
         super().__init__(value, 'g')
 
 
 class Kilograms(Value):
+    """Weight datapoint (Kilograms)."""
     def __init__(self, value):
         super().__init__(value, 'kg')
 
 
 class Kelvin(Value):
+    """Temperature datapoint (Kelvin)."""
     def __init__(self, value):
         super().__init__(value, '°K')
 
 
 class Celsius(Value):
+    """Temperature datapoint (Celsius)."""
     def __init__(self, value):
         super().__init__(value, '°C')
 
 
 class Meters(Value):
+    """Length datapoint (Meters)."""
     def __init__(self, value):
         super().__init__(value, 'm')
 
 
 class Centimeters(Value):
+    """Length datapoint (Centimeters)."""
     def __init__(self, value):
         super().__init__(value, 'cm')
 
 
+class Millimeters(Value):
+    """Length datapoint (Millimeters)."""
+    def __init__(self, value):
+        super().__init__(value, 'mm')
+
+
 class Liters(Value):
+    """Volume datapoint (Liters)."""
     def __init__(self, value):
         super().__init__(value, 'l')
 
 
 class CubicMeters(Value):
+    """Volume datapoint (Cubic Meters)."""
     def __init__(self, value):
         super().__init__(value, 'm3')
 
 
 class Count(Value):
+    """Discrete number datapoint (number/count)."""
     def __init__(self, value):
         super().__init__(value, '#')
 
@@ -72,32 +92,32 @@ class Measurement(ComplexObject):
     See also: https://cumulocity.com/guides/reference/measurements/#measurement
     """
 
-    __RESOURCE = '/measurement/measurements/'
+    # these need to be defined like this for the abstract super functions
+    _resource = '/measurement/measurements/'
+    _parser = ComplexObjectParser({'type': 'type', 'time': 'time'}, ['source'])
 
-    __parser = ComplexObjectParser(
-        to_json_mapping={'id': 'id',
-                         'type': 'type',
-                         'time': 'time'},
-        no_fragments_list=['self', 'time', 'source'])
-
-    def __init__(self, c8y=None, type=None, source=None, time=None):  # noqa (type)
+    def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):
         """ Create a new Measurement object.
 
-        :param c8y:  Cumulocity connection reference; needs to be set for the
-            direct manipulation (create, delete) to function
-        :param type:   Measurement type
-        :param source:  Device ID which this measurement is for
-        :param time:   Datetime string or Python datetime object. A given
-            datetime string needs to be in standard ISO format incl. timezone:
-            YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is retured by the Cumulocity REST
-            API. A given datetime object needs to be timezone aware.
-            For manual construction it is recommended to specify a datetime
-            object as the formatting of a timestring is never checked for
-            performance reasons.
-        :returns:  Measurement object
+        Params:
+            c8y(CumulocityRestApi):  Cumulocity connection reference; needs
+                to be set for direct manipulation (create, delete)
+            type(str):  Measurement type
+            source(str):  Device ID which this measurement is for
+            time(str|datetime):  Datetime string or Python datetime object. A
+                given datetime string needs to be in standard ISO format incl.
+                timezone: YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is retured by the
+                Cumulocity REST API. A given datetime object needs to be
+                timezone aware. For manual construction it is recommended to
+                specify a datetime object as the formatting of a timestring
+                is never checked for performance reasons.
+            kwargs:  All additional named arguments are interpreted as
+                custom fragments e.g. for data points.
+
+        Returns:
+            Measurement object
         """
-        super().__init__(c8y)
-        self.id = None
+        super().__init__(c8y, **kwargs)
         self.type = type
         self.source = source
         # The time can either be set as string (e.g. when read from JSON) or
@@ -107,32 +127,41 @@ class Measurement(ComplexObject):
         self.time = _DateUtil.ensure_timestring(time)
 
     @classmethod
-    def from_json(cls, measurement_json):
-        """ Build a new Measurement instance from JSON.
+    def from_json(cls, measurement_json) -> Measurement:
+        """ Build a new Measurement instance from Cumulocity JSON.
 
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
-        :param measurement_json:  JSON object (nested dictionary)
-            representing a measurement within Cumulocity
-        :returns:  Measurement object
+        Params:
+            measurement_json(dict):  JSON object (nested dictionary)
+                representing a measurement within Cumulocity
+
+        Returns:
+            Measurement object
         """
-        obj = cls.__parser.from_json(measurement_json, Measurement())
+        obj = cls._parse_json(measurement_json, Measurement())
         obj.source = measurement_json['source']['id']
         return obj
 
-    def to_json(self):
+    def to_json(self, only_updated=False) -> dict:
         """ Convert the instance to JSON.
 
         The JSON format produced by this function is what is used by the
         Cumulocity REST API.
 
-        :returns:  JSON object (nested dictionary)
+        Note: Measurements cannot be updated, hence this function does not
+        feature an only_updated argument.
+
+        Returns:
+            JSON object (nested dictionary)
         """
-        measurement_json = self.__parser.to_full_json(self)
+        if only_updated:
+            raise NotImplementedError('The Measurement class does not support incremental updates.')
+        measurement_json = self._format_json()
+        measurement_json['source'] = {'id': self.source}
         if not self.time:
             measurement_json['time'] = _DateUtil.to_timestring(_DateUtil.now())
-        measurement_json['source'] = {'id': self.source}
         return measurement_json
 
     # the __getattr__ function is overwritten to return a wrapper that doesn't signal updates
@@ -141,35 +170,31 @@ class Measurement(ComplexObject):
         return _DictWrapper(self.fragments[item], on_update=None)
 
     @property
-    def datetime(self):
+    def datetime(self) -> Type[datetime] | None:
         """ Convert the measurement's time to a Python datetime object.
 
-        :returns:  Standard Python datetime object
+        Returns:
+            (datetime): The measurement's time
         """
         if self.time:
             return _DateUtil.to_datetime(self.time)
         return None
 
-    def create(self):
+    def create(self) -> Measurement:
         """ Store the Measurement within the database.
 
-        :returns:  A fresh Measurement object representing what was
+        Returns:  A fresh Measurement object representing what was
             created within the database (including the ID).
         """
-        self._assert_c8y()
-        result_json = self.c8y.post(self.__RESOURCE, self.to_json())
-        result = Measurement.from_json(result_json)
-        result.c8y = self.c8y
-        return result
+        return self._create()
+
+    def update(self) -> Measurement:
+        """Not implemented for Measurements."""
+        raise NotImplementedError('Measurements cannot be updated within Cumuylocity.')
 
     def delete(self):
-        """ Delete the Measurement within the database.
-
-        :returns: None
-        """
-        self._assert_c8y()
-        self._assert_id()
-        self.c8y.delete(self.__RESOURCE + self.id)
+        """Delete the Measurement within the database."""
+        self._delete()
 
 
 class Measurements(CumulocityResource):

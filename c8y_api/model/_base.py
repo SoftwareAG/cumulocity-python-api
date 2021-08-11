@@ -20,7 +20,7 @@ from c8y_api.model._parser import SimpleObjectParser
 class CumulocityObject:
     """Base class for all Cumulocity database objects."""
 
-    def __init__(self, c8y: CumulocityRestApi = None):
+    def __init__(self, c8y: CumulocityRestApi):
         self.c8y = c8y
         self.id = None
 
@@ -48,7 +48,8 @@ class SimpleObject(CumulocityObject):
     # classes is relevant
 
     _parser = SimpleObjectParser({})
-    _ignored_fields = {'c8y', 'id', 'self'}
+    _resource = ''
+    _mimetype = None
 
     class UpdatableProperty:
         """Providing updatable properties for SimpleObject instances.
@@ -71,15 +72,28 @@ class SimpleObject(CumulocityObject):
             obj._signal_updated_field(self.internal_name)
             obj.__dict__[self.internal_name] = None
 
-    def __init__(self, c8y: CumulocityRestApi = None):
+    def __init__(self, c8y: CumulocityRestApi):
         super().__init__(c8y=c8y)
         self._updated_fields = None
 
     @classmethod
-    def from_json(cls, json: dict, obj: SimpleObject) -> SimpleObject:
+    def from_json(cls, json: dict) -> SimpleObject:
+        raise NotImplementedError('The from_json function must be implemented in the sub class.')
+
+    def to_json(self, only_updated=False):
+        raise NotImplementedError('The to_json function must be implemented in the sub class.')
+
+    def to_full_json(self) -> dict:
+        return self.to_json()
+
+    def to_diff_json(self) -> dict:
+        return self.to_json(only_updated=True)
+
+    @classmethod
+    def _parse_json(cls, json: dict, obj: SimpleObject) -> SimpleObject:
         return cls._parser.from_json(json, obj)
 
-    def to_json(self, only_updated=False) -> dict:
+    def _format_json(self, only_updated=False) -> dict:
         """Create a representation of this object in Cumulocity JSON format.
 
         Caveat: this function is primarily for internal use and does not
@@ -98,22 +112,39 @@ class SimpleObject(CumulocityObject):
         exclude = {'id'}
         return self._parser.to_json(self, include, exclude)
 
-    def to_full_json(self) -> dict:
-        return self.to_json()
-
-    def to_diff_json(self) -> dict:
-        return self.to_json(only_updated=True)
-
     def _signal_updated_field(self, internal_name):
         if not self._updated_fields:
             self._updated_fields = {internal_name}
         else:
             self._updated_fields.add(internal_name)
 
+    def _build_object_path(self):
+        return self._resource + '/' + self.id
+
+    def _create(self) -> SimpleObject:
+        self._assert_c8y()
+        result_json = self.c8y.post(self._resource, self.to_json(), accept=self._mimetype)
+        result = self.from_json(result_json)
+        result.c8y = self.c8y
+        return result
+
+    def _update(self) -> SimpleObject:
+        self._assert_c8y()
+        self._assert_id()
+        result_json = self.c8y.put(self._build_object_path(), self.to_json(True), accept=self._mimetype)
+        result = self.from_json(result_json)
+        result.c8y = self.c8y
+        return result
+
+    def _delete(self):
+        self._assert_c8y()
+        self._assert_id()
+        self.c8y.delete(self._build_object_path())
+
 
 class ComplexObject(SimpleObject):
 
-    def __init__(self, c8y: CumulocityRestApi = None, **kwargs):
+    def __init__(self, c8y: CumulocityRestApi, **kwargs):
         super().__init__(c8y)
         self._updated_fragments = None
         self.fragments = {}
