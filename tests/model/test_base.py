@@ -65,9 +65,9 @@ def test_simpleobject_instantiation_and_formatting():
     #  -> the change set is undefined/empty
     assert not obj._updated_fields
     #  -> the updated JSON representation will be empty
-    assert obj.to_json(only_updated=True) == {}
+    assert obj._format_json(only_updated=True) == {}
     #  -> the full JSON representation will be defined
-    assert obj.to_json(only_updated=False) == {'c8y_field': 'directly updated field'}
+    assert obj._format_json(only_updated=False) == {'c8y_field': 'directly updated field'}
 
     # 3_ when updating the property via the descriptor (default access)
     # the change will be recorded.
@@ -80,7 +80,7 @@ def test_simpleobject_instantiation_and_formatting():
     assert obj._updated_fields == {'_field'}
 
     #  -> the full and diff JSON representation will be identical
-    assert obj.to_json() == obj.to_json(only_updated=True)
+    assert obj._format_json() == obj._format_json(only_updated=True)
 
 
 def test_simpleobject_parsing():
@@ -93,7 +93,7 @@ def test_simpleobject_parsing():
         'c8y_fixed': 12
     }
 
-    parsed_obj = SimpleTestObject.from_json(obj_json, SimpleTestObject())
+    parsed_obj = SimpleTestObject._parse_json(obj_json, SimpleTestObject())
 
     assert parsed_obj.id == obj_json['id']
     assert parsed_obj.field == obj_json['c8y_field']
@@ -103,7 +103,7 @@ def test_simpleobject_parsing():
         'c8y_field': parsed_obj.field,
         'c8y_fixed': parsed_obj.fixed_field
     }
-    assert parsed_obj.to_json() == expected_json
+    assert parsed_obj._format_json() == expected_json
 
     # 2_ when updating fields manually it will reflect in the diff JSON
     parsed_obj.id = 12
@@ -114,12 +114,12 @@ def test_simpleobject_parsing():
         'c8y_field': parsed_obj.field,
         'c8y_fixed': parsed_obj.fixed_field
     }
-    assert parsed_obj.to_json() == expected_updated_json
+    assert parsed_obj._format_json() == expected_updated_json
 
     expected_diff_json = {
         'c8y_field': parsed_obj.field
     }
-    assert parsed_obj.to_json(only_updated=True) == expected_diff_json
+    assert parsed_obj._format_json(only_updated=True) == expected_diff_json
 
 
 def test_complexobject_parsing():
@@ -136,7 +136,7 @@ def test_complexobject_parsing():
     }
 
     # 1_ parsing the object JSON into a new object instance
-    parsed_obj = ComplexTestObject.from_json(obj_json, ComplexTestObject())
+    parsed_obj = ComplexTestObject._parse_json(obj_json, ComplexTestObject())
 
     # -> all standard properties are set
     assert parsed_obj.id == obj_json['id']
@@ -183,21 +183,21 @@ def test_complexobject_instantiation_and_formatting():
         'c8y_complex': {'a': 'valueA', 'b': 'valueB'}
     }
     # -> full JSON should contain all fields
-    assert obj.to_json() == expected_full_json
+    assert obj._format_json() == expected_full_json
     # -> diff JSON should only contain the fragments
-    assert obj.to_json(only_updated=True) == {'c8y_simple': True, 'c8y_complex': {'a': 'valueA', 'b': 'valueB'}}
+    assert obj._format_json(only_updated=True) == {'c8y_simple': True, 'c8y_complex': {'a': 'valueA', 'b': 'valueB'}}
 
     # 3_ resetting the update status (twiddling with internals)
     obj._updated_fragments = None
 
     obj.field = 'updated field'
-    obj.c8y_simple = False
+    obj['c8y_simple'] = False  # currently, direct setting of simple fragments is not supported
     obj.c8y_complex.b = 'newB'
 
     # -> the diff JSON should only contain updated parts
     expected_diff_json = {
         'c8y_field': obj.field,
         'c8y_simple': obj.c8y_simple,
-        'c8y_complex': {'b': 'newB'}  # the a field is unchanged
+        'c8y_complex': {'a': 'valueA', 'b': 'newB'}  # the a field is unchanged but is included nontheless
     }
-    assert obj.to_json(only_updated=True) == expected_diff_json
+    assert obj._format_json(only_updated=True) == expected_diff_json

@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-from urllib.parse import urlencode
 from deprecated import deprecated
+from urllib.parse import urlencode
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api._util import warning
@@ -72,7 +72,7 @@ class SimpleObject(CumulocityObject):
             obj._signal_updated_field(self.internal_name)
             obj.__dict__[self.internal_name] = None
 
-    def __init__(self, c8y: CumulocityRestApi):
+    def __init__(self, c8y: CumulocityRestApi | None):
         super().__init__(c8y=c8y)
         self._updated_fields = None
 
@@ -150,6 +150,7 @@ class ComplexObject(SimpleObject):
         self.fragments = {}
         for key, value in kwargs.items():
             self.fragments[key] = value
+        self.__setattr__ = self._setattr_
 
     def __setitem__(self, name, fragment):
         """ Add/set a custom fragment.
@@ -199,6 +200,12 @@ class ComplexObject(SimpleObject):
         """
         return self.__getitem__(name)
 
+    def _setattr_(self, name, value):
+        if name in self.fragments:
+            self.__setitem__(name, value)
+        else:
+            object.__setattr__(self, name, value)
+
     def __iadd__(self, other):
         try:  # go for iterable
             for i in other:
@@ -242,6 +249,7 @@ class ComplexObject(SimpleObject):
         self.__iadd__(fragments)
         return self
 
+    @deprecated
     def has(self, name):
         return self.__contains__(name)
 
