@@ -1,0 +1,925 @@
+{
+  "applications": [],
+  "customProperties": {
+    "another": "updated",
+    "array": [1, 2, 3],
+    "complex": {
+      "a": "value",
+      "b": "value"
+    },
+    "occupation": "nothing",
+    "userOrigin": "BASIC"
+  },
+  "devicePermissions": {},
+  "displayName": "tstusr",
+  "firstName": "test",
+  "lastName": "user",
+  "email": "testuser@softwareag.com",
+  "enabled": true,
+  "groups": {
+    "next": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups?pageSize=5&currentPage=2",
+    "references": [
+      {
+        "group": {
+          "applications": [
+            {
+              "activeVersionId": "642716136",
+              "availability": "MARKET",
+              "breadcrumbs": false,
+              "contentSecurityPolicy": "base-uri 'none'; default-src 'self' 'unsafe-inline' http: https: ws: wss:; connect-src 'self' *.billwerk.com http: https: ws: wss:;  script-src 'self' open.mapquestapi.com *.twitter.com *.twimg.com *.aptrinsic.com 'unsafe-inline' 'unsafe-eval' data:; style-src * 'unsafe-inline' blob:; img-src * data:; font-src * data:; frame-src *;",
+              "contextPath": "cockpit",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "globalTitle": "Cumulocity",
+              "id": "7",
+              "key": "cockpit-application-key",
+              "legacy": false,
+              "manifest": {
+                "dynamicOptionsUrl": "/apps/public-options/options.json",
+                "globalTitle": "Cumulocity",
+                "rightDrawer": true,
+                "sensorAppOneLink": "http://onelink.to/pca6qe",
+                "sensorPhone": true,
+                "tabsHorizontal": true,
+                "upgrade": true
+              },
+              "name": "cockpit",
+              "owner": {
+                "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "rightDrawer": true,
+              "self": "https://t12345.eu-latest.cumulocity.com/application/applications/7",
+              "sensorAppOneLink": "http://onelink.to/pca6qe",
+              "sensorPhone": true,
+              "tabsHorizontal": true,
+              "type": "HOSTED",
+              "upgrade": true
+            },
+            {
+              "activeVersionId": "642716137",
+              "availability": "MARKET",
+              "breadcrumbs": false,
+              "contentSecurityPolicy": "base-uri 'none'; default-src 'self' 'unsafe-inline' http: https: ws: wss:; connect-src 'self' *.billwerk.com http: https: ws: wss:;  script-src 'self' open.mapquestapi.com *.twitter.com *.twimg.com *.aptrinsic.com 'unsafe-inline' 'unsafe-eval' data:; style-src * 'unsafe-inline' blob:; img-src * data:; font-src * data:; frame-src *;",
+              "contextPath": "devicemanagement",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "globalTitle": "Cumulocity",
+              "id": "1",
+              "key": "devicemanagement-application-key",
+              "legacy": false,
+              "manifest": {
+                "dynamicOptionsUrl": "/apps/public-options/options.json",
+                "globalTitle": "Cumulocity",
+                "rightDrawer": true,
+                "upgrade": true
+              },
+              "name": "devicemanagement",
+              "owner": {
+                "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "rightDrawer": true,
+              "self": "https://t12345.eu-latest.cumulocity.com/application/applications/1",
+              "type": "HOSTED",
+              "upgrade": true
+            }
+          ],
+          "customProperties": {},
+          "devicePermissions": {},
+          "id": 1,
+          "name": "business",
+          "roles": {
+            "next": "https://t12345.eu-latest.cumulocity.com/1/roles?pageSize=5&currentPage=2",
+            "references": [
+              {
+                "role": {
+                  "id": "ROLE_ALARM_ADMIN",
+                  "name": "ROLE_ALARM_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_ALARM_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_ALARM_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_ALARM_READ",
+                  "name": "ROLE_ALARM_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_ALARM_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_ALARM_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_AUDIT_ADMIN",
+                  "name": "ROLE_AUDIT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_AUDIT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_AUDIT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_AUDIT_READ",
+                  "name": "ROLE_AUDIT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_AUDIT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_AUDIT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DEVICE_CONTROL_ADMIN",
+                  "name": "ROLE_DEVICE_CONTROL_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DEVICE_CONTROL_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_DEVICE_CONTROL_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DEVICE_CONTROL_READ",
+                  "name": "ROLE_DEVICE_CONTROL_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DEVICE_CONTROL_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_DEVICE_CONTROL_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_EVENT_ADMIN",
+                  "name": "ROLE_EVENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_EVENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_EVENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_EVENT_READ",
+                  "name": "ROLE_EVENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_EVENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_EVENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_IDENTITY_ADMIN",
+                  "name": "ROLE_IDENTITY_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_IDENTITY_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_IDENTITY_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_IDENTITY_READ",
+                  "name": "ROLE_IDENTITY_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_IDENTITY_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_IDENTITY_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_INVENTORY_ADMIN",
+                  "name": "ROLE_INVENTORY_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_INVENTORY_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_INVENTORY_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_INVENTORY_READ",
+                  "name": "ROLE_INVENTORY_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_INVENTORY_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_INVENTORY_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_MEASUREMENT_ADMIN",
+                  "name": "ROLE_MEASUREMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_MEASUREMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_MEASUREMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_MEASUREMENT_READ",
+                  "name": "ROLE_MEASUREMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_MEASUREMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_MEASUREMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_OWN_ADMIN",
+                  "name": "ROLE_USER_MANAGEMENT_OWN_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_OWN_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_USER_MANAGEMENT_OWN_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_OWN_READ",
+                  "name": "ROLE_USER_MANAGEMENT_OWN_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_OWN_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_USER_MANAGEMENT_OWN_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_RETENTION_RULE_READ",
+                  "name": "ROLE_RETENTION_RULE_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_RETENTION_RULE_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_RETENTION_RULE_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_BULK_OPERATION_READ",
+                  "name": "ROLE_BULK_OPERATION_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_BULK_OPERATION_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_BULK_OPERATION_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DATA_BROKER_READ",
+                  "name": "ROLE_DATA_BROKER_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DATA_BROKER_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/1/roles/ROLE_DATA_BROKER_READ/"
+              }
+            ],
+            "self": "https://t12345.eu-latest.cumulocity.com/1/roles?pageSize=5&currentPage=1",
+            "statistics": {
+              "currentPage": 1,
+              "pageSize": 5
+            }
+          },
+          "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/1",
+          "users": {
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/1/users"
+          }
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups/1"
+      },
+      {
+        "group": {
+          "applications": [],
+          "customProperties": {},
+          "devicePermissions": {},
+          "id": 14,
+          "name": "maintenance",
+          "roles": {
+            "next": "https://t12345.eu-latest.cumulocity.com/14/roles?pageSize=5&currentPage=2",
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/14/roles?pageSize=5&currentPage=1",
+            "statistics": {
+              "currentPage": 1,
+              "pageSize": 5
+            }
+          },
+          "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/14",
+          "users": {
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/14/users"
+          }
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups/14"
+      },
+      {
+        "group": {
+          "applications": [],
+          "customProperties": {},
+          "devicePermissions": {},
+          "id": 2,
+          "name": "admins",
+          "roles": {
+            "next": "https://t12345.eu-latest.cumulocity.com/2/roles?pageSize=5&currentPage=2",
+            "references": [
+              {
+                "role": {
+                  "id": "ROLE_ALARM_ADMIN",
+                  "name": "ROLE_ALARM_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_ALARM_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_ALARM_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_ALARM_READ",
+                  "name": "ROLE_ALARM_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_ALARM_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_ALARM_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_AUDIT_ADMIN",
+                  "name": "ROLE_AUDIT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_AUDIT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_AUDIT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_AUDIT_READ",
+                  "name": "ROLE_AUDIT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_AUDIT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_AUDIT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DEVICE_CONTROL_ADMIN",
+                  "name": "ROLE_DEVICE_CONTROL_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DEVICE_CONTROL_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_DEVICE_CONTROL_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DEVICE_CONTROL_READ",
+                  "name": "ROLE_DEVICE_CONTROL_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DEVICE_CONTROL_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_DEVICE_CONTROL_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_EVENT_ADMIN",
+                  "name": "ROLE_EVENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_EVENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_EVENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_EVENT_READ",
+                  "name": "ROLE_EVENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_EVENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_EVENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_IDENTITY_ADMIN",
+                  "name": "ROLE_IDENTITY_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_IDENTITY_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_IDENTITY_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_IDENTITY_READ",
+                  "name": "ROLE_IDENTITY_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_IDENTITY_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_IDENTITY_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_INVENTORY_ADMIN",
+                  "name": "ROLE_INVENTORY_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_INVENTORY_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_INVENTORY_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_INVENTORY_READ",
+                  "name": "ROLE_INVENTORY_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_INVENTORY_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_INVENTORY_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_MEASUREMENT_ADMIN",
+                  "name": "ROLE_MEASUREMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_MEASUREMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_MEASUREMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_MEASUREMENT_READ",
+                  "name": "ROLE_MEASUREMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_MEASUREMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_MEASUREMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_TENANT_STATISTICS_READ",
+                  "name": "ROLE_TENANT_STATISTICS_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_TENANT_STATISTICS_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_TENANT_STATISTICS_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_APPLICATION_MANAGEMENT_ADMIN",
+                  "name": "ROLE_APPLICATION_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_APPLICATION_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_APPLICATION_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_APPLICATION_MANAGEMENT_READ",
+                  "name": "ROLE_APPLICATION_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_APPLICATION_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_APPLICATION_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_ADMIN",
+                  "name": "ROLE_USER_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_USER_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_CREATE",
+                  "name": "ROLE_USER_MANAGEMENT_CREATE",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_CREATE"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_USER_MANAGEMENT_CREATE/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_READ",
+                  "name": "ROLE_USER_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_USER_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_OWN_ADMIN",
+                  "name": "ROLE_USER_MANAGEMENT_OWN_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_OWN_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_USER_MANAGEMENT_OWN_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_OWN_READ",
+                  "name": "ROLE_USER_MANAGEMENT_OWN_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_OWN_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_USER_MANAGEMENT_OWN_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_USER_MANAGEMENT_PASSWORD_RESET",
+                  "name": "ROLE_USER_MANAGEMENT_PASSWORD_RESET",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_PASSWORD_RESET"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_USER_MANAGEMENT_PASSWORD_RESET/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_CEP_MANAGEMENT_ADMIN",
+                  "name": "ROLE_CEP_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_CEP_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_CEP_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_CEP_MANAGEMENT_READ",
+                  "name": "ROLE_CEP_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_CEP_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_CEP_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_OPTION_MANAGEMENT_READ",
+                  "name": "ROLE_OPTION_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_OPTION_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_OPTION_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_OPTION_MANAGEMENT_ADMIN",
+                  "name": "ROLE_OPTION_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_OPTION_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_OPTION_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_RETENTION_RULE_READ",
+                  "name": "ROLE_RETENTION_RULE_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_RETENTION_RULE_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_RETENTION_RULE_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_RETENTION_RULE_ADMIN",
+                  "name": "ROLE_RETENTION_RULE_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_RETENTION_RULE_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_RETENTION_RULE_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_BULK_OPERATION_READ",
+                  "name": "ROLE_BULK_OPERATION_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_BULK_OPERATION_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_BULK_OPERATION_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_BULK_OPERATION_ADMIN",
+                  "name": "ROLE_BULK_OPERATION_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_BULK_OPERATION_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_BULK_OPERATION_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DATA_BROKER_READ",
+                  "name": "ROLE_DATA_BROKER_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DATA_BROKER_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_DATA_BROKER_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DATA_BROKER_ADMIN",
+                  "name": "ROLE_DATA_BROKER_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DATA_BROKER_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_DATA_BROKER_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_ACCOUNT_ADMIN",
+                  "name": "ROLE_ACCOUNT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_ACCOUNT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_ACCOUNT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_SCHEDULE_REPORT_ADMIN",
+                  "name": "ROLE_SCHEDULE_REPORT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_SCHEDULE_REPORT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_SCHEDULE_REPORT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_REMOTE_ACCESS_ADMIN",
+                  "name": "ROLE_REMOTE_ACCESS_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_REMOTE_ACCESS_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/2/roles/ROLE_REMOTE_ACCESS_ADMIN/"
+              }
+            ],
+            "self": "https://t12345.eu-latest.cumulocity.com/2/roles?pageSize=5&currentPage=1",
+            "statistics": {
+              "currentPage": 1,
+              "pageSize": 5
+            }
+          },
+          "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/2",
+          "users": {
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/2/users"
+          }
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups/2"
+      },
+      {
+        "group": {
+          "applications": [
+            {
+              "activeVersionId": "642716135",
+              "availability": "MARKET",
+              "contentSecurityPolicy": "base-uri 'none'; default-src 'self' 'unsafe-inline' http: https: ws: wss:; connect-src 'self' *.billwerk.com http: https: ws: wss:;  script-src 'self' open.mapquestapi.com *.twitter.com *.twimg.com *.aptrinsic.com  *.billwerk.com 'unsafe-inline' 'unsafe-eval' data:; style-src * 'unsafe-inline' blob:; img-src * data:; font-src * data:; frame-src *;",
+              "contextPath": "administration",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "globalTitle": "Cumulocity",
+              "id": "3",
+              "key": "administration-application-key",
+              "legacy": false,
+              "manifest": {
+                "dynamicOptionsUrl": "/apps/public-options/options.json",
+                "globalTitle": "Cumulocity",
+                "rightDrawer": true,
+                "tabsHorizontal": true,
+                "upgrade": true
+              },
+              "name": "administration",
+              "owner": {
+                "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "rightDrawer": true,
+              "self": "https://t12345.eu-latest.cumulocity.com/application/applications/3",
+              "tabsHorizontal": true,
+              "type": "HOSTED",
+              "upgrade": true
+            }
+          ],
+          "customProperties": {},
+          "description": "Can manage tenant wide configurations like applications, tenant options and retention rules",
+          "devicePermissions": {},
+          "id": 5,
+          "name": "Tenant Manager",
+          "roles": {
+            "next": "https://t12345.eu-latest.cumulocity.com/5/roles?pageSize=5&currentPage=2",
+            "references": [
+              {
+                "role": {
+                  "id": "ROLE_TENANT_STATISTICS_READ",
+                  "name": "ROLE_TENANT_STATISTICS_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_TENANT_STATISTICS_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_TENANT_STATISTICS_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_TENANT_MANAGEMENT_READ",
+                  "name": "ROLE_TENANT_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_TENANT_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_TENANT_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_TENANT_MANAGEMENT_ADMIN",
+                  "name": "ROLE_TENANT_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_TENANT_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_TENANT_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_OPTION_MANAGEMENT_READ",
+                  "name": "ROLE_OPTION_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_OPTION_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_OPTION_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_OPTION_MANAGEMENT_ADMIN",
+                  "name": "ROLE_OPTION_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_OPTION_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_OPTION_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_APPLICATION_MANAGEMENT_READ",
+                  "name": "ROLE_APPLICATION_MANAGEMENT_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_APPLICATION_MANAGEMENT_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_APPLICATION_MANAGEMENT_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_APPLICATION_MANAGEMENT_ADMIN",
+                  "name": "ROLE_APPLICATION_MANAGEMENT_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_APPLICATION_MANAGEMENT_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_APPLICATION_MANAGEMENT_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_RETENTION_RULE_READ",
+                  "name": "ROLE_RETENTION_RULE_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_RETENTION_RULE_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_RETENTION_RULE_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_RETENTION_RULE_ADMIN",
+                  "name": "ROLE_RETENTION_RULE_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_RETENTION_RULE_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_RETENTION_RULE_ADMIN/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DATA_BROKER_READ",
+                  "name": "ROLE_DATA_BROKER_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DATA_BROKER_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_DATA_BROKER_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_DATA_BROKER_ADMIN",
+                  "name": "ROLE_DATA_BROKER_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_DATA_BROKER_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/5/roles/ROLE_DATA_BROKER_ADMIN/"
+              }
+            ],
+            "self": "https://t12345.eu-latest.cumulocity.com/5/roles?pageSize=5&currentPage=1",
+            "statistics": {
+              "currentPage": 1,
+              "pageSize": 5
+            }
+          },
+          "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/5",
+          "users": {
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/5/users"
+          }
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups/5"
+      },
+      {
+        "group": {
+          "applications": [
+            {
+              "activeVersionId": "642716137",
+              "availability": "MARKET",
+              "breadcrumbs": false,
+              "contentSecurityPolicy": "base-uri 'none'; default-src 'self' 'unsafe-inline' http: https: ws: wss:; connect-src 'self' *.billwerk.com http: https: ws: wss:;  script-src 'self' open.mapquestapi.com *.twitter.com *.twimg.com *.aptrinsic.com 'unsafe-inline' 'unsafe-eval' data:; style-src * 'unsafe-inline' blob:; img-src * data:; font-src * data:; frame-src *;",
+              "contextPath": "devicemanagement",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "globalTitle": "Cumulocity",
+              "id": "1",
+              "key": "devicemanagement-application-key",
+              "legacy": false,
+              "manifest": {
+                "dynamicOptionsUrl": "/apps/public-options/options.json",
+                "globalTitle": "Cumulocity",
+                "rightDrawer": true,
+                "upgrade": true
+              },
+              "name": "devicemanagement",
+              "owner": {
+                "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "rightDrawer": true,
+              "self": "https://t12345.eu-latest.cumulocity.com/application/applications/1",
+              "type": "HOSTED",
+              "upgrade": true
+            }
+          ],
+          "customProperties": {},
+          "description": "Gives access to bulk operations and device management application. This does not include access to any device data.",
+          "devicePermissions": {},
+          "id": 7,
+          "name": "Devicemanagement User",
+          "roles": {
+            "next": "https://t12345.eu-latest.cumulocity.com/7/roles?pageSize=5&currentPage=2",
+            "references": [
+              {
+                "role": {
+                  "id": "ROLE_BULK_OPERATION_READ",
+                  "name": "ROLE_BULK_OPERATION_READ",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_BULK_OPERATION_READ"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/7/roles/ROLE_BULK_OPERATION_READ/"
+              },
+              {
+                "role": {
+                  "id": "ROLE_SIMULATOR_ADMIN",
+                  "name": "ROLE_SIMULATOR_ADMIN",
+                  "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_SIMULATOR_ADMIN"
+                },
+                "self": "https://t12345.eu-latest.cumulocity.com/7/roles/ROLE_SIMULATOR_ADMIN/"
+              }
+            ],
+            "self": "https://t12345.eu-latest.cumulocity.com/7/roles?pageSize=5&currentPage=1",
+            "statistics": {
+              "currentPage": 1,
+              "pageSize": 5
+            }
+          },
+          "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/7",
+          "users": {
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/7/users"
+          }
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups/7"
+      },
+      {
+        "group": {
+          "applications": [
+            {
+              "activeVersionId": "642716136",
+              "availability": "MARKET",
+              "breadcrumbs": false,
+              "contentSecurityPolicy": "base-uri 'none'; default-src 'self' 'unsafe-inline' http: https: ws: wss:; connect-src 'self' *.billwerk.com http: https: ws: wss:;  script-src 'self' open.mapquestapi.com *.twitter.com *.twimg.com *.aptrinsic.com 'unsafe-inline' 'unsafe-eval' data:; style-src * 'unsafe-inline' blob:; img-src * data:; font-src * data:; frame-src *;",
+              "contextPath": "cockpit",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "globalTitle": "Cumulocity",
+              "id": "7",
+              "key": "cockpit-application-key",
+              "legacy": false,
+              "manifest": {
+                "dynamicOptionsUrl": "/apps/public-options/options.json",
+                "globalTitle": "Cumulocity",
+                "rightDrawer": true,
+                "sensorAppOneLink": "http://onelink.to/pca6qe",
+                "sensorPhone": true,
+                "tabsHorizontal": true,
+                "upgrade": true
+              },
+              "name": "cockpit",
+              "owner": {
+                "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "rightDrawer": true,
+              "self": "https://t12345.eu-latest.cumulocity.com/application/applications/7",
+              "sensorAppOneLink": "http://onelink.to/pca6qe",
+              "sensorPhone": true,
+              "tabsHorizontal": true,
+              "type": "HOSTED",
+              "upgrade": true
+            }
+          ],
+          "customProperties": {},
+          "description": "User to work in Cockpit application. This does not include the access to any device data.",
+          "devicePermissions": {},
+          "id": 8,
+          "name": "Cockpit User",
+          "roles": {
+            "next": "https://t12345.eu-latest.cumulocity.com/8/roles?pageSize=5&currentPage=2",
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/8/roles?pageSize=5&currentPage=1",
+            "statistics": {
+              "currentPage": 1,
+              "pageSize": 5
+            }
+          },
+          "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/8",
+          "users": {
+            "references": [],
+            "self": "https://t12345.eu-latest.cumulocity.com/8/users"
+          }
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups/8"
+      }
+    ],
+    "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/groups?pageSize=5&currentPage=1",
+    "statistics": {
+      "currentPage": 1,
+      "pageSize": 5
+    }
+  },
+  "id": "testuser@softwareag.com",
+  "lastPasswordChange": "2020-05-07T07:40:22.219Z",
+  "passwordStrength": "GREEN",
+  "phone": "+123456789",
+  "roles": {
+    "next": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/roles?pageSize=5&currentPage=2",
+    "references": [
+      {
+        "role": {
+          "id": "ROLE_USER_MANAGEMENT_OWN_READ",
+          "name": "ROLE_USER_MANAGEMENT_OWN_READ",
+          "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_OWN_READ"
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/roles/ROLE_USER_MANAGEMENT_OWN_READ/"
+      },
+      {
+        "role": {
+          "id": "ROLE_USER_MANAGEMENT_OWN_ADMIN",
+          "name": "ROLE_USER_MANAGEMENT_OWN_ADMIN",
+          "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_OWN_ADMIN"
+        },
+        "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/roles/ROLE_USER_MANAGEMENT_OWN_ADMIN/"
+      }
+    ],
+    "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com/roles?pageSize=5&currentPage=1",
+    "statistics": {
+      "currentPage": 1,
+      "pageSize": 5
+    }
+  },
+  "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/users/testuser@softwareag.com",
+  "shouldResetPassword": false,
+  "twoFactorAuthenticationEnabled": false,
+  "userName": "testuser@softwareag.com"
+}

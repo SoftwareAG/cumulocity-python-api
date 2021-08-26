@@ -4,11 +4,11 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from .administration import *
-from .measurements import *
-from .inventory import *
-from .events import *
-from .alarms import *
+from c8y_api.model.administration import *
+from c8y_api.model.measurements import *
+from c8y_api.model.inventory import *
+from c8y_api.model.events import *
+from c8y_api.model.alarms import *
 
 __all__ = ['administration', 'inventory', 'measurements', 'events',
            'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',

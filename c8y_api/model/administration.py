@@ -4,6 +4,9 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+from __future__ import annotations
+
+from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import CumulocityResource, SimpleObject
 from c8y_api.model._parser import SimpleObjectParser, ComplexObjectParser
 from c8y_api.model._updatable import _UpdatableSetProperty
@@ -28,31 +31,40 @@ class PermissionScope(object):
 
 class Permission(SimpleObject):
 
-    __parser = SimpleObjectParser({
-            'id': 'id',
+    _parser = SimpleObjectParser({
             'level': 'permission',
             'type': 'type',
             'scope': 'scope'})
 
-    def __init__(self, level=PermissionLevel.ANY, scope=PermissionScope.ANY, type='*'):  # noqa
+    def __init__(self, level=PermissionLevel.ANY, scope=PermissionScope.ANY, type='*'):
         """
         :param level: one of ADMIN, READ, * (default)
         :param type: type on which to restrict or * (default)
         :param scope: one of ALARM, AUDIT, EVENT, MEASUREMENT, MANAGED_OBJECT, OPERATION, or * (default)
         """
-        super().__init__(None)
+        super().__init__(c8y=None)
         self.id = None
         self.level = level
         self.type = type
         self.scope = scope
 
     @classmethod
-    def from_json(cls, object_json):
-        p = cls.__parser.from_json(object_json, Permission())
-        return p
+    def from_json(cls, object_json) -> Permission:
+        return cls._parse_json(object_json, Permission())
 
-    def to_full_json(self):
-        return self.__parser.to_full_json(self)
+    def to_json(self, only_updated=False):
+        if only_updated:
+            raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
+        return self._format_json(self)
+
+    def create(self) -> Permission:
+        raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
+
+    def update(self) -> Permission:
+        raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
+
+    def delete(self):
+        raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
 
 
 class ReadPermission(Permission):
@@ -301,27 +313,59 @@ class GlobalRole(SimpleObject):
         return {'role': {'self': 'user/roles/' + role_id}}
 
 
-class User(SimpleObject):
+class UserUtil:
+    """Utility functions to work with the User API."""
 
-    __parser = SimpleObjectParser({
-            '_user_id': 'id',
+    @staticmethod
+    def build_user_reference(tenant_id: str, username: str) -> dict:
+        return {'user': {'self': f'/user/{tenant_id}/users/{username}'}}
+
+    @staticmethod
+    def build_owner_reference(user_id: str) -> dict:
+        return {'owner': user_id}
+
+    @staticmethod
+    def build_delegate_reference(user_id: str) -> dict:
+        return {'delegatedBy': user_id}
+
+    @staticmethod
+    def build_application_references(*ids):
+        if not ids:
+            return []
+        return [{'id': str(aid), 'type': 'MICROSERVICE'} for aid in ids]
+
+
+class User(SimpleObject):
+    """Represents an User object within Cumulocity.
+
+    Notes:
+      - Only a limited set of properties are actually updatable. Others must
+        be set explicitely using the corresponding API (for example: global roles, permissions,
+        owner, etc.)
+    """
+
+    _parser = SimpleObjectParser({
             'username': 'userName',
-            '_u_owner': 'owner',
-            '_u_delegated_by': 'delegatedBy',
+            'password_strength': 'passwordStrength',
+            'owner': 'owner',
+            'delegated_by': 'delegatedBy',
             '_u_email': 'email',
-            '_u_enabled': 'enabled',  # bool
+            '_u_enabled': 'enabled',
             '_u_display_name': 'displayName',
             '_u_password': 'password',
             '_u_first_name': 'firstName',
             '_u_last_name': 'lastName',
+            '_u_tfa_enabled': 'twoFactorAuthenticationEnabled',
             '_u_require_password_reset': 'shouldResetPassword',
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
-    __custom_properties_parser = ComplexObjectParser({}, [])
+    _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
+    _mimetype = CumulocityRestApi.ACCEPT_USER
+    _custom_properties_parser = ComplexObjectParser({}, [])
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, first_name=None, last_name=None, phone=None, require_password_reset=None,
-                 owner=None, delegated_by=None, permission_ids=None, global_role_ids=None, application_ids=None):
+                 password=None, first_name=None, last_name=None, phone=None,
+                 tfa_enabled=None, require_password_reset=None):
         """
         :param c8y:
         :param username:
@@ -334,19 +378,12 @@ class User(SimpleObject):
         :param first_name:
         :param last_name:
         :param phone:
-        :param owner:  specify the parent/owner user by username
-        :param delegated_by:  specify delegate user by username
-        :param permission_ids:  the initial set of roles (permissions) for this user
-            a newly created user will be assigned these after creation
-            Note: human users are usually assigned to groups (global roles)
-        :param global_role_ids:  the initial set of groups (global roles) for this user
-            a newly created user will be assigned to these after creation
         """
         super().__init__(c8y)
-        self.user_id = None
         self.username = username
-        self._u_owner = owner
-        self._u_delegated_by = delegated_by
+        self.password_strength = None
+        self.owner = None
+        self.delegated_by = None
         self._u_email = email
         self._u_enabled = enabled
         self._u_display_name = display_name
@@ -354,29 +391,27 @@ class User(SimpleObject):
         self._u_phone = phone
         self._u_first_name = first_name
         self._u_last_name = last_name
+        self._u_tfa_enabled = tfa_enabled or False
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = not self._u_password
         self._last_password_change = None
-        self._x_application_ids = application_ids if application_ids else set()
-        self._x_global_roles = global_role_ids if global_role_ids else set()
-        self._x_permissions = permission_ids if permission_ids else set()
-        self._x_orig_application_ids = None
-        self._x_orig_global_roles = None
-        self._x_orig_permissions = None
+        self.global_role_ids = set()
+        self.permission_ids = set()
+        self.application_ids = set()
         # self.custom_properties = WithUpdatableFragments()
 
-    owner = SimpleObject.UpdatableProperty('_u_owner')
-    delegated_by = SimpleObject.UpdatableProperty('_u_delegated_by')
     display_name = SimpleObject.UpdatableProperty('_u_display_name')
     email = SimpleObject.UpdatableProperty('_u_email')
     phone = SimpleObject.UpdatableProperty('_u_phone')
     first_name = SimpleObject.UpdatableProperty('_u_first_name')
     last_name = SimpleObject.UpdatableProperty('_u_last_name')
     enabled = SimpleObject.UpdatableProperty('_u_enabled')
-    application_ids = _UpdatableSetProperty('_x_application_ids', '_x_orig_application_ids')
+    tfa_enabled = SimpleObject.UpdatableProperty('_u_tfa_enabled')
     require_password_reset = SimpleObject.UpdatableProperty('_u_require_password_reset')
-    permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
-    global_role_ids = _UpdatableSetProperty('_x_global_roles', '_x_orig_global_roles')
+
+    @property  # overriding definition from SimpleObject class
+    def object_path(self):
+        return self._build_user_path()
 
     @property
     def last_password_change(self):
@@ -384,145 +419,81 @@ class User(SimpleObject):
         return _DateUtil.to_datetime(self._last_password_change)
 
     @classmethod
-    def from_json(cls, user_json):
-        user = cls.__parser.from_json(user_json, User())
+    def from_json(cls, user_json) -> User:
+        user = cls._parse_json(user_json, User())
+        if user_json['groups'] and user_json['groups']['references']:
+            user.global_role_ids = {ref['group']['id'] for ref in user_json['groups']['references']}
+        if user_json['roles'] and user_json['roles']['references']:
+            user.permission_ids = {ref['role']['id'] for ref in user_json['roles']['references']}
         if 'applications' in user_json:
             user.application_ids = {x['id'] for x in user_json['applications']}
-        if user_json['roles']:
-            if user_json['roles']['references']:
-                user._x_permissions = {ref['role']['id'] for ref in user_json['roles']['references']}
-        if user_json['groups']:
-            if user_json['groups']['references']:
-                user._x_global_roles = {ref['group']['id'] for ref in user_json['groups']['references']}
         # if user_json['customProperties']:
         #     user.custom_properties = cls.__custom_properties_parser.from_json(user_json['customProperties'],
         #                                                                       WithUpdatableFragments())
         return user
 
-    def _to_full_json(self):
-        user_json = self.__parser.to_full_json(self)
-        if self.application_ids:
-            user_json['applications'] = self._build_application_references(self.application_ids)
-        # if self.custom_properties:
-        #     user_json['customProperties'] = self.__custom_properties_parser.to_full_json(self.custom_properties)
-        return user_json
+    def to_json(self, only_updated=False) -> dict:
+        return self._format_json(only_updated)
 
-    def _to_diff_json(self):
-        user_json = self.__parser.to_diff_json(self)
-        if self._x_orig_application_ids:
-            user_json['applications'] = self._build_application_references(self._x_application_ids)
-        # if self.custom_properties:
-        #     user_json['customProperties'] = self.__custom_properties_parser.to_diff_json(self.custom_properties)
-        return user_json
+    def create(self) -> User:
+        return self._create(self._build_resource_path())
 
-    def create(self, ignore_result=False):
+    def update(self) -> User:
         self._assert_c8y()
         self._assert_username()
-        # 1: create the user itself
-        base_path = f'/user/{self.c8y.tenant_id}/users'
-        self.c8y.post(base_path, self._to_full_json())
-        user_path = self._build_user_path()
-        # 2: assign to owner if defined
-        if self.owner:
-            self.c8y.put(user_path + '/owner', self._build_owner_reference())
-        # 3: assign delegate if defined
-        #   -> no need, is already created through the base JSON
-        # if self.delegated_by:
-        #     self.c8y.put(user_path + '/delegatedBy', {self._build_delegate_reference())
-        # 4: assign user to global roles
-        for group_id in self.global_role_ids:
-            self.c8y.global_roles.assign_users(group_id, [self.username])
-        # 5: assign single permissions to user
-        user_roles_path = user_path + '/roles'
-        for role_id in self.permission_ids:
-            ref_json = self._build_role_reference(role_id)
-            self.c8y.post(user_roles_path, ref_json)
-        if not ignore_result:
-            new_obj = self.from_json(self.c8y.get(user_path))
-            new_obj.c8y = self.c8y
-            return new_obj
-        return None
-
-    def update(self, ignore_result=False):
-        # todo: this violates the principle of REST API Resemblance
-        """
-        Write changed aspects to database.
-
-        :param ignore_result  Do not read and parse the updated object
-
-        Note: The User object is spread across multiple database concepts
-        that need to be updated separately. Because of this it can only be
-        updated directly - it is not possible to apply a 'change' to
-        another object.
-        """
-        self._assert_c8y()
-        self._assert_username()
-        user_path = self._build_user_path()
-        diff_json = self._to_diff_json()
-        # 1: write base object changes
-        self.c8y.put(user_path, diff_json)
-        # 2: if owner was changed, update separately
-        if 'owner' in diff_json:
-            owner_path = user_path + '/owner'
-            if not self.owner:
-                self.c8y.delete(owner_path)
-            else:
-                self.c8y.put(owner_path, self._build_owner_reference())
-        # 3: if delegate is defined, update separately
-        if 'delegatedBy' in diff_json:
-            delegate_path = user_path + '/delegatedBy'
-            if not self.delegated_by:
-                self.c8y.delete(delegate_path)
-            else:
-                self.c8y.put(delegate_path, self._build_delegate_reference(self.delegated_by))
-        # 4: assign/unassign user from global roles
-        if self._x_orig_global_roles:
-            added = self._x_global_roles.difference(self._x_orig_global_roles)
-            removed = self._x_orig_global_roles.difference(self._x_global_roles)
-            if added:
-                for gid in added:
-                    self.c8y.global_roles.assign_users(gid, [self.username])
-            if removed:
-                for gid in removed:
-                    self.c8y.global_roles.unassign_users(gid, [self.username])
-        # 5: add/remove permissions
-        if self._x_orig_permissions:
-            added = self._x_permissions.difference(self._x_orig_permissions)
-            removed = self._x_orig_permissions.difference(self._x_permissions)
-            roles_path = user_path + '/roles'
-            for pid in added:
-                self.c8y.post(roles_path, self._build_role_reference(pid))
-            for pid in removed:
-                self.c8y.delete(roles_path + '/' + pid)
-        if not ignore_result:
-            new_obj = self.from_json(self.c8y.get(user_path))
-            new_obj.c8y = self.c8y
-            return new_obj
-        return None
+        result_json = self.c8y.put(self._build_user_path(), self.to_diff_json(), accept=self._mimetype)
+        return self.from_json(result_json)
 
     def delete(self):
-        self._assert_c8y()
-        self._assert_username()
-        self.c8y.delete(self._build_user_path())
+        self._delete(self._build_user_path())
 
     def update_password(self, new_password):
         pass
 
-    def set_owner(self, user_id):
+    def set_owner(self, user_id: str):
+        """Set the owner for this user.
+
+        This function is applied immediately.
+
+        Params:
+            user_id (str): ID of the owner to set; can be None to
+                remove a currently set owner.
+        """
         self._assert_c8y()
         self._assert_username()
-        self.c8y.users.set_owner(self.username, user_id)
+        Users(self.c8y).set_owner(self.username, user_id)
+
+    def set_delegate(self, user_id: str):
+        """Set the delegate for this user.
+
+        This function is applied immediately.
+
+        Params:
+            user_id (str): ID of the delegate to set; can be None to
+                remove a currently set delegate.
+        """
+        self._assert_c8y()
+        self._assert_username()
+        Users(self.c8y).set_delegate(self.username, user_id)
 
     def assign_global_role(self, role_id):
+        self._assert_c8y()
+        self._assert_username()
         GlobalRoles(self.c8y).assign_users(role_id, [self.username])
 
     def unassign_global_role(self, role_id):
+        self._assert_c8y()
+        self._assert_username()
         GlobalRoles(self.c8y).unassign_users(role_id, [self.username])
 
     def retrieve_global_roles(self):
+        self._assert_c8y()
+        self._assert_username()
         return GlobalRoles(self.c8y).get_all(self.username)
 
     def retrieve_inventory_role_assignments(self):
+        self._assert_c8y()
+        self._assert_username()
         return InventoryRoles(self.c8y).get_all_assignments(self.username)
 
     def assign_inventory_roles(self, group_id, role_ids):
@@ -539,27 +510,21 @@ class User(SimpleObject):
         assignment_json = {'managedObject': group_id, 'roles': [{'id': rid} for rid in role_ids]}
         self.c8y.post(roles_path, assignment_json)
 
+    def _build_object_path(self) -> str:  # override default version
+        return self._build_user_path()
+
+    def _build_resource_path(self):
+        return f'/user/{self.c8y.tenant_id}/users'
+
     def _build_user_path(self):
         return f'/user/{self.c8y.tenant_id}/users/{self.username}'
-
-    def _build_role_reference(self, role_id):
-        return {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
-
-    def _build_user_reference(self):
-        return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
-
-    def _build_owner_reference(self):
-        return {'owner': self.owner}
-
-    @staticmethod
-    def _build_delegate_reference(user_id):
-        return {'delegatedBy': user_id}
-
-    @staticmethod
-    def _build_application_references(ids):
-        if not ids:
-            return []
-        return [{'id': str(aid), 'type': 'MICROSERVICE'} for aid in ids]
+    #
+    # def _build_role_reference(self, role_id):
+    #     return {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
+    #
+    # def _build_user_reference(self):
+    #     return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
+    #
 
     def _assert_username(self):
         if not self.username:
@@ -674,6 +639,33 @@ class Users(CumulocityResource):
 
     def create(self, *users):
         super()._create(lambda u: u._to_full_json(), *users)   # noqa
+
+    def set_owner(self, user_id: str, owner_id: str):
+        """Set the owner of a given user.
+
+        Params:
+            user_id (str): The user to set an owner for
+            owner_id (str):  The Id of the owner user; Can be None to
+                unassign/remove the current owner
+        """
+        if owner_id:
+            self.c8y.put(self._build_object_path(user_id) + '/owner', UserUtil.build_owner_reference(owner_id))
+        else:
+            self.c8y.delete(self._build_object_path(user_id) + '/owner')
+
+    def set_delegate(self, user_id: str, delegate_id: str):
+        """Set the delegate of a given user.
+
+        Params:
+            user_id (str): The user to set an owner for
+            delegate_id (str):  The Id of the delegate user; Can be None to
+                unassign/remove the current owner
+        """
+        if delegate_id:
+            self.c8y.put(self._build_object_path(user_id) + '/delegatedby',
+                         UserUtil.build_delegate_reference(delegate_id))
+        else:
+            self.c8y.delete(self._build_object_path(user_id) + '/delegatedby')
 
 
 class GlobalRoles(CumulocityResource):

@@ -21,12 +21,13 @@ def simple_object_and_mapping():
         def __init__(self):
             self.int_field = random.randint(1, 100)
             self.string_field = RandomNameGenerator.random_name()
-            self.boolean_field = True
+            self.boolean_field = False
             self.additional = RandomNameGenerator.random_name()
 
     mapping = {
         'string_field': 'db_string',
-        'int_field': 'db_int'}
+        'int_field': 'db_int',
+        'boolean_field': 'db_boolean'}
 
     return TestClass(), mapping
 
@@ -42,12 +43,14 @@ def test_from_json_simple(simple_object_and_mapping):
         'to_be_ignored_field': 123,
         'db_int': random.randint(100, 200),
         'db_string': RandomNameGenerator.random_name(),
+        'db_boolean': True,
         'to_be_ignored_fragment': {'level': 2}}
 
     parsed_obj = parser.from_json(source_json, obj)
 
     assert parsed_obj.int_field == source_json['db_int']
     assert parsed_obj.string_field == source_json['db_string']
+    assert parsed_obj.boolean_field == source_json['db_boolean']
 
 
 def test_from_json_simple_skip(simple_object_and_mapping):
@@ -80,10 +83,11 @@ def test_to_json_simple(simple_object_and_mapping):
     # the object field values must be rendered correctly
     assert target_json['db_string'] == obj.string_field
     assert target_json['db_int'] == obj.int_field
+    assert target_json['db_boolean'] == obj.boolean_field
 
     # exactly our expected fields, the object class defines an additional
     # field which should not be in our target JSON structure
-    expected = {'db_string', 'db_int'}
+    expected = {'db_string', 'db_int', 'db_boolean'}
     actual = set(target_json.keys())
     assert not actual ^ expected
 
@@ -95,13 +99,15 @@ def test_to_json_simple_includes(simple_object_and_mapping):
     obj, mapping = simple_object_and_mapping
     parser = SimpleObjectParser(mapping)
 
-    target_json = parser.to_json(obj, include=['int_field'])
+    obj.boolean_field = False
+    target_json = parser.to_json(obj, include=['int_field', 'boolean_field'])
 
     # we expect only one field in the target json
-    assert len(target_json) == 1
+    assert len(target_json) == 2
 
     # the object field values must be rendered correctly
     assert target_json['db_int'] == obj.int_field
+    assert target_json['db_boolean'] == obj.boolean_field
 
 
 def test_to_json_simple_excludes(simple_object_and_mapping):
@@ -111,13 +117,15 @@ def test_to_json_simple_excludes(simple_object_and_mapping):
     obj, mapping = simple_object_and_mapping
     parser = SimpleObjectParser(mapping)
 
+    obj.boolean_field = False
     target_json = parser.to_json(obj, exclude=['string_field'])
 
     # we expect only one field in the target json
-    assert len(target_json) == 1
+    assert len(target_json) == 2
 
     # the object field values must be rendered correctly
     assert target_json['db_int'] == obj.int_field
+    assert target_json['db_boolean'] == obj.boolean_field
 
 
 def test_to_json_simple_overlap(simple_object_and_mapping):

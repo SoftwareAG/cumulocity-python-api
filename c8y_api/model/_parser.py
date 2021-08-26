@@ -61,7 +61,7 @@ class SimpleObjectParser(object):
         for name, value in obj.__dict__.items():
             if include is None or name in include:  # field is included
                 if exclude is None or name not in exclude:  # field is not included
-                    if value and name in self._obj_to_json:
+                    if value is not None and name in self._obj_to_json:
                         obj_json[self._obj_to_json[name]] = value
         return obj_json
 

@@ -76,6 +76,10 @@ class SimpleObject(CumulocityObject):
         super().__init__(c8y=c8y)
         self._updated_fields = None
 
+    @property
+    def object_path(self):
+        return self._resource + '/' + self.id
+
     @classmethod
     def from_json(cls, json: dict) -> SimpleObject:
         raise NotImplementedError('The from_json function must be implemented in the sub class.')
@@ -88,6 +92,9 @@ class SimpleObject(CumulocityObject):
 
     def to_diff_json(self) -> dict:
         return self.to_json(only_updated=True)
+
+    def get_updates(self) -> set:
+        return self._updated_fields or set()
 
     @classmethod
     def _parse_json(cls, json: dict, obj: SimpleObject) -> SimpleObject:
@@ -118,28 +125,27 @@ class SimpleObject(CumulocityObject):
         else:
             self._updated_fields.add(internal_name)
 
-    def _build_object_path(self):
-        return self._resource + '/' + self.id
-
-    def _create(self) -> SimpleObject:
+    def _create(self, resource_path: str = None) -> SimpleObject:
         self._assert_c8y()
-        result_json = self.c8y.post(self._resource, self.to_json(), accept=self._mimetype)
+        result_json = self.c8y.post(resource_path if resource_path else self._resource,
+                                    self.to_json(), accept=self._mimetype)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
 
-    def _update(self) -> SimpleObject:
+    def _update(self, object_path: str = None) -> SimpleObject:
         self._assert_c8y()
         self._assert_id()
-        result_json = self.c8y.put(self._build_object_path(), self.to_json(True), accept=self._mimetype)
+        result_json = self.c8y.put(object_path if object_path else self.object_path,
+                                   self.to_json(True), accept=self._mimetype)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
 
-    def _delete(self):
+    def _delete(self, object_path: str = None):
         self._assert_c8y()
         self._assert_id()
-        self.c8y.delete(self._build_object_path())
+        self.c8y.delete(object_path if object_path else self.object_path)
 
 
 class ComplexObject(SimpleObject):
