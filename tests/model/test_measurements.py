@@ -12,9 +12,9 @@ def test_measurement_parsing():
 
     measurement_json = {
         'id': '12345',
-        'self': {},
+        'self': 'https://...',
         'type': 'c8y_Measurement',
-        'source': {'id': '54321', 'type': 'c8y_Device'},
+        'source': {'id': '54321', 'self': 'https://...'},
         'time': '2020-31-12T22:33:44,567Z',
         'c8y_Measurement': {'c8y_temperature': {'unit': 'x', 'value': 12.3}}
     }

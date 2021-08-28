@@ -281,7 +281,8 @@ class CumulocityResource:
         self.object_name = self.resource.split('/')[-1]
 
     @staticmethod
-    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None, owner=None,  # noqa (type)
+    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None,   # noqa (type)
+                                   series=None, owner=None,
                                    before=None, after=None, min_age=None, max_age=None,
                                    reverse=None, page_size=None, **kwargs):
         # min_age/max_age should be timedelta objects that can be used for
@@ -304,6 +305,7 @@ class CumulocityResource:
 
         params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
                                     'source': source, 'fragmentType': fragment,
+                                    'valueFragmentSeries': series,
                                     'dateFrom': after, 'dateTo': before, 'revert': str(reverse),
                                     'pageSize': page_size}.items() if v}
         params.update({k: v for k, v in kwargs.items() if v is not None})

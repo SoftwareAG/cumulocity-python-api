@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Type
+from typing import Type, List, Generator
 
 from c8y_api._base_api import CumulocityRestApi
 
@@ -93,7 +93,7 @@ class Measurement(ComplexObject):
     """
 
     # these need to be defined like this for the abstract super functions
-    _resource = '/measurement/measurements/'
+    _resource = '/measurement/measurements'
     _parser = ComplexObjectParser({'type': 'type', 'time': 'time'}, ['source'])
 
     def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):
@@ -209,11 +209,17 @@ class Measurements(CumulocityResource):
     def __init__(self, c8y: CumulocityRestApi):
         super().__init__(c8y, 'measurement/measurements')
 
-    def get(self, measurement_id):
+    def get(self, measurement_id: str | int) -> Measurement:
         """ Read a specific measurement from the database.
 
-        :param measurement_id:  database ID of a measurement (int or str)
-        :returns:  Measurement object
+        params:
+            measurement_id (str|int):  database ID of a measurement
+
+        Returns:
+            Measurement object
+
+        Raises:
+            KeyError: If the ID cannot be resolved.
         """
         measurement = Measurement.from_json(self._get_object(measurement_id))
         measurement.c8y = self.c8y  # inject c8y connection into instance
@@ -222,7 +228,7 @@ class Measurements(CumulocityResource):
     def select(self, type=None, source=None,  # noqa (type)
                fragment=None, value=None, series=None,
                before=None, after=None, min_age=None, max_age=None, reverse=False,
-               limit=None, page_size=1000):
+               limit=None, page_size=1000) -> Generator[Measurement]:
         """ Query the database for measurements and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -231,28 +237,32 @@ class Measurements(CumulocityResource):
         All parameters are considered to be filters, limiting the result set
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
+        
+        Params:
+            type (str):  Alarm type
+            source (str):  Database ID of a source device
+            fragment (str):  Name of a present custom/standard fragment
+            value (str):  Name/type of a present value fragment
+            series (str):  Name of a present series within a value fragment
+            before (datetime|str):  Datetime object or ISO date/time string.
+                Only measurements assigned to a time before this date are
+                returned.
+            after (datetime|str):  Datetime object or ISO date/time string.
+                Only measurements assigned to a time after this date are
+                returned.
+            min_age (timedelta):  Timedelta object. Only measurements of
+                at least this age are returned.
+            max_age (timedelta):  Timedelta object. Only measurements with
+                at most this age are returned.
+            reverse (bool):  Invert the order of results, starting with the
+                most recent one.
+            limit (int):  Limit the number of results to this number.
+            page_size (int):  Define the number of measurements which are
+                read (and parsed in one chunk). This is a performance
+                related setting.
 
-        :param type:  Alarm type
-        :param source:  Database ID of a source device
-        :param fragment:  Name of a present custom/standard fragment
-        :param value:  Name/type of a present value fragment
-        :param series:  Name of a present series within a value fragment
-        :param before:  Datetime object or ISO date/time string. Only
-            measurements assigned to a time before this date are returned.
-        :param after:  Datetime object or ISO date/time string. Only
-            measurements assigned to a time after this date are returned.
-        :param min_age:  Timedelta object. Only measurements of at least
-            this age are returned.
-        :param max_age:  Timedelta object. Only measurements with at most
-            this age are returned.
-
-        :param reverse:  Invert the order of results, starting with the
-            most recent one.
-        :param limit:  Limit the number of results to this number.
-        :param page_size:  Define the number of measurements which are read (and
-            parsed in one chunk). This is a performance related setting.
-
-        :returns:  Iterable of Measurement objects
+        Returns:
+            Generator[Measurement]: Iterable of matching Measurement objects
         """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             valueFragmentType=value, valueFragmentSeries=series,
@@ -263,14 +273,15 @@ class Measurements(CumulocityResource):
     def get_all(self, type=None, source=None,  # noqa (type)
                 fragment=None,  value=None, series=None,
                 before=None, after=None, min_age=None, max_age=None, reverse=False,
-                limit=None, page_size=1000):
+                limit=None, page_size=1000) -> List[Measurement]:
         """ Query the database for measurements and return the results
         as list.
 
         This function is a greedy version of the select function. All
         available results are read immediately and returned as list.
 
-        :returns:  List of Measurement objects
+        Returns:
+            List of matching Measurement objects
         """
         return list(self.select(type=type, source=source,
                                 fragment=fragment, value=value, series=series,
@@ -278,13 +289,14 @@ class Measurements(CumulocityResource):
                                 reverse=reverse, limit=limit, page_size=page_size))
 
     def get_last(self, type=None, source=None, fragment=None, value=None, series=None,  # noqa (type)
-                 before=None, min_age=None):
+                 before=None, min_age=None) -> Measurement:
         """ Query the database and return the last matching measurement.
 
         This function is a special variant of the select function. Only
         the last matching result is returned.
 
-        :returns:  Measurement object
+        Returns:
+            Last matching Measurement object
         """
         # at least one date qualifier is required for this query to function,
         # so we enforce the 'after' filter if nothing else is specified
@@ -307,21 +319,7 @@ class Measurements(CumulocityResource):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        :param type:  Measurement type
-        :param source:  Database ID of a source device
-        :param fragment:  Name of a present custom/standard fragment
-        :param value:  Name/type of a present value fragment
-        :param series:  Name of a present series within a value fragment
-        :param before:  Datetime object or ISO date/time string. Only
-            measurements assigned to a time before this date are returned.
-        :param after:  Datetime object or ISO date/time string. Only
-            measurements assigned to a time after this date are returned.
-        :param min_age:  Timedelta object. Only measurements of at least
-            this age are returned.
-        :param max_age:  Timedelta object. Only measurements with at most
-            this age are returned.
-
-        :returns: None
+        Params: See 'select' function
         """
         base_query = self._build_base_query(type=type, source=source,
                                             fragment=fragment, value=value, series=series,
@@ -335,7 +333,7 @@ class Measurements(CumulocityResource):
     def create(self, *measurements):
         """ Bulk create a collection of measurements within the database.
 
-        :param measurements:  Collection of Measurement objects.
-        :returns:  None
+        Params:
+            measurements (Iterable): Iterable collection of Measurement objects.
         """
         self._create_bulk(Measurement.to_json, 'measurements', self.c8y.CONTENT_MEASUREMENT_COLLECTION, *measurements)

@@ -169,7 +169,7 @@ class ManagedObject(ComplexObject):
          'childDevices', 'childAssets', 'childAdditions',
          'deviceParents', 'assetParents', 'additionParents'])
 
-    def __init__(self, c8y=None, type=None, name=None, owner=None):  # noqa
+    def __init__(self, c8y=None, type=None, name=None, owner=None, **kwargs):  # noqa
         """ Create a new ManagedObject instance.
 
         Custom fragments can be added to the object after creation, using
@@ -183,7 +183,7 @@ class ManagedObject(ComplexObject):
 
         :returns:  ManagedObject instance
         """
-        super().__init__(c8y)
+        super().__init__(c8y, **kwargs)
         # a direct update to the property backends is necessary to bypass
         # the update notification; everything specified within the constructor is
         # not considered to be an update
@@ -406,7 +406,7 @@ class Device(ManagedObject):
         https://cumulocity.com/guides/reference/device-management/
     """
 
-    def __init__(self, c8y=None, type=None, name=None, owner=None):  # noqa
+    def __init__(self, c8y=None, type=None, name=None, owner=None, **kwargs):  # noqa
         """ Create a new Device instance.
 
         A Device object will always have a `c8y_IsDevice` fragment.
@@ -421,7 +421,7 @@ class Device(ManagedObject):
 
         :returns:  Device instance
         """
-        super().__init__(c8y=c8y, type=type, name=name, owner=owner)
+        super().__init__(c8y=c8y, type=type, name=name, owner=owner, **kwargs)
         self.is_device = True
 
     def to_json(self):
