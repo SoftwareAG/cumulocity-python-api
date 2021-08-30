@@ -75,13 +75,14 @@ class CumulocityRestApi:
 
         Used for posting binary data.
         """
-        assert isinstance(binary_meta_information, Binary)
+        # assert isinstance(binary_meta_information, Binary)
         assert file is not None
 
         headers = {'Accept': 'application/json', **self.__default_headers}
 
+        import json as js
         payload = {
-            'object': (None, str(binary_meta_information._to_full_json()).replace("'", '"')),
+            'object': (None, js.dumps(binary_meta_information.to_json())),
             'filesize': (None, sys.getsizeof(file)),
             'file': (None, file.read())
         }
