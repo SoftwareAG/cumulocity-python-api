@@ -66,15 +66,50 @@ def assert_application_key_header(c8y, headers):
     ({'content_tYPe': 'content/TYPE'}, {'Content-Type': 'content/TYPE'}),
     ({'some': 'thing', 'mORE_Of_this': 'same'}, {'Some': 'thing', 'More-Of-This': 'same'}),
     ({'empty': None, 'accept': 'accepted'}, {'Accept': 'accepted'}),
-    ({'empty1': None, 'empty2': None}, None)
+    ({'empty1': None, 'empty2': None}, None),
+    ({'accept': ''}, {'Accept': None}),
 ])
 def test_prepare_headers(args, expected):
     """Verify header preparation."""
     assert CumulocityRestApi._prepare_headers(**args) == expected
 
 
+@pytest.mark.parametrize('method', ['get', 'post', 'put'])
+def test_remove_accept_header(mock_c8y: CumulocityRestApi, method):
+    """Verify that the default accept header can be unset/removed."""
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(method=method.upper(),
+                 url=mock_c8y.base_url + '/resource',
+                 status=200,
+                 json={})
+        kwargs = {'resource': '/resource', 'accept': ''}
+        if method.startswith('p'):
+            kwargs['json'] = {}
+
+        func = getattr(mock_c8y, method)
+        func(**kwargs)
+
+        assert 'Accept' not in rsps.calls[0].request.headers
+
+
 @pytest.mark.online
-def test_basic_auth_get(httpbin_basic):
+@pytest.mark.parametrize('method', ['get', 'post', 'put'])
+def test_remove_accept_header_online(httpbin_basic: CumulocityRestApi, method):
+    """Verify that the unset accept header are actually not sent."""
+
+    kwargs = {'resource': '/anything', 'accept': ''}
+    if method.startswith('p'):
+        kwargs['json'] = {}
+
+    func = getattr(httpbin_basic, method)
+    response = func(**kwargs)
+
+    assert 'Accept' not in response['headers']
+
+
+@pytest.mark.online
+def test_basic_auth_get(httpbin_basic: CumulocityRestApi):
     """Verify that the basic auth headers are added for the REST requests."""
     c8y = httpbin_basic
 
@@ -84,7 +119,7 @@ def test_basic_auth_get(httpbin_basic):
 
 
 def test_post_defaults(mock_c8y: CumulocityRestApi):
-    """Verify the basic funtionality of the POST requests."""
+    """Verify the basic functionality of the POST requests."""
 
     with responses.RequestsMock() as rsps:
         rsps.add(method=responses.POST,
@@ -107,7 +142,7 @@ def test_post_defaults(mock_c8y: CumulocityRestApi):
 
 
 def test_post_explicits(mock_c8y: CumulocityRestApi):
-    """Verify the basic funtionality of the POST requests."""
+    """Verify the basic functionality of the POST requests."""
 
     with responses.RequestsMock() as rsps:
         rsps.add(method=responses.POST,
@@ -131,9 +166,9 @@ def test_post_explicits(mock_c8y: CumulocityRestApi):
 
 
 @pytest.mark.online
-def test_get_default(httpbin_basic):
+def test_get_default(httpbin_basic: CumulocityRestApi):
     """Verify that the get function with default parameters works as expected."""
-    c8y: CumulocityRestApi = httpbin_basic
+    c8y = httpbin_basic
 
     # (1) with implicit parameters given and all default
     response = c8y.get(resource='/anything/resource?p1=v1&p2=v2')
@@ -148,9 +183,9 @@ def test_get_default(httpbin_basic):
 
 
 @pytest.mark.online
-def test_get_explicit(httpbin_basic):
+def test_get_explicit(httpbin_basic: CumulocityRestApi):
     """Verify that the get function with explicit parameters works as expected."""
-    c8y: CumulocityRestApi = httpbin_basic
+    c8y = httpbin_basic
     response = c8y.get(resource='/anything/resource', params={'p1': 'v1', 'p2': 3}, accept='something/custom')
 
     # auth header must always be present
