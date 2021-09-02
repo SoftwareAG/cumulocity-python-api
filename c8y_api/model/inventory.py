@@ -417,8 +417,8 @@ class Device(ManagedObject):
         Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
-            type (str):  ManagedObject type
-            name (str):  ManagedObject name
+            type (str):  Device type
+            name (str):  Device name
             owner (str):  User ID of the owning user (can be left None to
                 automatically assign to the connection user upon creation)
             kwargs:  Additional arguments are treated as custom fragments
@@ -474,26 +474,31 @@ class DeviceGroup(ManagedObject):
         https://cumulocity.com/guides/users-guide/device-management/#grouping-devices
     """
 
-    def __init__(self, c8y=None, name=None, owner=None):
+    def __init__(self, c8y=None, name=None, owner=None, **kwargs):
         """ Build a new DeviceGroup object.
 
-        Custom fragments can be added to the object after creation, using
-        the add_fragment function.
-
-        A *type* of a device group will always be either `c8y_DeviceGroup`
+        A type of a device group will always be either `c8y_DeviceGroup`
         or `c8y_DeviceSubGroup` (depending on it's level). This is handled
         by the API.
 
-        :param c8y:  Cumulocity connection reference; needs to be set for the
-            direct manipulation (create, delete) to function
-        :param name:   Descriptive name of the object
-        :param owner:   User ID of the owner for this object
+        A DeviceGroup object will always have a `c8y_IsDeviceGroup` fragment.
+        Additional custom fragments can be added using `kwargs` or after
+        creation, using += or [] syntax.
 
-        :returns:  DeviceGroup instance
+        Args:
+            c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                to be set for direct manipulation (create, delete)
+            name (str):  Device name
+            owner (str):  User ID of the owning user (can be left None to
+                automatically assign to the connection user upon creation)
+            kwargs:  Additional arguments are treated as custom fragments
+
+        Returns:
+            DeviceGroup instance
         """
         # the 'type' of a device group can be c8y_DeviceGroup or c8y_DeviceSubgroup
         # it will be set dynamically when used
-        super().__init__(c8y=c8y, type=None, name=name, owner=owner)
+        super().__init__(c8y=c8y, type=None, name=name, owner=owner, **kwargs)
         self._added_child_groups = None
         self.is_device_group = True
 
