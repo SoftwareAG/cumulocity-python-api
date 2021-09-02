@@ -17,6 +17,9 @@ class CumulocityRestApi:
     Provides REST access to a Cumulocity instance.
     """
 
+    MIMETYPE_JSON = 'application/json'
+    HEADER_APPLICATION_KEY = 'X-Cumulocity-Application-Key'
+
     ACCEPT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     ACCEPT_USER = 'application/vnd.com.nsn.cumulocity.user+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
@@ -33,7 +36,7 @@ class CumulocityRestApi:
         if self.tfa_token:
             self.__default_headers['tfatoken'] = self.tfa_token
         if self.application_key:
-            self.__default_headers['X-Cumulocity-Application-Key'] = self.application_key
+            self.__default_headers[self.HEADER_APPLICATION_KEY] = self.application_key
         self.session = self._create_session()
 
     def _create_session(self) -> requests.Session:
@@ -41,7 +44,7 @@ class CumulocityRestApi:
         s.auth = self.__auth
         s.headers = {'Accept': 'application/json'}
         if self.application_key:
-            s.headers.update({'X-Cumulocity-Application-Key': self.application_key})
+            s.headers.update({self.HEADER_APPLICATION_KEY: self.application_key})
         return s
 
     def prepare_request(self, method, resource, body=None, additional_headers=None):

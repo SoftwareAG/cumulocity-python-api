@@ -58,7 +58,7 @@ def assert_content_header(headers, content_type='application/json'):
 
 def assert_application_key_header(c8y, headers):
     """Assert that the application key header matches the expectation."""
-    assert headers['X-Cumulocity-Application-Key'] == c8y.application_key
+    assert headers[c8y.HEADER_APPLICATION_KEY] == c8y.application_key
 
 
 @pytest.mark.parametrize('args, expected', [
@@ -106,6 +106,32 @@ def test_remove_accept_header_online(httpbin_basic: CumulocityRestApi, method):
     response = func(**kwargs)
 
     assert 'Accept' not in response['headers']
+
+
+@pytest.mark.parametrize('method', ['get', 'post', 'put', 'delete'])
+def test_no_application_key_header(mock_c8y: CumulocityRestApi, method):
+    """Verify that the application key header is not present by default."""
+
+    c8y = CumulocityRestApi(mock_c8y.base_url, mock_c8y.tenant_id, mock_c8y.username, mock_c8y.username)
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(method=method.upper(),
+                 url=mock_c8y.base_url + '/resource',
+                 status=200,
+                 json={'result': True})
+
+        kwargs = {'resource': '/resource'}
+        if method.startswith('p'):
+            kwargs['json'] = {}
+
+        func = getattr(c8y, method)
+        if method.startswith('p'):
+            kwargs.update({'json': {}})
+
+        func(**kwargs)
+        request_headers = rsps.calls[0].request.headers
+
+        assert CumulocityRestApi.HEADER_APPLICATION_KEY not in request_headers
 
 
 @pytest.mark.online
