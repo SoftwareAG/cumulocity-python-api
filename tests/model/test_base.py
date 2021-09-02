@@ -184,8 +184,9 @@ def test_complexobject_instantiation_and_formatting():
     }
     # -> full JSON should contain all fields
     assert obj._format_json() == expected_full_json
-    # -> diff JSON should only contain the fragments
-    assert obj._format_json(only_updated=True) == {'c8y_simple': True, 'c8y_complex': {'a': 'valueA', 'b': 'valueB'}}
+    # -> diff JSON should be empty as there are no changes
+    assert not obj.get_updates()
+    assert obj._format_json(only_updated=True) == {}
 
     # 3_ resetting the update status (twiddling with internals)
     obj._updated_fragments = None
@@ -198,6 +199,6 @@ def test_complexobject_instantiation_and_formatting():
     expected_diff_json = {
         'c8y_field': obj.field,
         'c8y_simple': obj.c8y_simple,
-        'c8y_complex': {'a': 'valueA', 'b': 'newB'}  # the a field is unchanged but is included nontheless
+        'c8y_complex': {'a': 'valueA', 'b': 'newB'}  # the a field is unchanged but is included nonetheless
     }
     assert obj._format_json(only_updated=True) == expected_diff_json

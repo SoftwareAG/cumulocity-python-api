@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from model import Measurement
+from c8y_api.model import Measurement
 
 
 def test_measurement_parsing():

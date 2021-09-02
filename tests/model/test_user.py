@@ -53,6 +53,12 @@ def test_parsing():
     assert user.permission_ids == permission_ids
 
 
+def test_formatting(sample_user: User):
+
+    user_json = sample_user.to_json()
+    assert 'id' not in user_json
+
+
 def test_updating(sample_user: User):
     """Verify that updating the user properties are recorded properly."""
 
@@ -77,7 +83,7 @@ def test_updating(sample_user: User):
     sample_user.tfa_enabled = not sample_user.tfa_enabled
     sample_user.require_password_reset = not sample_user.require_password_reset
 
-    # -> we expect an according nnumber of recorded changes
+    # -> we expect an according number of recorded changes
     assert len(sample_user.get_updates()) == 7
 
     # -> all changes should be reflected in the diff

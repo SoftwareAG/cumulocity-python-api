@@ -8,9 +8,17 @@ from __future__ import annotations
 
 import random
 import re
+from typing import List, Set
 
 import pytest
 from requests import request
+
+from c8y_api.model._base import CumulocityObject  # noqa
+
+
+def get_ids(objs: List[CumulocityObject]) -> Set[str]:
+    """Isolate the ID from a list of database objects."""
+    return {o.id for o in objs}
 
 
 @pytest.fixture(scope='function')

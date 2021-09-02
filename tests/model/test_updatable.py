@@ -3,6 +3,7 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
+from abc import ABC
 from typing import Set
 
 import pytest
@@ -26,10 +27,10 @@ class UpdatableSets:
         return self._updated_sets if self._updated_sets else set()
 
 
-class TestClass(SimpleObject):
+class TestClass(SimpleObject, ABC):
 
     def __init__(self):
-        super().__init__()
+        super().__init__(c8y=None)
 
     regular_prop = SimpleObject.UpdatableProperty('regular_prop')
 
@@ -43,7 +44,7 @@ def test_regular_update(test_object: TestClass):
     test_object.regular_prop = 12
     assert test_object.regular_prop == 12
     assert test_object.__getattribute__('regular_prop') == 12
-    assert test_object._get_updated_fields() == {'regular_prop'}
+    assert test_object.get_updates() == {'regular_prop'}
 
 
 class AnyClass(object):

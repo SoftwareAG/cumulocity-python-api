@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Iterable
+
 from deprecated import deprecated
 from urllib.parse import urlencode
 
@@ -14,7 +16,6 @@ from c8y_api._util import warning
 
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
-from c8y_api.model._parser import SimpleObjectParser
 
 
 class CumulocityObject:
@@ -39,15 +40,58 @@ class CumulocityObject:
         return None
 
 
+class CumulocityObjectParser:
+    """Common base for all Cumulocity object parsers."""
+
+    def from_json(self, obj_json: dict, new_obj: Any, skip: Iterable[str] = None) -> Any:
+        """Update a given object instance with data from a JSON object.
+
+        This function uses the parser's mapping definition, only fields
+        are parsed that are part if this.
+
+        Use the skip list to skip certain objects fields within the update
+        regardless whether they are defined in the mapping.
+
+        Params:
+            obj_json (dict): JSON object (nested dict) to parse
+            new_obj (Any):  object instance to update (usually newly created)
+            skip (Iterable):  collection of object field names to skip
+                or None if nothing should be skipped
+
+        Returns:
+            The updated object instance.
+        """
+
+    def to_json(self, obj: Any, include: Iterable[str] = None, exclude: Iterable[str] = None) -> dict:
+        """Build a JSON representation of an object.
+
+        Use the include list to limit the represented fields to a specific
+        subset (e.g. just the updated fields). Use the exclude list to ignore
+        certain fields in the representation.
+
+        If a field is present in both lists, it will be excluded.
+
+        Params:
+            obj (Any):  the object to format as JSON
+            include (Iterable):  an collection of object fields to include
+                or None if all fields should be included
+            exclude (Iterable):  an collection of object fields to exclude
+                or None of no field should be included
+
+        Returns:
+            A JSON representation (nested dict) of the object.
+        """
+
+
 class SimpleObject(CumulocityObject):
     """Base class for all simple Cumulocity objects (without custom fragments)."""
 
-    # Note: SimpleObject derives from multiple base classes. The last doesn
+    # Note: SimpleObject derives from multiple base classes. The last does
     # not need to be aware of this, all others are passing unknown initialization
     # arguments (kwargs) to other super classes. Hence, the order of super
     # classes is relevant
 
-    _parser = SimpleObjectParser({})
+    _parser = CumulocityObjectParser()
     _resource = ''
     _mimetype = None
 
@@ -84,8 +128,8 @@ class SimpleObject(CumulocityObject):
     def from_json(cls, json: dict) -> SimpleObject:
         raise NotImplementedError('The from_json function must be implemented in the sub class.')
 
-    def to_json(self, only_updated=False):
-        raise NotImplementedError('The to_json function must be implemented in the sub class.')
+    def to_json(self, only_updated=False) -> dict:
+        return self._format_json(only_updated)
 
     def to_full_json(self) -> dict:
         return self.to_json()
@@ -97,7 +141,7 @@ class SimpleObject(CumulocityObject):
         return self._updated_fields or set()
 
     @classmethod
-    def _parse_json(cls, json: dict, obj: SimpleObject) -> SimpleObject:
+    def _parse_json(cls, json: dict, obj: SimpleObject) -> object:
         return cls._parser.from_json(json, obj)
 
     def _format_json(self, only_updated=False) -> dict:

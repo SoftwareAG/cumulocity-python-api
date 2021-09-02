@@ -4,6 +4,13 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+from __future__ import annotations
+
+from typing import Set
+
+from c8y_api.model._base import ComplexObject
+
+
 class SimpleObjectParser(object):
     """A parser for simple (without fragments) Cumulocity database objects.
 
@@ -52,7 +59,7 @@ class SimpleObjectParser(object):
             include:  an iterable of object fields to include or None if all
                 fields should be included
             exclude:  an iterable of object fields to exclude or None of no
-                field should be included
+                field should be excluded
 
         Returns:
             A JSON representation (nested dict) of the object.
@@ -113,30 +120,32 @@ class ComplexObjectParser(SimpleObjectParser):
         new_obj.fragments = self.__parse_fragments(obj_json)
         return new_obj
 
-    def to_json(self, obj, include=None, exclude=None):
+    def to_json(self, obj: ComplexObject, include=None, exclude=None):
         obj_json = super().to_json(obj, include, exclude)
-        obj_json.update(self.__format_fragments(obj))
+        if include is None:
+            obj_json.update(self._format_fragments(obj))
+        else:
+            included = obj._updated_fragments or set()
+            obj_json.update(self._format_fragments(obj, include=included))
         return obj_json
 
-    def to_full_json(self, obj, ignore_list=None):
-        obj_json = super().to_json(obj, exclude=self.__ignore_set)
-        obj_json.update(self.__format_fragments(obj))
-        return obj_json
-
-    def to_diff_json(self, obj):
-        obj_json = super().to_diff_json(obj)
-        obj_json.update(self.__format_updated_fragments(obj))
-        return obj_json
-
+    # todo: remove
+    # def to_full_json(self, obj, ignore_list=None):
+    #     obj_json = super().to_json(obj, exclude=self.__ignore_set)
+    #     obj_json.update(self.__format_fragments(obj))
+    #     return obj_json
+    #
+    # def to_diff_json(self, obj):
+    #     obj_json = super().to_diff_json(obj)
+    #     obj_json.update(self.__format_updated_fragments(obj))
+    #     return obj_json
+    #
     def __parse_fragments(self, obj_json):
         return {name: body for name, body in obj_json.items() if name not in self.__ignore_set}
 
     @staticmethod
-    def __format_fragments(obj):
-        return dict(obj.__dict__['fragments'].items())
-
-    @staticmethod
-    def __format_updated_fragments(obj):
-        if not obj._updated_fragments:
-            return {}
-        return {name: fragment for name, fragment in obj.fragments.items() if name in obj._updated_fragments}
+    def _format_fragments(obj: ComplexObject, include: Set[str] | None = None) -> dict:
+        if include is None:
+            return dict(obj.fragments.items())
+        else:
+            return {name: fragment for name, fragment in obj.fragments.items() if name in include}

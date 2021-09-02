@@ -1,0 +1,57 @@
+{
+  "additionParents": {
+    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755/additionParents",
+    "references": []
+  },
+  "owner": "service_device-simulator",
+  "childDevices": {
+    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755/childDevices",
+    "references": []
+  },
+  "childAssets": {
+    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755/childAssets",
+    "references": []
+  },
+  "creationTime": "2019-12-04T08:11:13.270Z",
+  "type": "c8y_MQTTDevice",
+  "lastUpdated": "2019-12-12T13:08:08.219Z",
+  "childAdditions": {
+    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755/childAdditions",
+    "references": []
+  },
+  "name": "ApamaTestSignalActual Value #1",
+  "assetParents": {
+    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755/assetParents",
+    "references": []
+  },
+  "deviceParents": {
+    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755/deviceParents",
+    "references": []
+  },
+  "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/499755",
+  "id": "499755",
+  "com_cumulocity_model_Agent": {},
+  "c8y_IsDevice": {},
+  "c8y_SupportedOperations": [],
+  "c8y_DataPoint": {
+    "8423432401611226": {
+      "fragment": "c8y_PTApamaTest",
+      "unit": "mm",
+      "min": "-2",
+      "color": "#75b789",
+      "max": "6",
+      "series": "P",
+      "lineType": "line",
+      "label": "c8y_PTApamaTest => P",
+      "_id": "8423432401611226",
+      "renderType": "min"
+    },
+    "test": {
+      "string": "string",
+      "int": 123,
+      "float": 12.3,
+      "true": true,
+      "false": false
+    }
+  }
+}
