@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Set
 
 from deprecated import deprecated
 from urllib.parse import urlencode
@@ -92,8 +92,9 @@ class SimpleObject(CumulocityObject):
     # classes is relevant
 
     _parser = CumulocityObjectParser()
+    _not_updatable = set()
     _resource = ''
-    _mimetype = None
+    _accept = None
 
     class UpdatableProperty:
         """Providing updatable properties for SimpleObject instances.
@@ -129,7 +130,7 @@ class SimpleObject(CumulocityObject):
         raise NotImplementedError('The from_json function must be implemented in the sub class.')
 
     def to_json(self, only_updated=False) -> dict:
-        return self._format_json(only_updated)
+        return self._format_json(only_updated, self._not_updatable)
 
     def to_full_json(self) -> dict:
         return self.to_json()
@@ -144,7 +145,7 @@ class SimpleObject(CumulocityObject):
     def _parse_json(cls, json: dict, obj: SimpleObject) -> object:
         return cls._parser.from_json(json, obj)
 
-    def _format_json(self, only_updated=False) -> dict:
+    def _format_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
         """Create a representation of this object in Cumulocity JSON format.
 
         Caveat: this function is primarily for internal use and does not
@@ -160,7 +161,7 @@ class SimpleObject(CumulocityObject):
             A JSON (nested dict) object.
         """
         include = None if not only_updated else self._updated_fields if self._updated_fields else set()
-        exclude = {'id'}
+        exclude = {'id', *(exclude or {})}
         return self._parser.to_json(self, include, exclude)
 
     def _signal_updated_field(self, internal_name):
@@ -172,7 +173,7 @@ class SimpleObject(CumulocityObject):
     def _create(self, resource_path: str = None) -> SimpleObject:
         self._assert_c8y()
         result_json = self.c8y.post(resource_path if resource_path else self._resource,
-                                    self.to_json(), accept=self._mimetype)
+                                    self.to_json(), accept=self._accept)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -181,7 +182,7 @@ class SimpleObject(CumulocityObject):
         self._assert_c8y()
         self._assert_id()
         result_json = self.c8y.put(object_path if object_path else self.object_path,
-                                   self.to_json(True), accept=self._mimetype)
+                                   self.to_json(True), accept=self._accept)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result

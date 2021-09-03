@@ -236,19 +236,19 @@ class GlobalRole(SimpleObject):
             if role_json['roles']['references']:
                 role._x_permissions = {ref['role']['id'] for ref in role_json['roles']['references']}
         return role
-
-    def _to_full_json(self):
-        """ Return a complete JSON (dict) representation of the object.
-        As the 'full' JSON does not include the referenced permissions sensible
-        use of this function is module internal. """
-        return self.__parser.to_full_json(self)
-
-    def _to_diff_json(self):
-        """ Return a difference JSON (dict) representation of the object which
-        includes only updated aspects.
-        As the JSON does not include the referenced permissions sensible
-        use of this function is module internal. """
-        return self.__parser.to_diff_json(self)
+    #
+    # def _to_full_json(self):
+    #     """ Return a complete JSON (dict) representation of the object.
+    #     As the 'full' JSON does not include the referenced permissions sensible
+    #     use of this function is module internal. """
+    #     return self.__parser.to_full_json(self)
+    #
+    # def _to_diff_json(self):
+    #     """ Return a difference JSON (dict) representation of the object which
+    #     includes only updated aspects.
+    #     As the JSON does not include the referenced permissions sensible
+    #     use of this function is module internal. """
+    #     return self.__parser.to_diff_json(self)
 
     def create(self, ignore_result=False):
         self._assert_c8y()
@@ -360,7 +360,7 @@ class User(SimpleObject):
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
     _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
-    _mimetype = CumulocityRestApi.ACCEPT_USER
+    _accept = CumulocityRestApi.ACCEPT_USER
     _custom_properties_parser = ComplexObjectParser({}, [])
 
     def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,

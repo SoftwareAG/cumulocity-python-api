@@ -182,8 +182,10 @@ class ManagedObject(ComplexObject):
     See also https://cumulocity.com/guides/reference/inventory/#managed-object
     """
 
-    _resource = '/inventory/managedObjects/'
+    _resource = '/inventory/managedObjects'
+    _accept = CumulocityRestApi.ACCEPT_MANAGED_OBJECT
 
+    _not_updatable = {'creation_time', 'update_time'}
     _parser = ComplexObjectParser(
         {'_u_type': 'type',
          '_u_name': 'name',
@@ -293,7 +295,7 @@ class ManagedObject(ComplexObject):
         Returns:
             JSON object (nested dictionary)
         """
-        return self._format_json(only_updated)
+        return super().to_json(only_updated)
 
     def create(self) -> ManagedObject:
         """ Create a new representation of this object within the database.
@@ -438,8 +440,9 @@ class Device(ManagedObject):
 
     def to_json(self, only_updated=False) -> dict:
         # (no doc changes)
-        object_json = super().to_json()
-        object_json['c8y_IsDevice'] = {}
+        object_json = super().to_json(only_updated)
+        if not only_updated:
+            object_json['c8y_IsDevice'] = {}
         return object_json
 
     def get_username(self) -> str:

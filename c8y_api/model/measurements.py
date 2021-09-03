@@ -95,6 +95,8 @@ class Measurement(ComplexObject):
     # these need to be defined like this for the abstract super functions
     _resource = '/measurement/measurements'
     _parser = ComplexObjectParser({'type': 'type', 'time': 'time'}, ['source'])
+    # todo: _accept
+    # todo: _not_updatable
 
     def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):
         """ Create a new Measurement object.
@@ -158,7 +160,7 @@ class Measurement(ComplexObject):
         """
         if only_updated:
             raise NotImplementedError('The Measurement class does not support incremental updates.')
-        measurement_json = self._format_json()
+        measurement_json = super().to_json()
         measurement_json['source'] = {'id': self.source}
         if not self.time:
             measurement_json['time'] = _DateUtil.to_timestring(_DateUtil.now())
