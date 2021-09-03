@@ -6,3 +6,4 @@
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api._main_api import CumulocityApi
+from c8y_api._registry_api import CumulocityDeviceRegistry

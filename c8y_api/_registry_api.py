@@ -5,17 +5,18 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from dataclasses import dataclass
+import logging
 import requests
 import time
 import yaml
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api._main_api import CumulocityApi
-from c8y_api._util import debug
 
 
-# noinspection SpellCheckingInspection
 class CumulocityDeviceRegistry(CumulocityRestApi):
+
+    log = logging.getLogger('c8y_api.CumulocityDeviceRegistry')
 
     @dataclass
     class Credentials:
@@ -56,7 +57,7 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
         while True:
             if timeout_time < time.time():
                 raise TimeoutError
-            debug("Requesting device credentials for device id '%s'", device_id)
+            self.log.debug(f"Requesting device credentials for device id '{device_id}' ...")
             response: requests.Response = session.send(request)
             if response.status_code == 404:
                 # This is the expected response until the device registration request got accepted
