@@ -389,7 +389,7 @@ class ManagedObject(ComplexObject):
     def _add_any_child(self, path, child_id: str | int):
         self._assert_c8y()
         self._assert_id()
-        self.c8y.post(self.object_path + path,
+        self.c8y.post(self._build_object_path() + path,
                       json=InventoryUtil.build_managed_object_reference(child_id),
                       accept=None)
 

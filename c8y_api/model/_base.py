@@ -23,7 +23,7 @@ class CumulocityObject:
 
     def __init__(self, c8y: CumulocityRestApi):
         self.c8y = c8y
-        self.id = None
+        self.id: str | None = None
 
     def _assert_c8y(self):
         if not self.c8y:
@@ -43,7 +43,7 @@ class CumulocityObject:
 class CumulocityObjectParser:
     """Common base for all Cumulocity object parsers."""
 
-    def from_json(self, obj_json: dict, new_obj: Any, skip: Iterable[str] = None) -> Any:
+    def from_json(self, obj_json: dict, new_obj: Any, skip: Iterable[str] = None) -> Any[CumulocityObject]:
         """Update a given object instance with data from a JSON object.
 
         This function uses the parser's mapping definition, only fields
@@ -121,9 +121,31 @@ class SimpleObject(CumulocityObject):
         super().__init__(c8y=c8y)
         self._updated_fields = None
 
-    @property
-    def object_path(self):
-        return self._resource + '/' + self.id
+    def _build_resource_path(self):
+        """Get the resource path.
+
+        This method is used by the internal `_create`, `_update`, `_delete`
+        methods and alike. The resource path does not include leading or
+        trailing '/' characters.
+
+        By default this is just static the class `_resource` field but it
+        can be customized in derived classes if this needs to be dynamic.
+        """
+        return self._resource
+
+    def _build_object_path(self):
+        """Get the object path.
+
+        This method is used by the internal `_create`, `_update`, `_delete`
+        methods and alike. The object path does not include leading or
+        trailing '/' characters.
+
+        By default this is just the class `_resource` field plus object ID
+        but it can be customized if this needs to be dynamic.
+        """
+        # no need to assert the ID - this function is only used when
+        # the database ID is defined
+        return self._build_resource_path() + '/' + self.id
 
     @classmethod
     def from_json(cls, json: dict) -> SimpleObject:
@@ -142,7 +164,7 @@ class SimpleObject(CumulocityObject):
         return self._updated_fields or set()
 
     @classmethod
-    def _parse_json(cls, json: dict, obj: SimpleObject) -> object:
+    def _parse_json(cls, json: dict, obj: SimpleObject) -> Any[SimpleObject]:
         return cls._parser.from_json(json, obj)
 
     def _format_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
@@ -170,27 +192,27 @@ class SimpleObject(CumulocityObject):
         else:
             self._updated_fields.add(internal_name)
 
-    def _create(self, resource_path: str = None) -> SimpleObject:
+    def _create(self) -> Any[SimpleObject]:
         self._assert_c8y()
-        result_json = self.c8y.post(resource_path if resource_path else self._resource,
+        result_json = self.c8y.post(self._build_resource_path(),
                                     self.to_json(), accept=self._accept)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
 
-    def _update(self, object_path: str = None) -> SimpleObject:
+    def _update(self) -> Any[SimpleObject]:
         self._assert_c8y()
         self._assert_id()
-        result_json = self.c8y.put(object_path if object_path else self.object_path,
+        result_json = self.c8y.put(self._build_object_path(),
                                    self.to_json(True), accept=self._accept)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
 
-    def _delete(self, object_path: str = None):
+    def _delete(self):
         self._assert_c8y()
         self._assert_id()
-        self.c8y.delete(object_path if object_path else self.object_path)
+        self.c8y.delete(self._build_object_path())
 
 
 class ComplexObject(SimpleObject):
@@ -325,6 +347,17 @@ class CumulocityResource:
         # the last event for e.g. /event/events
         self.object_name = self.resource.split('/')[-1]
 
+    def build_object_path(self, object_id: int | str) -> str:
+        """Build the path to a specific object of this resource.
+
+        Args:
+            object_id (int|str):  Technical ID of the object
+
+        Returns:
+            The relative path to the object within Cumulocity.
+        """
+        return self.resource + '/' + str(object_id)
+
     @staticmethod
     def __prepare_query_parameters(type=None, name=None, fragment=None, source=None,   # noqa (type)
                                    series=None, owner=None,
@@ -356,15 +389,12 @@ class CumulocityResource:
         params.update({k: v for k, v in kwargs.items() if v is not None})
         return params
 
-    def _build_object_path(self, object_id):
-        return self.resource + '/' + str(object_id)
-
     def _build_base_query(self, **kwargs):
         params = CumulocityResource.__prepare_query_parameters(**kwargs)
         return self.resource + '?' + urlencode(params) + '&currentPage='
 
     def _get_object(self, object_id):
-        return self.c8y.get(self._build_object_path(object_id))
+        return self.c8y.get(self.build_object_path(object_id))
 
     def _get_page(self, base_query, page_number):
         result_json = self.c8y.get(base_query + str(page_number))

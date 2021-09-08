@@ -30,12 +30,14 @@ def object_factory(logger, live_c8y: CumulocityApi):
 
     def factory_fun(*objs: ManagedObject):
         logger.info(f"Creating {len(objs)} ManagedObject instances in live Cumulocity instance ...")
+        new_objects = []
         for obj in objs:  # noqa
             obj.c8y = live_c8y
             created_obj = obj.create()
-            created_objs.append(created_obj)
+            new_objects.append(created_obj)
             logger.info(f'Created ManagedObject: #{created_obj.id}, name: {obj.name}, type: {obj.type}')
-        return created_objs
+        created_objs.extend(new_objects)
+        return new_objects
 
     yield factory_fun
 

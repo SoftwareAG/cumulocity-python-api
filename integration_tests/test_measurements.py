@@ -51,8 +51,8 @@ def measurement_factory(live_c8y: CumulocityApi):
             m = m.create()
             logging.info(f'Created measurement #{m.id}: {m.to_json()}')
             ms.append(m)
-            if auto_delete:
-                created_measurements.append(m)
+        if auto_delete:
+            created_measurements.extend(ms)
         return ms
 
     yield factory_fun

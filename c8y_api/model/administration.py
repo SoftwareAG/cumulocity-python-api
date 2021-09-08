@@ -6,10 +6,11 @@
 
 from __future__ import annotations
 
+from typing import Generator, List
+
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import CumulocityResource, SimpleObject
 from c8y_api.model._parser import SimpleObjectParser, ComplexObjectParser
-from c8y_api.model._updatable import _UpdatableSetProperty
 from c8y_api.model._util import _DateUtil
 
 
@@ -27,6 +28,16 @@ class PermissionScope(object):
     MEASUREMENT = 'MEASUREMENT'
     MANAGED_OBJECT = 'MANAGED_OBJECT'
     OPERATION = 'OPERATION'
+
+
+class PermissionUtil:
+    """Utility functions to work with the Permission API."""
+
+    @staticmethod
+    def build_reference(permission_id: str) -> dict:
+        """Build the JSON for a Cumulocity reference to a permission."""
+        # Luckily these references don't need the tenant ID
+        return {'role': {'self': f'user/roles/{permission_id}'}}
 
 
 class Permission(SimpleObject):
@@ -211,106 +222,63 @@ class InventoryRoleAssignment(SimpleObject):
 
 
 class GlobalRole(SimpleObject):
+    """Represents an Global Role object within Cumulocity.
 
-    __parser = SimpleObjectParser({
+    Notes:
+      - Global Roles are called 'groups' in the Cumulocity Standard REST API;
+        However, 'global roles' is the official concept name and therefore
+        used for consistency with the Cumulocity realm.
+
+      - Only a limited set of properties are actually updatable. Others must
+        be set explicitely using the corresponding API (for example: permissions).
+
+    See also: https://cumulocity.com/api/#tag/Groups
+    """
+
+    _parser = SimpleObjectParser({
             'id': 'id',
             '_u_name': 'name',
             '_u_description': 'description'})
+    _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
+    _accept = CumulocityRestApi.ACCEPT_GLOBAL_ROLE
+    _custom_properties_parser = ComplexObjectParser({}, [])
 
-    def __init__(self, c8y=None, name=None, description=None, permission_ids=None):
+    def __init__(self, c8y=None, name=None, description=None):
         super().__init__(c8y)
-        self.id = None
         self._u_name = name
         self._u_description = description
-        self._x_permissions = permission_ids if permission_ids else set()
-        self._x_orig_permissions = self._x_permissions
+        self.permission_ids = set()
+        self.application_ids = set()
 
     name = SimpleObject.UpdatableProperty('_u_name')
     description = SimpleObject.UpdatableProperty('_u_description')
-    permission_ids = _UpdatableSetProperty('_x_permissions', '_x_orig_permissions')
 
     @classmethod
-    def from_json(cls, role_json):
-        role = cls.__parser.from_json(role_json, GlobalRole())
-        if role_json['roles']:
-            if role_json['roles']['references']:
-                role._x_permissions = {ref['role']['id'] for ref in role_json['roles']['references']}
+    def from_json(cls, role_json) -> GlobalRole:
+        # no doc change
+        role: GlobalRole = cls._parse_json(role_json, GlobalRole())
+        # role ID are int for some reason - convert for consistency
+        role.id = str(role.id)
+        if role_json['roles'] and role_json['roles']['references']:
+            role.permission_ids = {ref['role']['id'] for ref in role_json['roles']['references']}
+        if role_json['applications']:
+            role.application_ids = {ref['id'] for ref in role_json['applications']}
         return role
-    #
-    # def _to_full_json(self):
-    #     """ Return a complete JSON (dict) representation of the object.
-    #     As the 'full' JSON does not include the referenced permissions sensible
-    #     use of this function is module internal. """
-    #     return self.__parser.to_full_json(self)
-    #
-    # def _to_diff_json(self):
-    #     """ Return a difference JSON (dict) representation of the object which
-    #     includes only updated aspects.
-    #     As the JSON does not include the referenced permissions sensible
-    #     use of this function is module internal. """
-    #     return self.__parser.to_diff_json(self)
 
-    def create(self, ignore_result=False):
-        self._assert_c8y()
-        # 1 create the base object
-        base_path = f'/user/{self.c8y.tenant_id}/groups'
-        new_id = self.c8y.post(base_path, self._to_full_json())['id']
-        object_path = base_path + '/' + str(new_id)
-        # 2 assign permissions to new global role
-        roles_path = object_path + '/roles'
-        for pid in self._x_permissions:
-            self.c8y.post(roles_path, self._build_role_reference(pid))
-        # 3 get complete object as a result
-        if not ignore_result:
-            new_obj = self.from_json(self.c8y.get(object_path))
-            new_obj.c8y = self.c8y
-            return new_obj
-        return None
+    # custom implementation for to_json not required
 
-    def update(self, ignore_result=False):
-        """
-        Write changed aspects to database.
+    def create(self) -> GlobalRole:
+        return self._create()
 
-        :param ignore_result  if False (default), the updated object is
-            returned as new instance
-
-        Note: The GlobalRole object is spread across multiple database
-        concepts that need to be updated separately. Because of this it can
-        only be updated directly - it is not possible to apply a 'change' to
-        another object.
-        """
-        self._assert_c8y()
-        self._assert_id()
-        object_path = f'/user/{self.c8y.tenant_id}/groups/{self.id}'
-        # 1 update the base object
-        update_json = self._to_diff_json()
-        update_json['name'] = self.name  # for whatever reason name must be provided
-        self.c8y.put(object_path, update_json)
-        # 2 update roles
-        if self._x_orig_permissions:
-            added = self._x_permissions.difference(self._x_orig_permissions)
-            removed = self._x_orig_permissions.difference(self._x_permissions)
-            roles_path = object_path + '/roles'
-            for pid in added:
-                self.c8y.post(roles_path, self._build_role_reference(pid))
-            for pid in removed:
-                self.c8y.delete(roles_path + '/' + pid)
-        # 3 get updated object as result
-        if not ignore_result:
-            updated_obj = self.from_json(self.c8y.get(object_path))
-            updated_obj.c8y = self.c8y
-            return updated_obj
-        return None
+    def update(self) -> GlobalRole:
+        return self._update()
 
     def delete(self):
-        self._assert_c8y()
-        self._assert_id()
-        object_path = f'/user/{self.c8y.tenant_id}/groups/{self.id}'
-        self.c8y.delete(object_path)
+        self._delete()
 
-    @staticmethod
-    def _build_role_reference(role_id):
-        return {'role': {'self': 'user/roles/' + role_id}}
+    def _build_resource_path(self):
+        # overriding the default as we need the tenand ID in there
+        return f'/user/{self.c8y.tenant_id}/groups'
 
 
 class UserUtil:
@@ -409,10 +377,6 @@ class User(SimpleObject):
     tfa_enabled = SimpleObject.UpdatableProperty('_u_tfa_enabled')
     require_password_reset = SimpleObject.UpdatableProperty('_u_require_password_reset')
 
-    @property  # overriding definition from SimpleObject class
-    def object_path(self):
-        return self._build_user_path()
-
     @property
     def last_password_change(self):
         # hint: could be cached, but it is rarely accessed multiple times
@@ -432,20 +396,19 @@ class User(SimpleObject):
         #                                                                       WithUpdatableFragments())
         return user
 
-    def to_json(self, only_updated=False) -> dict:
-        return self._format_json(only_updated)
+    # no need to override the standard to_json method
 
     def create(self) -> User:
-        return self._create(self._build_resource_path())
+        return self._create()
 
     def update(self) -> User:
         self._assert_c8y()
         self._assert_username()
-        result_json = self.c8y.put(self._build_user_path(), self.to_diff_json(), accept=self._mimetype)
+        result_json = self.c8y.put(self._build_user_path(), self.to_diff_json(), accept=self._accept)
         return self.from_json(result_json)
 
     def delete(self):
-        self._delete(self._build_user_path())
+        self._delete()
 
     def update_password(self, new_password):
         pass
@@ -479,12 +442,12 @@ class User(SimpleObject):
     def assign_global_role(self, role_id):
         self._assert_c8y()
         self._assert_username()
-        GlobalRoles(self.c8y).assign_users(role_id, [self.username])
+        GlobalRoles(self.c8y).assign_users(role_id, self.username)
 
     def unassign_global_role(self, role_id):
         self._assert_c8y()
         self._assert_username()
-        GlobalRoles(self.c8y).unassign_users(role_id, [self.username])
+        GlobalRoles(self.c8y).unassign_users(role_id, self.username)
 
     def retrieve_global_roles(self):
         self._assert_c8y()
@@ -510,21 +473,16 @@ class User(SimpleObject):
         assignment_json = {'managedObject': group_id, 'roles': [{'id': rid} for rid in role_ids]}
         self.c8y.post(roles_path, assignment_json)
 
-    def _build_object_path(self) -> str:  # override default version
-        return self._build_user_path()
-
     def _build_resource_path(self):
+        # overriding the default as we need the tenant ID in there
         return f'/user/{self.c8y.tenant_id}/users'
 
     def _build_user_path(self):
         return f'/user/{self.c8y.tenant_id}/users/{self.username}'
-    #
-    # def _build_role_reference(self, role_id):
-    #     return {'role': {'self': f'/users/{self.c8y.tenant_id}/roles/{role_id}'}}
-    #
-    # def _build_user_reference(self):
-    #     return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{self.username}'}}
-    #
+
+    def _build_object_path(self):
+        # overriding the default as the username is the relevant ID
+        return self._build_user_path()
 
     def _assert_username(self):
         if not self.username:
@@ -649,9 +607,9 @@ class Users(CumulocityResource):
                 unassign/remove the current owner
         """
         if owner_id:
-            self.c8y.put(self._build_object_path(user_id) + '/owner', UserUtil.build_owner_reference(owner_id))
+            self.c8y.put(self.build_object_path(user_id) + '/owner', UserUtil.build_owner_reference(owner_id))
         else:
-            self.c8y.delete(self._build_object_path(user_id) + '/owner')
+            self.c8y.delete(self.build_object_path(user_id) + '/owner')
 
     def set_delegate(self, user_id: str, delegate_id: str):
         """Set the delegate of a given user.
@@ -662,29 +620,26 @@ class Users(CumulocityResource):
                 unassign/remove the current owner
         """
         if delegate_id:
-            self.c8y.put(self._build_object_path(user_id) + '/delegatedby',
+            self.c8y.put(self.build_object_path(user_id) + '/delegatedby',
                          UserUtil.build_delegate_reference(delegate_id))
         else:
-            self.c8y.delete(self._build_object_path(user_id) + '/delegatedby')
+            self.c8y.delete(self.build_object_path(user_id) + '/delegatedby')
 
 
 class GlobalRoles(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/groups')
-        self.__groups_by_name = None
-        self.__groups_by_id = None
+        self._global_roles_by_name = None
 
     def reset_caches(self):
         """Reset internal caching.
 
-        This resets the following caches:
-          * Groups by name (used for all group lookup by name)
+        Caches are used for lookups of global roles by name.
         """
-        self.__groups_by_name = None
-        self.__groups_by_id = None
+        self._global_roles_by_name = None
 
-    def get(self, role_id):
+    def get(self, role_id: int | str) -> GlobalRole:
         """Retrieve a specific global role.
 
         Note:  The C8Y REST API does not support direct query by name. Hence,
@@ -692,26 +647,35 @@ class GlobalRoles(CumulocityResource):
         return the matching ones.
         These groups will be cached internally for subsequent calls.
 
-        See also method :py:meth:reset_caches
+        See also method `reset_caches`
 
-        :param role_id  a scalar int (actual group ID) or string (group name)
-        :rtype Group
+        Args:
+            role_id (int|str):  An actual global role ID as int/string or a
+                global role name
+
+        Returns:
+            A GlobalRole instance for the ID/name.
         """
-        if isinstance(role_id, int):
+        try:
+            # the following will fail if the ID is not int-like
+            role_id = str(int(role_id))
             return GlobalRole.from_json(super()._get_object(role_id))
-        # else: find group by name
-        if not self.__groups_by_name:
-            self.__groups_by_name = {g.name: g for g in self.get_all()}
-        return self.__groups_by_name[role_id]
+        except ValueError:
+            if not self._global_roles_by_name:
+                self._global_roles_by_name = {g.name: g for g in self.get_all()}
+            return self._global_roles_by_name[role_id]
 
-    def select(self, username=None, page_size=5):
+    def select(self, username: str = None, page_size: int = 5) -> Generator[GlobalRole]:
         """Iterate over global roles.
 
-        :param  username  retrieve global roles assigned to a specified user
-            If omitted, all available global roles are returned
-        :param page_size:  Number of results fetched per request
+        Args:
+            username (str): Retrieve global roles assigned to a specified user
+                If omitted, all available global roles are returned
+            page_size (int): Maximum number of entries fetched per requests;
+                this is a performance setting
 
-        :rtype Generator of GlobalRole instances
+        Return:
+            Generator of GlobalRole instances
         """
         if username:
             # select by username
@@ -741,42 +705,64 @@ class GlobalRoles(CumulocityResource):
                     yield result
                 page_number = page_number + 1
 
-    def get_all(self, username=None, page_size=1000):
+    def get_all(self, username: str = None, page_size: int = 1000) -> List[GlobalRole]:
         """Retrieve global roles.
 
-        :param username:  retrieve global roles assigned to a specified user
-            If omitted, all available global roles are returned
-        :param page_size:  Maximum number of entries fetched per requests;
-            this is a performance setting.
+        Args:
+            username (str): Retrieve global roles assigned to a specified user
+                If omitted, all available global roles are returned
+            page_size (int): Maximum number of entries fetched per requests;
+                this is a performance setting
 
-        :rtype: List of GlobalRole
+        Return:
+            List of GlobalRole instances
         """
         return list(self.select(username, page_size))
 
-    def assign_users(self, role_id, usernames):
+    def assign_users(self, role_id: int | str, *usernames: str):
         """Add users to a global role.
 
-        :param role_id  technical ID (int) of the global role
-        :param usernames  technical usernames of the users to assign
+        Args:
+            role_id (int|str):  Technical ID of the global role
+            usernames (*str):  Iterable of usernames to assign
         """
-        if not isinstance(usernames, list):
-            usernames = [usernames]
-        path = self._build_object_path(role_id) + '/users'
+        path = self.build_object_path(role_id) + '/users'
         for username in usernames:
-            user_reference = self._build_user_reference(username)
-            self.c8y.post(path, user_reference)
+            user_reference = UserUtil.build_user_reference(self.c8y.tenant_id, username)
+            self.c8y.post(path, user_reference, accept='')
 
-    def unassign_users(self, role_id, usernames):
-        """Add users to a global role.
+    def unassign_users(self, role_id: int | str, *usernames: str):
+        """Remove users from a global role.
 
-        :param role_id  technical ID (int) of the global role
-        :param usernames  technical usernames of the users to assign
+        Args:
+            role_id (int|str):  Technical ID of the global role
+            usernames (*str):  Iterable of usernames to unassign
         """
-        if not isinstance(usernames, list):
-            usernames = [usernames]
-        base_path = self._build_object_path(role_id) + '/users/'
+        base_path = self.build_object_path(role_id) + '/users/'
         for username in usernames:
             self.c8y.delete(base_path + username)
 
-    def _build_user_reference(self, username):
-        return {'user': {'self': f'/user/{self.c8y.tenant_id}/users/{username}'}}
+    def assign_permissions(self, role_id: int | str, *permissions: str):
+        """Add permissions to a global role.
+
+        Args:
+            role_id (int|str):  Technical ID of the global role
+            permissions (*str):  Iterable of permission ID to assign
+        """
+        # permissions are called 'roles' in the Cumulocity datamodel
+        path = self.build_object_path(role_id) + '/roles'
+        for permission in permissions:
+            reference = PermissionUtil.build_reference(permission)
+            self.c8y.post(path, reference, accept='')
+
+    def unassign_permissions(self, role_id: int | str, *permissions: str):
+        """Remove permissions from a global role.
+
+        Args:
+            role_id (int|str):  Technical ID of the global role
+            permissions (*str):  Iterable of permission ID to assign
+        """
+        # permissions are called 'roles' in the Cumulocity datamodel
+        base_path = self.build_object_path(role_id) + '/roles/'
+        for permission in permissions:
+            self.c8y.delete(base_path + permission)

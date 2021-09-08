@@ -1,0 +1,63 @@
+{
+  "customProperties": {},
+  "roles": {
+    "next": "https://t12345.eu-latest.cumulocity.com/10/roles?pageSize=5&currentPage=2",
+    "self": "https://t12345.eu-latest.cumulocity.com/10/roles?pageSize=5&currentPage=1",
+    "references": [
+      {
+        "self": "https://t12345.eu-latest.cumulocity.com/10/roles/ROLE_USER_MANAGEMENT_CREATE/",
+        "role": {
+          "name": "ROLE_USER_MANAGEMENT_CREATE",
+          "self": "https://t12345.eu-latest.cumulocity.com/user/roles/ROLE_USER_MANAGEMENT_CREATE",
+          "id": "ROLE_USER_MANAGEMENT_CREATE"
+        }
+      }
+    ],
+    "statistics": {
+      "currentPage": 1,
+      "pageSize": 5
+    }
+  },
+  "name": "Shared User Manager",
+  "description": "Can create new user as his own sub-users and manage this",
+  "self": "https://t12345.eu-latest.cumulocity.com/user/t12345/groups/10",
+  "id": 10,
+  "devicePermissions": {},
+  "users": {
+    "self": "https://t12345.eu-latest.cumulocity.com/10/users",
+    "references": []
+  },
+  "applications": [
+    {
+      "owner": {
+        "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+        "tenant": {
+          "id": "management"
+        }
+      },
+      "manifest": {
+        "globalTitle": "Cumulocity",
+        "upgrade": true,
+        "dynamicOptionsUrl": "/apps/public-options/options.json",
+        "rightDrawer": true,
+        "tabsHorizontal": true
+      },
+      "contextPath": "administration",
+      "availability": "MARKET",
+      "type": "HOSTED",
+      "resourcesUrl": "/",
+      "activeVersionId": "642716135",
+      "name": "administration",
+      "self": "https://t12345.eu-latest.cumulocity.com/application/applications/3",
+      "id": "3",
+      "key": "administration-application-key",
+      "globalTitle": "Cumulocity",
+      "legacy": false,
+      "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+      "upgrade": true,
+      "rightDrawer": true,
+      "tabsHorizontal": true,
+      "contentSecurityPolicy": "base-uri 'none'; default-src 'self' 'unsafe-inline' http: https: ws: wss:; connect-src 'self' *.billwerk.com http: https: ws: wss:;  script-src 'self' open.mapquestapi.com *.twitter.com *.twimg.com *.aptrinsic.com  *.billwerk.com 'unsafe-inline' 'unsafe-eval' data:; style-src * 'unsafe-inline' blob:; img-src * data:; font-src * data:; frame-src *;"
+    }
+  ]
+}

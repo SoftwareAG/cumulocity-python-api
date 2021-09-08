@@ -1,31 +1,31 @@
 {
   "additionParents": {
-    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120/additionParents",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/additionParents",
     "references": []
   },
   "childDevices": {
-    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120/childDevices",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/childDevices",
     "references": []
   },
   "childAssets": {
-    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120/childAssets",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/childAssets",
     "references": []
   },
   "type": "c8y_Application_3142",
   "childAdditions": {
-    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120/childAdditions",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/childAdditions",
     "references": []
   },
   "name": "apama-ctrl-1c-4g",
   "assetParents": {
-    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120/assetParents",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/assetParents",
     "references": []
   },
   "deviceParents": {
-    "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120/deviceParents",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/deviceParents",
     "references": []
   },
-  "self": "https://t21106993.eu-latest.cumulocity.com/inventory/managedObjects/120",
+  "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120",
   "id": "120",
   "c8y_Status": {
     "lastUpdated": {
@@ -35,7 +35,7 @@
       "offset": 0
     },
     "instances": {
-      "apama-ctrl-1c-4g-scope-t21106993-deployment-859d7f6b7-djd7x": {
+      "apama-ctrl-1c-4g-scope-t12345-deployment-859d7f6b7-djd7x": {
         "lastUpdated": {
           "date": {
             "$date": "2021-08-31T17:13:01.070Z"
@@ -76,7 +76,7 @@
     "syslog"
   ],
   "c8y_Subscriptions": {
-    "t21106993": {
+    "t12345": {
       "lastUpdated": {
         "date": {
           "$date": "2021-08-31T17:13:01.070Z"
@@ -84,7 +84,7 @@
         "offset": 0
       },
       "instances": {
-        "apama-ctrl-1c-4g-scope-t21106993-deployment-859d7f6b7-djd7x": {
+        "apama-ctrl-1c-4g-scope-t12345-deployment-859d7f6b7-djd7x": {
           "lastUpdated": {
             "date": {
               "$date": "2021-08-31T17:13:01.070Z"
