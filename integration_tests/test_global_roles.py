@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import pytest
 
+from c8y_api import CumulocityApi
 from c8y_api.model import GlobalRole
+
 from tests import RandomNameGenerator
 
 
@@ -41,3 +43,46 @@ def test_CRUD(live_c8y: CumulocityApi):  # noqa (case)
     with pytest.raises(KeyError) as e:
         live_c8y.global_roles.get(rolename)
         assert rolename in str(e)
+
+
+def test_updating_users(live_c8y: CumulocityApi, factory):
+    """Verify that users can be added/removed to/from a global role."""
+
+    rolename = RandomNameGenerator.random_name()
+    role: GlobalRole = factory(GlobalRole(c8y=live_c8y, name=rolename, description=f'{rolename} description'))
+
+    # -> initially the current user should not have this global role
+    assert role.id not in live_c8y.users.get(live_c8y.username).global_role_ids
+
+    # 1) add the current user to this global role
+    role.add_users(live_c8y.username)
+    # -> user should now have this global role assigned
+    assert role.id in live_c8y.users.get(live_c8y.username).global_role_ids
+
+    # 2) remove the current user from this global role
+    role.remove_users(live_c8y.username)
+    # -> user should not have this global role anymore
+    assert role.id not in live_c8y.users.get(live_c8y.username).global_role_ids
+
+
+def test_updating_permissions(live_c8y: CumulocityApi, factory):
+    """Verify that permissions can be added/removed to/from a global role."""
+
+    rolename = RandomNameGenerator.random_name()
+    role: GlobalRole = factory(GlobalRole(c8y=live_c8y, name=rolename, description=f'{rolename} description'))
+
+    # -> initially there should be no permissions
+    assert not role.permission_ids
+    new_permissions = {'ROLE_EVENT_READ', 'ROLE_ALARM_READ'}
+
+    # 1) add some permissions
+    role.add_permissions(*new_permissions)
+    # -> new permissions should be added to db object
+    assert live_c8y.global_roles.get(role.id).permission_ids == new_permissions
+
+    # 2) remove a permission
+    removed_permission = new_permissions.pop()
+    role.remove_permissions(removed_permission)
+    # -> permission should be removed in db as well
+    assert live_c8y.global_roles.get(role.id).permission_ids == new_permissions
+

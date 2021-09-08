@@ -268,13 +268,61 @@ class GlobalRole(SimpleObject):
     # custom implementation for to_json not required
 
     def create(self) -> GlobalRole:
-        return self._create()
+        return super()._create()
 
     def update(self) -> GlobalRole:
-        return self._update()
+        return super()._update()
 
     def delete(self):
-        self._delete()
+        super()._delete()
+
+    def add_permissions(self, *permissions: str):
+        """Add permissions to a global role.
+
+        This operation is executed immediately.
+
+        Args:
+            permissions (*str):  An Iterable of permission ID
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        GlobalRoles(self.c8y).assign_permissions(self.id, *permissions)
+
+    def remove_permissions(self, *permissions):
+        """Remove permissions from a global role.
+
+        This operation is executed immediately.
+
+        Args:
+            permissions (*str):  An Iterable of permission ID
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        GlobalRoles(self.c8y).unassign_permissions(self.id, *permissions)
+
+    def add_users(self, *users: str):
+        """Add users to a global role.
+
+        This operation is executed immediately.
+
+        Args:
+            users (*str):  An Iterable of usernames
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        GlobalRoles(self.c8y).assign_users(self.id, *users)
+
+    def remove_users(self, *users: str):
+        """Remove users from a global role.
+
+        This operation is executed immediately.
+
+        Args:
+            users (*str):  An Iterable of usernames
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        GlobalRoles(self.c8y).unassign_users(self.id, *users)
 
     def _build_resource_path(self):
         # overriding the default as we need the tenand ID in there
@@ -386,7 +434,7 @@ class User(SimpleObject):
     def from_json(cls, user_json) -> User:
         user = cls._parse_json(user_json, User())
         if user_json['groups'] and user_json['groups']['references']:
-            user.global_role_ids = {ref['group']['id'] for ref in user_json['groups']['references']}
+            user.global_role_ids = {str(ref['group']['id']) for ref in user_json['groups']['references']}
         if user_json['roles'] and user_json['roles']['references']:
             user.permission_ids = {ref['role']['id'] for ref in user_json['roles']['references']}
         if 'applications' in user_json:
@@ -527,6 +575,10 @@ class InventoryRoles(CumulocityResource):
 
 
 class Users(CumulocityResource):
+    """Provides access to the User API.
+
+    See also: https://cumulocity.com/api/#tag/Users
+    """
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
@@ -627,6 +679,15 @@ class Users(CumulocityResource):
 
 
 class GlobalRoles(CumulocityResource):
+    """Provides access to the Global Role API.
+
+    Notes:
+      - Global Roles are called 'groups' in the Cumulocity Standard REST API;
+        However, 'global roles' is the official concept name and therefore
+        used for consistency with the Cumulocity realm.
+
+    See also: https://cumulocity.com/api/#tag/Groups
+    """
 
     def __init__(self, c8y):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/groups')
