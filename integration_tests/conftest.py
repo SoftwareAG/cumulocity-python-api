@@ -37,3 +37,22 @@ def live_c8y(test_environment) -> CumulocityApi:
         raise RuntimeError("Missing Cumulocity environment variables (C8Y_*). Cannot create CumulocityApi instance. "
                            "Please define the required variables directly or setup a .env file.")
     return CumulocityApi()
+
+
+@pytest.fixture(scope='function')
+def factory(logger, live_c8y: CumulocityApi):
+    """Provides a generic object factory function which ensures that created
+    objects are removed after testing."""
+
+    created = []
+
+    def factory_fun(obj):
+        o = obj.create()
+        logger.info(f'Created object #{o.id}, ({o.__class__.__name__})')
+        created.append(o)
+        return o
+
+    yield factory_fun
+
+    for u in created:
+        u.delete()
