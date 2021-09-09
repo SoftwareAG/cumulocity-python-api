@@ -83,11 +83,11 @@ class ComplexObjectParser(SimpleObjectParser):
 
     def __init__(self, to_json_mapping, no_fragments_list):
         super().__init__(to_json_mapping)
-        self._ignore_set = {*no_fragments_list, *to_json_mapping.values(), 'self', 'id'}
+        self._ignore_as_fragments = {*no_fragments_list, *to_json_mapping.values(), 'self', 'id'}
 
     def from_json(self, obj_json, new_obj, skip=None):
         new_obj = super().from_json(obj_json, new_obj)
-        new_obj.fragments = self.parse_fragments(obj_json, self._ignore_set)
+        new_obj.fragments = self.parse_fragments(obj_json, self._ignore_as_fragments)
         return new_obj
 
     def to_json(self, obj: ComplexObject, include=None, exclude=None):

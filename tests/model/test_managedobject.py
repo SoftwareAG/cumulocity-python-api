@@ -41,7 +41,7 @@ def test_parsing():
 
 
 @pytest.fixture(scope='function')
-def sample_object() -> ManagedObject:
+def sample_event() -> ManagedObject:
     """Provide a sample object for various tests."""
     return ManagedObject(name='name', type='type', owner='owner',
                          simple_string='string',

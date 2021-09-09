@@ -85,4 +85,3 @@ def test_updating_permissions(live_c8y: CumulocityApi, factory):
     role.remove_permissions(removed_permission)
     # -> permission should be removed in db as well
     assert live_c8y.global_roles.get(role.id).permission_ids == new_permissions
-

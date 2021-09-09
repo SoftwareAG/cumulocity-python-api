@@ -224,6 +224,25 @@ class ComplexObject(SimpleObject):
         for key, value in kwargs.items():
             self.fragments[key] = value
         self.__setattr__ = self._setattr_
+    #
+    # def _format_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
+    #     """Create a representation of this object in Cumulocity JSON format.
+    #
+    #     Caveat: this function is primarily for internal use and does not
+    #     return a full representation of the object. It is used for object
+    #     creation and update within Cumulocity, so for example the 'id'
+    #     field is never included.
+    #
+    #     Params:
+    #         only_updated(bool): Whether the result should be limited to
+    #             changed fields only (for object updates). Default: False
+    #
+    #     Returns:
+    #         A JSON (nested dict) object.
+    #     """
+    #     include = None if not only_updated else self._updated_fields if self._updated_fields else set()
+    #     exclude = {'id', *(exclude or {})}
+    #     return self._parser.to_json(self, include, exclude)
 
     def __setitem__(self, name, fragment):
         """ Add/set a custom fragment.
@@ -336,6 +355,14 @@ class ComplexObject(SimpleObject):
         else:
             self._updated_fragments.add(name)
 
+    def _apply_to(self, other_id: str) -> Any[ComplexObject]:
+        self._assert_c8y()
+        # put diff json to another object (by ID)
+        result_json = self.c8y.put(self._build_resource_path() + '/' + other_id, self.to_diff_json())
+        result = self.from_json(result_json)
+        result.c8y = self.c8y
+        return result
+
 
 class CumulocityResource:
 
@@ -436,19 +463,18 @@ class CumulocityResource:
         for object_id in object_ids:
             self.c8y.put(self.resource + '/' + str(object_id), model_json, accept=None)
 
-    def delete(self, *objects):
+    def delete(self, *objects: str):
         """ Delete one or more objects within the database.
 
         The objects can be specified as instances of an database object
         (then, the id field needs to be defined) or simply as ID (integers
         or strings).
 
-        :param objects:  Objects within the database specified by ID
-            (str or int) or as API objects (with defined ID).
-        :returns:  None
+        Args:
+            objects (*str):  Objects within the database specified by ID
         """
         try:
-            object_ids = [o.id for o in objects]
+            object_ids = [o.id for o in objects]  # noqa (id)
         except AttributeError:
             object_ids = objects
         for object_id in object_ids:
