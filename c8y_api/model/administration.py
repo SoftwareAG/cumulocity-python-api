@@ -61,12 +61,12 @@ class Permission(SimpleObject):
 
     @classmethod
     def from_json(cls, object_json) -> Permission:
-        return cls._parse_json(object_json, Permission())
+        return cls._from_json(object_json, Permission())
 
     def to_json(self, only_updated=False):
         if only_updated:
             raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
-        return self._format_json(self)
+        return self._to_json(self)
 
     def create(self) -> Permission:
         raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
@@ -122,13 +122,13 @@ class InventoryRole(SimpleObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['permissions'] = list(map(lambda p: p._to_json(), self.permissions))
+        j['permissions'] = list(map(lambda p: p._from_json(), self.permissions))
         return j
 
     def to_diff_json(self):
         j = self.__parser.to_diff_json(self)
         # the permission list can only be specified as a whole
-        j['permissions'] = list(map(lambda p: p._to_json(), self.permissions))
+        j['permissions'] = list(map(lambda p: p._from_json(), self.permissions))
         return j
 
     def create(self, ignore_result=False):
@@ -184,7 +184,7 @@ class InventoryRoleAssignment(SimpleObject):
 
     def to_full_json(self):
         j = self.__parser.to_full_json(self)
-        j['roles'] = list(map(lambda r: r._to_json(), self.roles))
+        j['roles'] = list(map(lambda r: r._from_json(), self.roles))
         return j
 
     def to_diff_json(self):
@@ -256,7 +256,7 @@ class GlobalRole(SimpleObject):
     @classmethod
     def from_json(cls, role_json) -> GlobalRole:
         # no doc change
-        role: GlobalRole = cls._parse_json(role_json, GlobalRole())
+        role: GlobalRole = cls._from_json(role_json, GlobalRole())
         # role ID are int for some reason - convert for consistency
         role.id = str(role.id)
         if role_json['roles'] and role_json['roles']['references']:
@@ -432,7 +432,7 @@ class User(SimpleObject):
 
     @classmethod
     def from_json(cls, user_json) -> User:
-        user = cls._parse_json(user_json, User())
+        user = cls._from_json(user_json, User())
         if user_json['groups'] and user_json['groups']['references']:
             user.global_role_ids = {str(ref['group']['id']) for ref in user_json['groups']['references']}
         if user_json['roles'] and user_json['roles']['references']:

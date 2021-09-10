@@ -6,13 +6,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Iterable, Set
 
 from deprecated import deprecated
 from urllib.parse import urlencode
 
 from c8y_api._base_api import CumulocityRestApi
-from c8y_api._util import warning
 
 from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
@@ -148,26 +148,22 @@ class SimpleObject(CumulocityObject):
         return self._build_resource_path() + '/' + self.id
 
     @classmethod
-    def from_json(cls, json: dict) -> SimpleObject:
-        raise NotImplementedError('The from_json function must be implemented in the sub class.')
+    def from_json(cls, json: dict) -> Any[SimpleObject]:
+        """Create a object instance from Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the JSON. It is used for object
+        creation and update within Cumulocity.
+
+        Params:
+            json (dict): The JSON to parse.
+
+        Returns:
+            A CumulocityObject instance.
+        """
+        # The from_json function must be implemented in the sub class
 
     def to_json(self, only_updated=False) -> dict:
-        return self._format_json(only_updated, self._not_updatable)
-
-    def to_full_json(self) -> dict:
-        return self.to_json()
-
-    def to_diff_json(self) -> dict:
-        return self.to_json(only_updated=True)
-
-    def get_updates(self) -> set:
-        return self._updated_fields or set()
-
-    @classmethod
-    def _parse_json(cls, json: dict, obj: SimpleObject) -> Any[SimpleObject]:
-        return cls._parser.from_json(json, obj)
-
-    def _format_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
         """Create a representation of this object in Cumulocity JSON format.
 
         Caveat: this function is primarily for internal use and does not
@@ -182,6 +178,50 @@ class SimpleObject(CumulocityObject):
         Returns:
             A JSON (nested dict) object.
         """
+        return self._to_json(only_updated, self._not_updatable)
+
+    def to_full_json(self) -> dict:
+        """Create a complete representation of this object in
+        Cumulocity JSON format.
+
+        This representation is used for object creation and when a model
+        object is applied to another.
+
+        Note: this is just a shortcut for `to_json()`
+
+        Returns:
+            A JSON (nested dict) object.
+        """
+        return self.to_json()
+
+    def to_diff_json(self) -> dict:
+        """Create a complete representation of this object in
+        Cumulocity JSON format.
+
+        This representation is used for object updates (not when a model
+        object is applied to another).
+
+        Note: this is just a shortcut for `to_json(True)`
+
+        Returns:
+            A JSON (nested dict) object.
+        """
+        return self.to_json(only_updated=True)
+
+    def get_updates(self) -> set:
+        """Get the names of updated fields.
+
+        Return:
+            A set of (internal) field names that where updated after
+            object creation.
+        """
+        return self._updated_fields or set()
+
+    @classmethod
+    def _from_json(cls, json: dict, obj: SimpleObject) -> Any[SimpleObject]:
+        return cls._parser.from_json(json, obj)
+
+    def _to_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
         include = None if not only_updated else self._updated_fields if self._updated_fields else set()
         exclude = {'id', *(exclude or {})}
         return self._parser.to_json(self, include, exclude)
@@ -216,6 +256,10 @@ class SimpleObject(CumulocityObject):
 
 
 class ComplexObject(SimpleObject):
+    """Abstract base class for all complex cumulocity objects
+    (that can have custom fragments)."""
+
+    log = logging.getLogger(__name__)
 
     def __init__(self, c8y: CumulocityRestApi, **kwargs):
         super().__init__(c8y)
@@ -224,25 +268,6 @@ class ComplexObject(SimpleObject):
         for key, value in kwargs.items():
             self.fragments[key] = value
         self.__setattr__ = self._setattr_
-    #
-    # def _format_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
-    #     """Create a representation of this object in Cumulocity JSON format.
-    #
-    #     Caveat: this function is primarily for internal use and does not
-    #     return a full representation of the object. It is used for object
-    #     creation and update within Cumulocity, so for example the 'id'
-    #     field is never included.
-    #
-    #     Params:
-    #         only_updated(bool): Whether the result should be limited to
-    #             changed fields only (for object updates). Default: False
-    #
-    #     Returns:
-    #         A JSON (nested dict) object.
-    #     """
-    #     include = None if not only_updated else self._updated_fields if self._updated_fields else set()
-    #     exclude = {'id', *(exclude or {})}
-    #     return self._parser.to_json(self, include, exclude)
 
     def __setitem__(self, name, fragment):
         """ Add/set a custom fragment.
@@ -312,40 +337,33 @@ class ComplexObject(SimpleObject):
 
     @deprecated
     def set_attribute(self, name, value):
-        """ Set the value of a custom attribute.
-
-        Note: such attributes cannot be updated in a pythonic way, like
-        :: python
-            obj.my_attribute = 'value'  # not possible
-
-        Instead, they need to be set again:
-        :: python
-            obj.set_attribute('my_attribute', 'value')
-        """
-        warning("Function 'set_attribute' is deprecated and will be removed "
-                "in a future release. Please use the [] operator instead.")
+        logging.warning("Function 'set_attribute' is deprecated and will be removed "
+                        "in a future release. Please use the [] operator instead.")
         self.__setitem__(name, value)
         return self
 
     @deprecated
     def add_fragment(self, name, **kwargs):
-        warning("Function 'add_fragment' is deprecated and will be removed "
-                "in a future release. Please use the [] or += operator instead.")
+        logging.warning("Function 'add_fragment' is deprecated and will be removed "
+                        "in a future release. Please use the [] or += operator instead.")
         self.__setitem__(name, kwargs)
         return self
 
     @deprecated
     def add_fragments(self, *fragments):
-        warning("Function 'add_fragments' is deprecated and will be removed "
-                "in a future release. Please use the [] or += operator instead.")
+        logging.warning("Function 'add_fragments' is deprecated and will be removed "
+                        "in a future release. Please use the [] or += operator instead.")
         self.__iadd__(fragments)
         return self
 
     @deprecated
     def has(self, name):
+        logging.warning("Function 'has' is deprecated and will be removed "
+                        "in a future release. Please use the 'in' operator instead.")
         return self.__contains__(name)
 
     def get_updates(self):
+        # redefinition of the super version
         return ([] if not self._updated_fields else list(self._updated_fields)) \
                + ([] if not self._updated_fragments else list(self._updated_fragments))
 
@@ -365,6 +383,7 @@ class ComplexObject(SimpleObject):
 
 
 class CumulocityResource:
+    """Abstract base class for all Cumulocity API resources."""
 
     def __init__(self, c8y: CumulocityRestApi, resource: str):
         self.c8y = c8y
@@ -462,6 +481,7 @@ class CumulocityResource:
         for object_id in object_ids:
             self.c8y.put(self.resource + '/' + str(object_id), model_json, accept=None)
 
+    # this one should be ok for all implementations, hence we define it here
     def delete(self, *objects: str):
         """ Delete one or more objects within the database.
 

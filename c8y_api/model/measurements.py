@@ -142,7 +142,7 @@ class Measurement(ComplexObject):
         Returns:
             Measurement object
         """
-        obj = cls._parse_json(measurement_json, Measurement())
+        obj = cls._from_json(measurement_json, Measurement())
         obj.source = measurement_json['source']['id']
         return obj
 

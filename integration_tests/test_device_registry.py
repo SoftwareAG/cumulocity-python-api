@@ -60,7 +60,7 @@ def sample_device(live_c8y: CumulocityApi, device_registry: CumulocityDeviceRegi
     device_api = device_registry.await_connection(device_id)
     logger.info("Credentials request accepted.")
 
-    # 4) Create a dogital twin
+    # 4) Create a digital twin
     device = Device(c8y=device_api, name=device_id, type='c8y_TestDevice').create()
     logger.info(f"Device created: '{device_id}', ID: {device.id}, Owner:{device.owner}")
 

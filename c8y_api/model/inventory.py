@@ -258,7 +258,7 @@ class ManagedObject(ComplexObject):
     def _from_json(cls, object_json: dict, new_object: Any) -> Any:
         """This function is used by derived classes to share the logic.
         Purposely no type information."""
-        mo = cls._parse_json(object_json, new_object)
+        mo = super(ManagedObject, cls)._from_json(object_json, new_object)
         mo.child_devices = cls._parse_references(object_json['childDevices'])
         mo.child_assets = cls._parse_references(object_json['childAssets'])
         mo.child_additions = cls._parse_references(object_json['childAdditions'])
@@ -519,7 +519,7 @@ class DeviceGroup(ManagedObject):
     def to_json(self, only_updated=False):
         raise NotImplementedError("This method cannot be implemented for the DeviceGroup class.")
 
-    def _to_json(self, is_root):
+    def _from_json(self, is_root):
         object_json = super().to_json()
         object_json['type'] = 'c8y_DeviceGroup' if is_root else 'c8y_DeviceSubgroup'
         object_json['c8y_IsDeviceGroup'] = {}
@@ -535,7 +535,7 @@ class DeviceGroup(ManagedObject):
         :returns:  Updated DeviceGroup object
         """
         self._assert_id()
-        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._to_json(is_root=False)
+        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._from_json(is_root=False)
         response_json = self._post_child_json(self.id, child_json)
         result = self.from_json(response_json)
         result.c8y = self.c8y
@@ -586,7 +586,7 @@ class DeviceGroup(ManagedObject):
         """
         self._assert_c8y()
         # 1_ create the group
-        group_json = self._to_json(is_root=True)
+        group_json = self._from_json(is_root=True)
         response_json = self.c8y.post('/inventory/managedObjects', group_json)
         group_id = response_json['id']
         # 2_ create child groups recursively
@@ -647,7 +647,7 @@ class DeviceGroup(ManagedObject):
             if not group.owner:
                 group.owner = parent.owner
             # create as child assets
-            response_json = self._post_child_json(parent_id, group._to_json(is_root=False))  # noqa
+            response_json = self._post_child_json(parent_id, group._from_json(is_root=False))  # noqa
             # recursively create further levels
             if group._added_child_groups:  # noqa
                 child_id = response_json['id']

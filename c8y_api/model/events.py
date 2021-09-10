@@ -85,14 +85,14 @@ class Event(ComplexObject):
     @classmethod
     def from_json(cls, event_json: dict) -> Event:
         # (no doc update required)
-        obj = super()._parse_json(event_json, Event())
+        obj = super()._from_json(event_json, Event())
         obj.source = event_json['source']['id']
         return obj
 
     def to_json(self, only_updated: bool = False):
         # (no doc update required)
         # creation time is always excluded
-        obj_json = super()._format_json(only_updated, exclude={'creation_time'})
+        obj_json = super()._to_json(only_updated, exclude={'creation_time'})
         # source needs to be set manually, but it cannot be updated
         if not only_updated and self.source:
             obj_json['source'] = {'id': self.source}

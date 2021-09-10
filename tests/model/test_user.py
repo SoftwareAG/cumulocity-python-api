@@ -47,7 +47,7 @@ def test_parsing():
     assert user.require_password_reset == user_json['shouldResetPassword']
 
     # 3) referenced sets are parsed as well
-    global_role_ids = {r['group']['id'] for r in user_json['groups']['references']}
+    global_role_ids = {str(r['group']['id']) for r in user_json['groups']['references']}
     permission_ids = {r['role']['id'] for r in user_json['roles']['references']}
     assert user.global_role_ids == global_role_ids
     assert user.permission_ids == permission_ids
