@@ -57,7 +57,7 @@ class Event(ComplexObject):
         """
         super().__init__(c8y=c8y, **kwargs)
         self.type = type
-        self.time = time or _DateUtil.to_timestring(datetime.utcnow())
+        self.time = time
         self.source = source
         self._u_text = text
         self.creation_time = None
@@ -101,10 +101,14 @@ class Event(ComplexObject):
     def create(self) -> Event:
         """ Store the Event within the database.
 
+        Note: If not yet defined, this will set the event date to now.
+
         Returns:
             A fresh Event object representing what was
             created within the database (including the ID).
         """
+        if not self.time:
+            self.time = _DateUtil.to_timestring(datetime.utcnow())
         return super()._create()
 
     def update(self) -> Event:
@@ -211,10 +215,16 @@ class Events(CumulocityResource):
     def create(self, *events: Event):
         """Create event objects within the database.
 
+        Note: If not yet defined, this will set the event date to now in
+            each of the given event objects.
+
         Args:
             events (*Event):  Collection of Event instances
         """
-        super()._create(Event.to_json, *events)
+        for e in events:
+            if not e.time:
+                e.time = _DateUtil.to_timestring(datetime.utcnow())
+        super()._create(Event.to_full_json, *events)
 
     def update(self, *events: Event):
         """Write changes to the database.
@@ -232,7 +242,7 @@ class Events(CumulocityResource):
             event (Event): Event used as model for the update
             event_ids (*Event):  Collection of ID of the events to update
         """
-        super()._apply_to(Event.to_diff_json, event, *event_ids)
+        super()._apply_to(Event.to_full_json, event, *event_ids)
 
     # delete function is defined in super class
 

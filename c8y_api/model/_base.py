@@ -357,8 +357,8 @@ class ComplexObject(SimpleObject):
 
     def _apply_to(self, other_id: str) -> Any[ComplexObject]:
         self._assert_c8y()
-        # put diff json to another object (by ID)
-        result_json = self.c8y.put(self._build_resource_path() + '/' + other_id, self.to_diff_json())
+        # put full json to another object (by ID)
+        result_json = self.c8y.put(self._build_resource_path() + '/' + other_id, self.to_full_json())
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -459,7 +459,6 @@ class CumulocityResource:
 
     def _apply_to(self, jsonify_func, model, *object_ids):
         model_json = jsonify_func(model)
-        print(model_json)
         for object_id in object_ids:
             self.c8y.put(self.resource + '/' + str(object_id), model_json, accept=None)
 
