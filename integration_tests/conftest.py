@@ -1,10 +1,13 @@
+import logging
 import os
+
+from dotenv import load_dotenv
 import pytest
 
-import logging
-from dotenv import load_dotenv
-
 from c8y_api.app import CumulocityApi
+from c8y_api.model import Device
+
+from tests import RandomNameGenerator
 
 
 @pytest.fixture(scope='session')
@@ -56,3 +59,17 @@ def factory(logger, live_c8y: CumulocityApi):
 
     for u in created:
         u.delete()
+
+
+@pytest.fixture(scope='session')
+def sample_device(logger: logging.Logger, live_c8y: CumulocityApi) -> Device:
+    """Provide an sample device, just for testing purposes."""
+
+    typename = RandomNameGenerator.random_name()
+    device = Device(live_c8y, type=typename, name=typename).create()
+    logger.info(f"Created test device #{device.id}, name={device.name}")
+
+    yield device
+
+    device.delete()
+    logger.info(f"Deleted test device #{device.id}")

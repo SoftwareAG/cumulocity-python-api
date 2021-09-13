@@ -1,0 +1,31 @@
+{
+  "count": 1,
+  "creationTime": "2021-09-13T08:14:17.687Z",
+  "history": {
+    "auditRecords": [],
+    "self": "https://t12345.eu-latest.cumulocity.com/audit/auditRecords"
+  },
+  "id": "31872132",
+  "self": "https://t12345.eu-latest.cumulocity.com/alarm/alarms/31872132",
+  "severity": "CRITICAL",
+  "source": {
+    "id": "17421",
+    "name": "Motor",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/17421"
+  },
+  "status": "ACTIVE",
+  "text": "Error of type: BulkWriteException with message: Bulk write operation error on server localhost:27017. Write errors: [BulkWriteError{index=0",
+  "time": "2021-09-13T08:14:13.570Z",
+  "type": "SERVER_ERROR-246899634",
+  "custom_attribute": "value",
+  "custom_fragment": {
+    "key": "value",
+    "test": {
+      "string": "string",
+      "int": 123,
+      "float": 12.3,
+      "true": true,
+      "false": false
+    }
+  }
+}

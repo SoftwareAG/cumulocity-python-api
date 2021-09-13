@@ -19,7 +19,7 @@ def print_alarm(alarm):
     print(f'  Status:   {alarm.status}')
     print(f'  Severity: {alarm.severity}')
     print(f'  Count:    {alarm.count}')
-    print(f'  First O.: {alarm.first_occurrence}')
+    print(f'  First O.: {alarm.first_occurrence_time}')
     print(f'  Created:  {alarm.creation_time}')
     fragment_names = list(alarm.fragments.keys())
     print(f'  Fragments: {", ".join(fragment_names)}')

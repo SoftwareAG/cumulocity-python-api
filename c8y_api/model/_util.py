@@ -11,6 +11,10 @@ from dateutil import parser
 class _DateUtil(object):
 
     @staticmethod
+    def now_timestring() -> str:
+        return _DateUtil.to_timestring(_DateUtil.now())
+
+    @staticmethod
     def to_timestring(dt: datetime):
         return dt.isoformat(timespec='milliseconds')
 

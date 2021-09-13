@@ -16,7 +16,7 @@ from c8y_api.model._util import _DateUtil
 
 
 class Event(ComplexObject):
-    """ Represent an instance of an event object in Cumulocity.
+    """Represent an instance of an event object in Cumulocity.
 
     Instances of this class are returned by functions of the corresponding
     Events API. Use this class to create new or update Event objects.
@@ -35,29 +35,23 @@ class Event(ComplexObject):
 
     def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,
                  source: str = None, text: str = None, **kwargs):  # noqa (type)
-        """ Create a new Event object.
+        """Create a new Event object.
 
-        Custom fragments can be added to the object after creation, using
-        the add_fragment function.
-
-        :param c8y:  Cumulocity connection reference; needs to be set for
-            the direct manipulation (create, delete) to function.
-        :param type:   Event type
-        :param time:   Datetime string or Python datetime object. A given
-            datetime string needs to be in standard ISO format incl. timezone:
-            YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is returned by the Cumulocity
-            REST API. A given datetime object needs to be timezone aware.
-            For manual construction it is recommended to specify a datetime
-            object as the formatting of a time string is never checked for
-            performance reasons.
-        :param source:  Device ID which this Event is for
-        :param text:  Event description text
-
-        :returns:  Event object
+        Args:
+            c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                to be set for direct manipulation (create, delete)
+            type (str):  Event type
+            time (str|datetime):  Date/time of the event. Can be provided as
+                timezone-aware datetime object or formatted string (in
+                standard ISO format incl. timezone: YYYY-MM-DD'T'HH:MM:SS.SSSZ
+                as it is returned by the Cumulocity REST API).
+            source (str):  ID of the device which this event is raised by
+            text (str):  Event test/description
+            kwargs:  Additional arguments are treated as custom fragments
         """
         super().__init__(c8y=c8y, **kwargs)
         self.type = type
-        self.time = time
+        self.time = _DateUtil.ensure_timestring(time)
         self.source = source
         self._u_text = text
         self.creation_time = None
@@ -65,8 +59,8 @@ class Event(ComplexObject):
     text = SimpleObject.UpdatableProperty('_u_text')
 
     @property
-    def datetime(self):
-        """ Convert the event's time to a Python datetime object.
+    def datetime(self) -> datetime:
+        """Convert the event's time to a Python datetime object.
 
         Returns:
             Standard Python datetime object
@@ -74,8 +68,8 @@ class Event(ComplexObject):
         return super()._to_datetime(self.time)
 
     @property
-    def creation_datetime(self):
-        """ Convert the event's creation time to a Python datetime object.
+    def creation_datetime(self) -> datetime:
+        """Convert the event's creation time to a Python datetime object.
 
         Returns:
             Standard Python datetime object
@@ -89,7 +83,7 @@ class Event(ComplexObject):
         obj.source = event_json['source']['id']
         return obj
 
-    def to_json(self, only_updated: bool = False):
+    def to_json(self, only_updated: bool = False) -> dict:
         # (no doc update required)
         # creation time is always excluded
         obj_json = super()._to_json(only_updated, exclude={'creation_time'})
@@ -99,7 +93,7 @@ class Event(ComplexObject):
         return obj_json
 
     def create(self) -> Event:
-        """ Store the Event within the database.
+        """Create the Event within the database.
 
         Note: If not yet defined, this will set the event date to now.
 
@@ -112,6 +106,14 @@ class Event(ComplexObject):
         return super()._create()
 
     def update(self) -> Event:
+        """Update the Event within the database.
+
+        Note: This will only send changed fields to increase performance.
+
+        Returns:
+            A fresh Event object representing what was
+            created within the database (including the ID).
+        """
         return super()._update()
 
     def delete(self):
@@ -119,7 +121,7 @@ class Event(ComplexObject):
         super()._delete()
 
     def apply_to(self, other_id: str) -> Event:
-        """ Apply changes made to this object to another object in the
+        """Apply changes made to this object to another object in the
             database.
 
         Args:
@@ -147,7 +149,7 @@ class Events(CumulocityResource):
         super().__init__(c8y, '/event/events')
 
     def get(self, event_id: str) -> Event:  # noqa (id)
-        """ Retrieve a specific object from the database.
+        """Retrieve a specific object from the database.
 
         Args:
             event_id (str):  The database ID of the event
@@ -163,7 +165,7 @@ class Events(CumulocityResource):
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Event]:
-        """ Query the database for events and iterate over the results.
+        """Query the database for events and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
         fetched from the database as long there is a consumer for them.
@@ -200,10 +202,12 @@ class Events(CumulocityResource):
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Event]:
-        """ Query the database for events and return the results as list.
+        """Query the database for events and return the results as list.
 
         This function is a greedy version of the `select` function. All
         available results are read immediately and returned as list.
+
+        See `select` for a documentation of arguments.
 
         Returns:
             List of Event objects
@@ -249,7 +253,7 @@ class Events(CumulocityResource):
     def delete_by(self, type: str = None, source: str = None, fragment: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None):
-        """ Query the database and delete matching events.
+        """Query the database and delete matching events.
 
         All parameters are considered to be filters, limiting the result set
         to objects which meet the filters specification.  Filters can be

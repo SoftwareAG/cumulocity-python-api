@@ -112,5 +112,5 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
     finally:
         live_c8y.events.delete(*event_ids)
 
-    # 4) assert deletion
+    # 6) assert deletion
     assert not live_c8y.events.get_all(type=typename)

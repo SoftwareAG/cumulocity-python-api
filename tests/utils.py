@@ -23,6 +23,7 @@ def get_ids(objs: List[CumulocityObject]) -> Set[str]:
 
 
 def isolate_last_call_arg(mock: Mock, name: str, pos: int = None) -> Any:
+    mock.assert_called()
     args, kwargs = mock.call_args
     if name in kwargs:
         return kwargs[name]
@@ -33,6 +34,7 @@ def isolate_last_call_arg(mock: Mock, name: str, pos: int = None) -> Any:
 
 
 def isolate_all_call_args(mock: Mock, name: str, pos: int = None) -> List[Any]:
+    mock.assert_called()
     result = []
     for args, kwargs in mock.call_args_list:
         if name in kwargs:
