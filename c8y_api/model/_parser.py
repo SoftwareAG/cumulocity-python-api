@@ -87,25 +87,25 @@ class ComplexObjectParser(SimpleObjectParser):
 
     def from_json(self, obj_json, new_obj, skip=None):
         new_obj = super().from_json(obj_json, new_obj)
-        new_obj.fragments = self.parse_fragments(obj_json, self._ignore_as_fragments)
+        new_obj.fragments = self._parse_fragments(obj_json, self._ignore_as_fragments)
         return new_obj
 
     def to_json(self, obj: ComplexObject, include=None, exclude=None):
         obj_json = super().to_json(obj, include, exclude)
         if include is None:
-            obj_json.update(self.format_fragments(obj))
+            obj_json.update(self._format_fragments(obj))
         else:
-            included = obj._updated_fragments or set()
-            obj_json.update(self.format_fragments(obj, include=included))
+            # pylint: disable=protected-access
+            included = obj._updated_fragments or set()  # TODO: change to get_updated() possible?
+            obj_json.update(self._format_fragments(obj, include=included))
         return obj_json
 
     @staticmethod
-    def parse_fragments(obj_json, ignore: Set[str]):
+    def _parse_fragments(obj_json, ignore: Set[str]):
         return {name: body for name, body in obj_json.items() if name not in ignore}
 
     @staticmethod
-    def format_fragments(obj: ComplexObject, include: Set[str] | None = None) -> dict:
+    def _format_fragments(obj: ComplexObject, include: Set[str] | None = None) -> dict:
         if include is None:
             return dict(obj.fragments.items())
-        else:
-            return {name: fragment for name, fragment in obj.fragments.items() if name in include}
+        return {name: fragment for name, fragment in obj.fragments.items() if name in include}

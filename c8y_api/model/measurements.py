@@ -12,7 +12,7 @@ from c8y_api._base_api import CumulocityRestApi
 
 from c8y_api.model._base import CumulocityResource, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
-from c8y_api.model._updatable import _DictWrapper
+from c8y_api.model._base import _DictWrapper
 from c8y_api.model._util import _DateUtil
 
 
@@ -129,7 +129,7 @@ class Measurement(ComplexObject):
         self.time = _DateUtil.ensure_timestring(time)
 
     @classmethod
-    def from_json(cls, measurement_json) -> Measurement:
+    def from_json(cls, json) -> Measurement:
         """ Build a new Measurement instance from Cumulocity JSON.
 
         The JSON is assumed to be in the format as it is used by the
@@ -142,8 +142,8 @@ class Measurement(ComplexObject):
         Returns:
             Measurement object
         """
-        obj = cls._from_json(measurement_json, Measurement())
-        obj.source = measurement_json['source']['id']
+        obj = cls._from_json(json, Measurement())
+        obj.source = json['source']['id']
         return obj
 
     def to_json(self, only_updated=False) -> dict:
@@ -239,7 +239,7 @@ class Measurements(CumulocityResource):
         All parameters are considered to be filters, limiting the result set
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
-        
+
         Params:
             type (str):  Alarm type
             source (str):  Database ID of a source device

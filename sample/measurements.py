@@ -8,12 +8,12 @@ import datetime as dt
 
 from c8y_api import CumulocityApi
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import Measurement, Fragment, Device, Count, Value, Liters, Meters
 
 run_at = dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds')
 
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 
 # create a device and obtain ID

@@ -4,11 +4,11 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import ManagedObject, InventoryRole, \
     Permission, ReadPermission, WritePermission, PermissionLevel, PermissionScope
 
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 print('\nCreate a device group')
 dg = ManagedObject(name='New Device Group', type='c8y_DeviceGroup')
@@ -20,7 +20,7 @@ print(f'  New group created. ID: {group_id}')
 print('\nCreate a new inventory role')
 ir = InventoryRole(name='New Inventory Role', description='Newly created inventory role for test purposes',
                    permissions=[ReadPermission(type='c8y_Device'), WritePermission(type='c8y_Device'),
-                                Permission(level=PermissionLevel.ANY, scope=PermissionScope.EVENT)])
+                                Permission(level=PermissionLevel.ANY, scope=Permission.Scope.EVENT)])
 ir.c8y = c8y
 
 created_ir = ir.create()

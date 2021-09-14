@@ -14,8 +14,30 @@ from urllib.parse import urlencode
 
 from c8y_api._base_api import CumulocityRestApi
 
-from c8y_api.model._updatable import _DictWrapper
 from c8y_api.model._util import _DateUtil
+
+
+class _DictWrapper(object):
+
+    def __init__(self, dictionary, on_update=None):
+        self.__dict__['items'] = dictionary
+        self.__dict__['on_update'] = on_update
+
+    def has(self, name):
+        """Check whether a key is present in the dictionary."""
+        return name in self.items
+
+    def __getattr__(self, name):
+        item = self.items[name]
+        return item if not isinstance(item, dict) else _DictWrapper(item, self.on_update)
+
+    def __setattr__(self, name, value):
+        if self.on_update:
+            self.on_update()
+        self.items[name] = value
+
+    def __str__(self):
+        return self.__dict__['items'].__str__()
 
 
 class CumulocityObject:
@@ -336,6 +358,7 @@ class ComplexObject(SimpleObject):
 
     @deprecated
     def set_attribute(self, name, value):
+        # pylint: disable=missing-function-docstring
         logging.warning("Function 'set_attribute' is deprecated and will be removed "
                         "in a future release. Please use the [] operator instead.")
         self.__setitem__(name, value)
@@ -343,6 +366,7 @@ class ComplexObject(SimpleObject):
 
     @deprecated
     def add_fragment(self, name, **kwargs):
+        # pylint: disable=missing-function-docstring
         logging.warning("Function 'add_fragment' is deprecated and will be removed "
                         "in a future release. Please use the [] or += operator instead.")
         self.__setitem__(name, kwargs)
@@ -350,6 +374,7 @@ class ComplexObject(SimpleObject):
 
     @deprecated
     def add_fragments(self, *fragments):
+        # pylint: disable=missing-function-docstring
         logging.warning("Function 'add_fragments' is deprecated and will be removed "
                         "in a future release. Please use the [] or += operator instead.")
         self.__iadd__(fragments)
@@ -357,6 +382,7 @@ class ComplexObject(SimpleObject):
 
     @deprecated
     def has(self, name):
+        # pylint: disable=missing-function-docstring
         logging.warning("Function 'has' is deprecated and will be removed "
                         "in a future release. Please use the 'in' operator instead.")
         return self.__contains__(name)

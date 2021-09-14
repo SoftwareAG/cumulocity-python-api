@@ -9,7 +9,7 @@ import time
 import threading
 
 from c8y_api import CumulocityDeviceRegistry
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import Device
 
 
@@ -20,7 +20,7 @@ device_registry = CumulocityDeviceRegistry(
     password='Fhdt1bb1f')
 
 device_uuid = str(uuid.uuid1())
-api = CumulocityApi()
+api = CumulocityApp()
 
 print(f"Creating a device request for ID {device_uuid}.")
 api.device_inventory.request(device_uuid)

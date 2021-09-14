@@ -25,12 +25,14 @@ class Alarm(ComplexObject):
     """
 
     class Severity:
+        """Alarm severity levels."""
         MAJOR = 'MAJOR'
         CRITICAL = 'CRITICAL'
         MINOR = 'MINOR'
         WARNING = 'WARNING'
 
     class Status:
+        """Alarm statuses."""
         ACTIVE = 'ACTIVE'
         ACKNOWLEDGED = 'ACKNOWLEDGED'
         CLEARED = 'CLEARED'
@@ -49,8 +51,8 @@ class Alarm(ComplexObject):
         'first_occurrence': 'firstOccurrenceTime'},
         ['source'])
 
-    def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,
-                 source: str = None, text: str = None, status: str = None, severity: str = None, **kwargs):  # noqa (type)
+    def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,  # noqa (type)
+                 source: str = None, text: str = None, status: str = None, severity: str = None, **kwargs):
         """Create a new Alarm object.
 
         Args:
@@ -114,22 +116,22 @@ class Alarm(ComplexObject):
         return super()._to_datetime(self.first_occurrence_time)
 
     @classmethod
-    def from_json(cls, alarm_json: dict) -> Alarm:
+    def from_json(cls, json: dict) -> Alarm:
         """Build a new Alarm instance from JSON.
 
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
         Args:
-            alarm_json (dict): JSON object (nested dictionary)
+            json (dict): JSON object (nested dictionary)
                 representing a managed object within Cumulocity
 
         Returns:
             Alarm object
         """
-        obj = super()._from_json(alarm_json, Alarm())
-        obj.source = alarm_json['source']['id']
-        obj.id = alarm_json['id']
+        obj = super()._from_json(json, Alarm())
+        obj.source = json['source']['id']
+        obj.id = json['id']
         return obj
 
     def to_json(self, only_updated=False) -> dict:

@@ -4,10 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import GlobalRole
 
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 role = GlobalRole(name='new_role', description='description', permission_ids=['ROLE_ALARM_READ', 'ROLE_EVENT_READ'])
 role.c8y = c8y

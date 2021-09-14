@@ -1,12 +1,12 @@
 # Copyright (c) 2020 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import User
 
 # When using the App version, the API handle is initialized using
 # standard environment variables
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 # 1_ read the app user details
 app_user = c8y.users.get(c8y.username)

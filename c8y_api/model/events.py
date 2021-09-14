@@ -4,6 +4,9 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# Alarm and Event are similar by design, hence
+# pylint: disable=duplicate-code
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -77,10 +80,10 @@ class Event(ComplexObject):
         return super()._to_datetime(self.creation_time)
 
     @classmethod
-    def from_json(cls, event_json: dict) -> Event:
+    def from_json(cls, json: dict) -> Event:
         # (no doc update required)
-        obj = super()._from_json(event_json, Event())
-        obj.source = event_json['source']['id']
+        obj = super()._from_json(json, Event())
+        obj.source = json['source']['id']
         return obj
 
     def to_json(self, only_updated: bool = False) -> dict:
@@ -153,7 +156,7 @@ class Events(CumulocityResource):
 
         Args:
             event_id (str):  The database ID of the event
-            
+
         Returns:
             An Event instance representing the object in the database.
         """
@@ -173,7 +176,7 @@ class Events(CumulocityResource):
         All parameters are considered to be filters, limiting the result set
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
-        
+
         Args:
             type (str):  Event type
             source (str):  Database ID of a source device

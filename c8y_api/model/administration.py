@@ -14,22 +14,6 @@ from c8y_api.model._parser import SimpleObjectParser, ComplexObjectParser
 from c8y_api.model._util import _DateUtil
 
 
-class PermissionLevel(object):
-    ANY = '*'
-    READ = 'READ'
-    WRITE = 'ADMIN'
-
-
-class PermissionScope(object):
-    ANY = '*'
-    ALARM = 'ALARM'
-    AUDIT = 'AUDIT'
-    EVENT = 'EVENT'
-    MEASUREMENT = 'MEASUREMENT'
-    MANAGED_OBJECT = 'MANAGED_OBJECT'
-    OPERATION = 'OPERATION'
-
-
 class PermissionUtil:
     """Utility functions to work with the Permission API."""
 
@@ -42,12 +26,28 @@ class PermissionUtil:
 
 class Permission(SimpleObject):
 
+    class Level(object):
+        """Permission levels."""
+        ANY = '*'
+        READ = 'READ'
+        WRITE = 'ADMIN'
+
+    class Scope(object):
+        """Permission scopes."""
+        ANY = '*'
+        ALARM = 'ALARM'
+        AUDIT = 'AUDIT'
+        EVENT = 'EVENT'
+        MEASUREMENT = 'MEASUREMENT'
+        MANAGED_OBJECT = 'MANAGED_OBJECT'
+        OPERATION = 'OPERATION'
+
     _parser = SimpleObjectParser({
             'level': 'permission',
             'type': 'type',
             'scope': 'scope'})
 
-    def __init__(self, level=PermissionLevel.ANY, scope=PermissionScope.ANY, type='*'):
+    def __init__(self, level=Level.ANY, scope=Scope.ANY, type='*'):
         """
         :param level: one of ADMIN, READ, * (default)
         :param type: type on which to restrict or * (default)
@@ -79,18 +79,18 @@ class Permission(SimpleObject):
 
 
 class ReadPermission(Permission):
-    def __init__(self, scope=PermissionScope.ANY, type='*'):  # noqa
-        super().__init__(level=PermissionLevel.READ, scope=scope, type=type)
+    def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
+        super().__init__(level=Permission.Level.READ, scope=scope, type=type)
 
 
 class WritePermission(Permission):
-    def __init__(self, scope=PermissionScope.ANY, type='*'):  # noqa
-        super().__init__(level=PermissionLevel.WRITE, scope=scope, type=type)
+    def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
+        super().__init__(level=Permission.Level.WRITE, scope=scope, type=type)
 
 
 class AnyPermission(Permission):
-    def __init__(self, scope=PermissionScope.ANY, type='*'):  # noqa
-        super().__init__(level=PermissionLevel.ANY, scope=scope, type=type)
+    def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
+        super().__init__(level=Permission.Level.ANY, scope=scope, type=type)
 
 
 class InventoryRole(SimpleObject):

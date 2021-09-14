@@ -5,7 +5,7 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 import sys
-from typing import Union
+from typing import Union, Dict
 
 import requests
 import collections
@@ -25,7 +25,19 @@ class CumulocityRestApi:
     ACCEPT_GLOBAL_ROLE = 'application/vnd.com.nsn.cumulocity.group+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
-    def __init__(self, base_url, tenant_id, username, password, tfa_token=None, application_key=None):
+    def __init__(self, base_url: str, tenant_id: str, username: str, password: str,
+                 tfa_token: str = None, application_key: str = None):
+        """Build a CumulocityRestApi instance.
+
+        Args:
+            base_url (str):  Cumulocity base URL, e.g. https://cumulocity.com
+            tenant_id (str):  The ID of the tenant to connect to
+            username (str):  Username
+            password (str):  User password
+            tfa_token (str):  Currently valid two factor authorization token
+            application_key (str):  Application ID to include in requests
+                (for billing/metering purposes).
+        """
         self.base_url = base_url
         self.tenant_id = tenant_id
         self.username = username
@@ -48,13 +60,26 @@ class CumulocityRestApi:
             s.headers.update({self.HEADER_APPLICATION_KEY: self.application_key})
         return s
 
-    def prepare_request(self, method, resource, body=None, additional_headers=None):
+    def prepare_request(self, method: str, resource: str,
+                        json: dict = None, additional_headers: Dict[str, str] = None) -> requests.PreparedRequest:
+        """Prepare an HTTP request.
+
+        Args:
+            method (str):  One of 'GET', 'POST', 'PUT', 'DELETE'
+            resource (str):  Path to the HTTP resource
+            json (dict):  JSON body (nested dict) to send witht he request
+            additional_headers (dict):  Additional non-standard headers to
+                include in the request
+
+        Returns:
+            A PreparedRequest instance
+        """
         hs = self.__default_headers
         if additional_headers:
             hs.update(additional_headers)
         rq = requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.__auth)
-        if body:
-            rq.json = body
+        if json:
+            rq.json = json
         return rq.prepare()
 
     def get(self, resource, params=None, accept=None, ordered=False) -> dict:
@@ -181,6 +206,8 @@ class CumulocityRestApi:
         return {}
 
     def put_file(self, resource, file, media_type):
+        # pylint: disable=missing-function-docstring
+        # TODO: docs
         headers = {'Content-Type': media_type, **self.__default_headers}
         r = self.session.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
         if r.status_code == 404:

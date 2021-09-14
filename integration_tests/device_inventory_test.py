@@ -1,6 +1,6 @@
 import pytest
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import Device
 
 from tests import RandomNameGenerator
@@ -8,7 +8,7 @@ from tests import RandomNameGenerator
 
 @pytest.fixture(scope='function')
 @pytest.mark.skip
-def random_devices(c8y: CumulocityApi):
+def random_devices(c8y: CumulocityApp):
     num = 3
     basename = RandomNameGenerator.random_name()
     typename = basename + '_type'
@@ -22,7 +22,7 @@ def random_devices(c8y: CumulocityApi):
     c8y.device_inventory.delete(*db_devices)
 
 @pytest.mark.skip
-def test_get_all(c8y: CumulocityApi, random_devices):
+def test_get_all(c8y: CumulocityApp, random_devices):
     typename = random_devices[0].type
 
     result = c8y.device_inventory.get_all(type=typename)

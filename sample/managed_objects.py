@@ -6,10 +6,10 @@
 
 import json
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import ManagedObject, Device, Fragment
 
-api = CumulocityApi()
+api = CumulocityApp()
 
 # (1) Creating managed objects from scratch
 print("\nCreating custom managed objects ...")

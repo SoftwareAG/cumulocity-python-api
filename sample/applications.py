@@ -4,11 +4,11 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 
 # When using the App version, the API handle is initialized using
 # standard environment variables
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 
 def print_application(application):

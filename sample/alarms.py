@@ -6,7 +6,7 @@
 
 import datetime as dt
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import Alarm
 
 
@@ -27,7 +27,7 @@ def print_alarm(alarm):
         print(f'   {key}: {alarm.fragments[key]}')
 
 
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 sample_source_id = None
 

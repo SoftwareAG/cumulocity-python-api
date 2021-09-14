@@ -24,12 +24,12 @@ class Application(SimpleObject):
         self.owner = owner
 
     @classmethod
-    def from_json(cls, application_json):
-        application = Application(name=application_json['name'],
-                                  type=application_json['type'],
-                                  availability=application_json['availability'],
-                                  owner=application_json['owner']['tenant']['id'])
-        application.id = application_json['id']
+    def from_json(cls, json):
+        application = Application(name=json['name'],
+                                  type=json['type'],
+                                  availability=json['availability'],
+                                  owner=json['owner']['tenant']['id'])
+        application.id = json['id']
         return application
 
 

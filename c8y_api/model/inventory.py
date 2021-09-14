@@ -11,9 +11,8 @@ from typing import Any
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model import Users, User
-from c8y_api.model._base import CumulocityResource, SimpleObject, ComplexObject
+from c8y_api.model._base import _DictWrapper, CumulocityResource, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
-from c8y_api.model._updatable import _DictWrapper
 
 from c8y_api._util import error
 
@@ -282,20 +281,6 @@ class ManagedObject(ComplexObject):
     @classmethod
     def _parse_references(cls, base_json):
         return [NamedObject.from_json(j['managedObject']) for j in base_json['references']]
-
-    def to_json(self, only_updated=False) -> dict:
-        """ Convert the instance to JSON.
-
-        The JSON format produced by this function is what is used by the
-        Cumulocity REST API.
-
-        Note: This JSON representation does not include child assets,
-        child devices and child additions.
-
-        Returns:
-            JSON object (nested dictionary)
-        """
-        return super().to_json(only_updated)
 
     def create(self) -> ManagedObject:
         """ Create a new representation of this object within the database.

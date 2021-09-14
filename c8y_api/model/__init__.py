@@ -12,7 +12,7 @@ from c8y_api.model.alarms import *
 
 __all__ = ['administration', 'inventory', 'measurements', 'events',
            'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
-           'Permission', 'ReadPermission', 'WritePermission', 'AnyPermission', 'PermissionLevel', 'PermissionScope',
+           'Permission', 'ReadPermission', 'WritePermission', 'AnyPermission',
            'ManagedObject', 'Device', 'DeviceGroup', 'Fragment', 'NamedObject',
            'Inventory', 'DeviceInventory', 'DeviceGroupInventory',
            'Identity', 'ExternalId', 'Binary', 'Binaries',

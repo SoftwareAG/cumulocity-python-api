@@ -15,22 +15,39 @@ from c8y_api._main_api import CumulocityApi
 
 
 class CumulocityDeviceRegistry(CumulocityRestApi):
+    """Application-like Cumulocity API.
+
+    Provides usage centric access to a Cumulocity instance.
+
+    Note: In contract to the standard Cumulocity API, this class evaluates
+    the environment to resolve the authorization information automatically.
+    This class is best used in Cumulocity microservices (applications).
+
+    This class supports two application authentication modes:
+        - PER_TENANT
+        - MULTITENANT
+
+    If the application is executed in PER_TENANT mode, all necessary
+    authentication information is provided directly by Cumulocity as
+    environment variables injected into the Docker container.
+    """
 
     log = logging.getLogger('c8y_api.CumulocityDeviceRegistry')
 
     @dataclass
     class Credentials:
+        """Bundles authentication information."""
         tenant_id: str
         username: str
         password: str
 
-    __default_instance = None
+    _default_instance = None
 
     def __init__(self, base_url, tenant_id, username, password):
         super().__init__(base_url, tenant_id, username, password)
 
     @classmethod
-    def __build_default(cls):
+    def _build_default(cls):
         with open('c8y_api.yaml') as config_file:
             configuration = yaml.load(config_file, Loader=yaml.BaseLoader)
             base = configuration['base']
@@ -41,9 +58,9 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
 
     @classmethod
     def default(cls):
-        if not cls.__default_instance:
-            cls.__default_instance = cls.__build_default()
-        return cls.__default_instance
+        if not cls._default_instance:
+            cls._default_instance = cls._build_default()
+        return cls._default_instance
 
     def await_credentials(self, device_id, timeout='60m', pause='1s'):
         pause_s = CumulocityDeviceRegistry.__parse_timedelta_s(pause)
@@ -51,7 +68,7 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
         assert pause_s, f"Unable to parse pause string: {pause}"
         assert timeout_s, f"Unable to parse timeout string: {timeout}"
         request_json = {'id': device_id}
-        request = self.prepare_request(method='post', resource='/devicecontrol/deviceCredentials', body=request_json)
+        request = self.prepare_request(method='post', resource='/devicecontrol/deviceCredentials', json=request_json)
         session = requests.Session()
         timeout_time = time.time() + timeout_s
         while True:

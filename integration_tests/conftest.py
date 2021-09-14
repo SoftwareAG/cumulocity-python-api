@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import pytest
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import Device
 
 from tests import RandomNameGenerator
@@ -34,16 +34,16 @@ def test_environment(logger):
 
 
 @pytest.fixture(scope='session')
-def live_c8y(test_environment) -> CumulocityApi:
+def live_c8y(test_environment) -> CumulocityApp:
     """Provide a live CumulocityApi instance as defined by the environment."""
     if 'C8Y_BASEURL' not in os.environ.keys():
         raise RuntimeError("Missing Cumulocity environment variables (C8Y_*). Cannot create CumulocityApi instance. "
                            "Please define the required variables directly or setup a .env file.")
-    return CumulocityApi()
+    return CumulocityApp()
 
 
 @pytest.fixture(scope='session')
-def factory(logger, live_c8y: CumulocityApi):
+def factory(logger, live_c8y: CumulocityApp):
     """Provides a generic object factory function which ensures that created
     objects are removed after testing."""
 
@@ -65,7 +65,7 @@ def factory(logger, live_c8y: CumulocityApi):
 
 
 @pytest.fixture(scope='session')
-def sample_device(logger: logging.Logger, live_c8y: CumulocityApi) -> Device:
+def sample_device(logger: logging.Logger, live_c8y: CumulocityApp) -> Device:
     """Provide an sample device, just for testing purposes."""
 
     typename = RandomNameGenerator.random_name()

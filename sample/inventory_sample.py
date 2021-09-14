@@ -4,10 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from c8y_api.app import CumulocityApi
+from c8y_api.app import CumulocityApp
 from c8y_api.model import ManagedObject, Fragment
 
-c8y = CumulocityApi()
+c8y = CumulocityApp()
 
 mo1 = ManagedObject(name='test')
 mo1.set_attribute(name='c8y_attribute', value="some message string")

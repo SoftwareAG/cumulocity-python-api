@@ -15,8 +15,13 @@ from c8y_api.model.alarms import Alarms
 
 
 class CumulocityApi(CumulocityRestApi):
+    """Main Cumulocity API.
 
-    def __init__(self, base_url, tenant_id, username, password, tfa_token=None, application_key=None):
+    Provides usage centric access to a Cumulocity instance.
+    """
+
+    def __init__(self, base_url: str, tenant_id: str, username: str, password: str,
+                 tfa_token: str = None, application_key: str = None):
         super().__init__(base_url, tenant_id, username, password, tfa_token, application_key)
         self.__measurements = Measurements(self)
         self.__inventory = Inventory(self)
@@ -31,45 +36,56 @@ class CumulocityApi(CumulocityRestApi):
         self.__alarms = Alarms(self)
 
     @property
-    def measurements(self):
+    def measurements(self) -> Measurements:
+        """Provide access to the Measurements API."""
         return self.__measurements
 
     @property
-    def inventory(self):
+    def inventory(self) -> Inventory:
+        """Provide access to the Inventory API."""
         return self.__inventory
 
     @property
-    def group_inventory(self):
+    def group_inventory(self) -> DeviceGroupInventory:
+        """Provide access to the Device Group Inventory API."""
         return self.__group_inventory
 
     @property
-    def device_inventory(self):
+    def device_inventory(self) -> DeviceInventory:
+        """Provide access to the Device Inventory API."""
         return self.__device_inventory
 
     @property
-    def identity(self):
+    def identity(self) -> Identity:
+        """Provide access to the Identity API."""
         return self.__identity
 
     @property
-    def users(self):
+    def users(self) -> Users:
+        """Provide access to the Users API."""
         return self.__users
 
     @property
-    def global_roles(self):
+    def global_roles(self) -> GlobalRoles:
+        """Provide access to the Global Roles API."""
         return self.__global_roles
 
     @property
-    def inventory_roles(self):
+    def inventory_roles(self) -> InventoryRoles:
+        """Provide access to the Inventory Roles API."""
         return self.__inventory_roles
 
     @property
-    def applications(self):
+    def applications(self) -> Applications:
+        """Provide access to the Applications API."""
         return self.__applications
 
     @property
-    def events(self):
+    def events(self) -> Events:
+        """Provide access to the Events API."""
         return self.__events
 
     @property
-    def alarms(self):
+    def alarms(self) -> Alarms:
+        """Provide access to the Alarm API."""
         return self.__alarms
