@@ -293,6 +293,35 @@ class Alarms(CumulocityResource):
                                 before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
                                 limit=limit, page_size=page_size))
 
+    def count(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
+                status: str = None, severity: str = None, resolved: str = None,
+                before: str | datetime = None, after: str | datetime = None,
+                min_age: timedelta = None, max_age: timedelta = None) -> int:
+        """Count the number of certain alarms.
+
+        Args:
+            type (str):  Alarm type
+            source (str):  Database ID of a source device
+            fragment (str):  Name of a present custom/standard fragment
+            status (str):  Alarm status
+            severity (str):  Alarm severity
+            resolved (str):  Whether the alarm status is CLEARED
+            before (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms assigned to a time before this date are returned.
+            after (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms assigned to a time after this date are returned
+            min_age (timedelta):  Matches only alarms of at least this age
+            max_age (timedelta):  Matches only alarms with at most this age
+
+        Returns:
+            Number of matching alarms in Cumulocity.
+        """
+        params = self._prepare_query_params(type=type, source=source, fragment=fragment,
+                                            status=status, severity=severity, resolved=resolved,
+                                            before=before, after=after, min_age=min_age, max_age=max_age)
+        response_json = self.c8y.get(self.resource + '/count', params)
+        return response_json if isinstance(response_json, int) else None
+
     def create(self, *alarms):
         """Create alarm objects within the database.
 
@@ -317,6 +346,34 @@ class Alarms(CumulocityResource):
             alarm_ids (*str): A collection of database IDS of alarms
         """
         super()._apply_to(Alarm.to_full_json, alarm, *alarm_ids)
+
+    def apply_by(self, alarm: Alarm, type: str = None, source: str = None, fragment: str = None, # noqa (type)
+                status: str = None, severity: str = None, resolved: str = None,
+                before: str | datetime = None, after: str | datetime = None,
+                min_age: timedelta = None, max_age: timedelta = None):
+        """Apply changes made to a single instance to other objects in the database.
+
+        Args:
+            alarm (Alarm): Object serving as model for the update
+            type (str):  Alarm type
+            source (str):  Database ID of a source device
+            fragment (str):  Name of a present custom/standard fragment
+            status (str):  Alarm status
+            severity (str):  Alarm severity
+            resolved (str):  Whether the alarm status is CLEARED
+            before (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms assigned to a time before this date are returned.
+            after (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms assigned to a time after this date are returned
+            min_age (timedelta):  Matches only alarms of at least this age
+            max_age (timedelta):  Matches only alarms with at most this age
+
+        See also: https://cumulocity.com/api/#operation/putAlarmCollectionResource
+        """
+        params = self._prepare_query_params(type=type, source=source, fragment=fragment,
+                                            status=status, severity=severity, resolved=resolved,
+                                            before=before, after=after, min_age=min_age, max_age=max_age)
+        self.c8y.put(self.resource, alarm.to_full_json(), params=params, accept='')
 
     def delete(self, *alarms):
         """Delete alarm objects within the database.

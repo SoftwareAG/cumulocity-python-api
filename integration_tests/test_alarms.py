@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import List
+
 import pytest
 
 from c8y_api import CumulocityApi
@@ -65,16 +67,17 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
     """Verify that basic CRUD functionality via the API works."""
 
     typename = RandomNameGenerator.random_name()
+    time = '1970-01-01T11:22:33Z'
     alarm1 = Alarm(c8y=live_c8y, type=typename + '_1', text=f'{typename} text', source=sample_device.id,
-                   time='2020-01-01T11:33:55Z', severity=Alarm.Severity.MINOR)
+                   time=time, severity=Alarm.Severity.MINOR)
     alarm2 = Alarm(c8y=live_c8y, type=typename + '_2', text=f'{typename} text', source=sample_device.id,
-                   time='2020-01-01T11:33:55Z', severity=Alarm.Severity.MINOR)
+                   time=time, severity=Alarm.Severity.MINOR)
 
     # 1) create multiple events and read from Cumulocity
     live_c8y.alarms.create(alarm1, alarm2)
     get_filter = {'source': sample_device.id,
-                  'before': '2020-01-02',
-                  'after': '2020-01-01'}
+                  'before': '1970-01-02',
+                  'after': '1970-01-01'}
 
     # -> we should have exactly 2 alarms of this type
     alarms = live_c8y.alarms.get_all(**get_filter)
@@ -112,3 +115,42 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
 
     # 6) assert deletion
     assert not live_c8y.alarms.get_all(**get_filter)
+
+
+@pytest.fixture(scope='session')
+def sample_alarms(factory, sample_device) -> List[Alarm]:
+    """Provide a set of sample Alarm instances that will automatically
+    be removed after the test function."""
+    typename = RandomNameGenerator.random_name()
+    result = []
+    for i in range(1, 6):
+        alarm = Alarm(type=f'{typename}_{i}', text=f'{typename} text', source=sample_device.id,
+                      time='2020-12-31T11:33:55Z', severity=Alarm.Severity.WARNING)
+        result.append(factory(alarm))
+    return result
+
+
+def test_apply_by(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):
+    """Verify that the count function works."""
+    alarm = sample_alarms[0]
+    model = Alarm(status=Alarm.Status.ACKNOWLEDGED)
+
+    filter_kwargs = {'source': alarm.source,
+                     'severity': alarm.severity,
+                     'before': '2021-01-01',
+                     'after': '2020-12-31'}
+
+    # 1) apply model change by query
+    live_c8y.alarms.apply_by(model, **filter_kwargs)
+
+    # -> all matching objects should have been updated
+    alarms = live_c8y.alarms.get_all(**filter_kwargs)
+    assert all([a.status == model.status for a in alarms])
+
+
+def test_count(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):
+    """Verify that the count function works."""
+    alarm = sample_alarms[0]
+    count = live_c8y.alarms.count(source=alarm.source, severity=alarm.severity,
+                                  before='2021-01-01', after='2020-12-31')
+    assert count == len(sample_alarms)

@@ -42,7 +42,7 @@ def live_c8y(test_environment) -> CumulocityApi:
     return CumulocityApi()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def factory(logger, live_c8y: CumulocityApi):
     """Provides a generic object factory function which ensures that created
     objects are removed after testing."""
@@ -50,6 +50,8 @@ def factory(logger, live_c8y: CumulocityApi):
     created = []
 
     def factory_fun(obj):
+        if not obj.c8y:
+            obj.c8y = live_c8y
         o = obj.create()
         logger.info(f'Created object #{o.id}, ({o.__class__.__name__})')
         created.append(o)
@@ -57,8 +59,9 @@ def factory(logger, live_c8y: CumulocityApi):
 
     yield factory_fun
 
-    for u in created:
-        u.delete()
+    for c in created:
+        logger.info(f'Removed object #{c.id}, ({c.__class__.__name__})')
+        c.delete()
 
 
 @pytest.fixture(scope='session')

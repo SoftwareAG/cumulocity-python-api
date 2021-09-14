@@ -145,13 +145,14 @@ class CumulocityRestApi:
             raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
         return r.json()
 
-    def put(self, resource, json, accept=None, content_type=None) -> dict:
+    def put(self, resource, json, params=None, accept=None, content_type=None) -> dict:
         """Generic HTTP PUT wrapper, dealing with standard error returning
         a JSON body object.
 
         Args:
             resource (str): Resource path
             json (dict): JSON body (nested dict)
+            params (dict): Additional request parameters
             accept (str|None): Custom Accept header to use (default is
                 application/json). Specify '' to sent no Accept header.
             content_type (str|None): Custom Content-Type header to use
@@ -168,7 +169,7 @@ class CumulocityRestApi:
         """
         assert isinstance(json, dict)
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
-        r = self.session.put(self.base_url + resource, json=json, headers=additional_headers)
+        r = self.session.put(self.base_url + resource, json=json, params=params, headers=additional_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:

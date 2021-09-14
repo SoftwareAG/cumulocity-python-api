@@ -338,8 +338,8 @@ class ManagedObject(ComplexObject):
         """
         self._assert_c8y()
         # put diff json to another object (by ID)
-        result_json = self.c8y.put(self.__RESOURCE + str(other_id),
-                                   json=self.to_diff_json(), accept=self.c8y.ACCEPT_MANAGED_OBJECT)
+        result_json = self.c8y.put(self.__RESOURCE + str(other_id), json=self.to_diff_json(),
+                                   accept=self.c8y.ACCEPT_MANAGED_OBJECT)
         result = ManagedObject.from_json(result_json)
         result.c8y = self.c8y
         return result

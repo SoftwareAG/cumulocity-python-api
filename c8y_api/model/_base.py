@@ -243,8 +243,7 @@ class SimpleObject(CumulocityObject):
     def _update(self) -> Any[SimpleObject]:
         self._assert_c8y()
         self._assert_id()
-        result_json = self.c8y.put(self._build_object_path(),
-                                   self.to_json(True), accept=self._accept)
+        result_json = self.c8y.put(self._build_object_path(), self.to_json(True), accept=self._accept)
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
@@ -405,10 +404,10 @@ class CumulocityResource:
         return self.resource + '/' + str(object_id)
 
     @staticmethod
-    def __prepare_query_parameters(type=None, name=None, fragment=None, source=None,   # noqa (type)
-                                   series=None, owner=None,
-                                   before=None, after=None, min_age=None, max_age=None,
-                                   reverse=None, page_size=None, **kwargs):
+    def _prepare_query_params(type=None, name=None, fragment=None, source=None,  # noqa (type)
+                              series=None, owner=None,
+                              before=None, after=None, min_age=None, max_age=None,
+                              reverse=None, page_size=None, **kwargs):
         # min_age/max_age should be timedelta objects that can be used for
         # alternative calculation of the before/after parameters
         if min_age:
@@ -436,7 +435,7 @@ class CumulocityResource:
         return params
 
     def _build_base_query(self, **kwargs):
-        params = CumulocityResource.__prepare_query_parameters(**kwargs)
+        params = CumulocityResource._prepare_query_params(**kwargs)
         return self.resource + '?' + urlencode(params) + '&currentPage='
 
     def _get_object(self, object_id):
