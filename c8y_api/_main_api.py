@@ -6,7 +6,8 @@
 
 from c8y_api._base_api import CumulocityRestApi
 
-from c8y_api.model.inventory import Inventory, Identity, DeviceGroupInventory, DeviceInventory
+from c8y_api.model.inventory import Inventory, DeviceGroupInventory, DeviceInventory
+from c8y_api.model.identity import Identity
 from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
 from c8y_api.model.measurements import Measurements
 from c8y_api.model.applications import Applications
