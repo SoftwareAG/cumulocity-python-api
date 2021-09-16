@@ -6,13 +6,13 @@
 
 from c8y_api._base_api import CumulocityRestApi
 
-from c8y_api.model.inventory import Inventory, DeviceGroupInventory, DeviceInventory
-from c8y_api.model.identity import Identity
 from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
-from c8y_api.model.measurements import Measurements
+from c8y_api.model.alarms import Alarms
 from c8y_api.model.applications import Applications
 from c8y_api.model.events import Events
-from c8y_api.model.alarms import Alarms
+from c8y_api.model.identity import Identity
+from c8y_api.model.inventory import Inventory, DeviceGroupInventory, DeviceInventory, Binaries
+from c8y_api.model.measurements import Measurements
 
 
 class CumulocityApi(CumulocityRestApi):
@@ -26,6 +26,7 @@ class CumulocityApi(CumulocityRestApi):
         super().__init__(base_url, tenant_id, username, password, tfa_token, application_key)
         self.__measurements = Measurements(self)
         self.__inventory = Inventory(self)
+        self.__binaries = Binaries(self)
         self.__group_inventory = DeviceGroupInventory(self)
         self.__device_inventory = DeviceInventory(self)
         self.__identity = Identity(self)
@@ -50,6 +51,11 @@ class CumulocityApi(CumulocityRestApi):
     def group_inventory(self) -> DeviceGroupInventory:
         """Provide access to the Device Group Inventory API."""
         return self.__group_inventory
+
+    @property
+    def binaries(self):
+        """Provide access to the Binary API."""
+        return self.__binaries
 
     @property
     def device_inventory(self) -> DeviceInventory:

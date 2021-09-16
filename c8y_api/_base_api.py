@@ -157,8 +157,9 @@ class CumulocityRestApi:
 
         headers = {'Accept': 'application/json', **self.__default_headers}
 
+        import json as js
         payload = {
-            'object': (None, str(binary_meta_information.to_json()).replace("'", '"')),
+            'object': (None, js.dumps(binary_meta_information.to_json())),
             'filesize': (None, sys.getsizeof(file)),
             'file': (None, file.read())
         }
