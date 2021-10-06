@@ -13,7 +13,7 @@ from tests import RandomNameGenerator
 @pytest.fixture(scope='session')
 def logger():
     """Provide a logger for testing."""
-    return logging.getLogger(__name__ + '.test')
+    return logging.getLogger('c8y_api.test')
 
 
 @pytest.fixture(scope='session')

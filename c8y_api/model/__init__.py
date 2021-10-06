@@ -7,6 +7,8 @@
 from c8y_api.model.administration import *
 from c8y_api.model.measurements import *
 from c8y_api.model.inventory import *
+from c8y_api.model.identity import *
+from c8y_api.model.binaries import *
 from c8y_api.model.events import *
 from c8y_api.model.alarms import *
 

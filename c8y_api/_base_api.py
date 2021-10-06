@@ -4,8 +4,10 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-import sys
-from typing import Union, Dict
+from __future__ import annotations
+
+import json as json_lib
+from typing import Union, Dict, BinaryIO
 
 import requests
 import collections
@@ -82,7 +84,7 @@ class CumulocityRestApi:
             rq.json = json
         return rq.prepare()
 
-    def get(self, resource, params=None, accept=None, ordered=False) -> dict:
+    def get(self, resource: str, params: dict = None, accept: str = None, ordered: bool = False) -> dict:
         """Generic HTTP GET wrapper, dealing with standard error returning
         a JSON body object.
 
@@ -92,9 +94,10 @@ class CumulocityRestApi:
             accept (str|None): Custom Accept header to use (default is
                 application/json). Specify '' to sent no Accept header.
             ordered (bool): Whether the result JSON needs to be ordered
+                (default is False)
 
         Returns:
-             The JSON response (nested dict)
+            The JSON response (nested dict)
 
         Raises:
             KeyError if the resources is not found (404)
@@ -114,7 +117,34 @@ class CumulocityRestApi:
             return r.json() if not ordered else r.json(object_pairs_hook=collections.OrderedDict)
         return {}
 
-    def post(self, resource, json, accept=None, content_type=None) -> dict:
+    def get_file(self, resource: str, params: dict = None) -> bytes:
+        """Generic HTTP GET wrapper.
+
+        Used for downloading binary data, i.e. reading binaries from Cumulocity.
+
+        Args:
+            resource (str): Resource path
+            params (dict): Additional request parameters
+
+        Returns:
+            The binary data as bytes.
+
+        Raises:
+            KeyError if the resources is not found (404)
+            SyntaxError if the request cannot be processes (5xx)
+            ValueError if the response is not ok for other reasons
+                (only 200 is accepted).
+        """
+        r = self.session.get(self.base_url + resource, params=params)
+        if r.status_code == 404:
+            raise KeyError(f"No such object: {resource}")
+        if 500 <= r.status_code <= 599:
+            raise SyntaxError(f"Invalid GET request. Status: {r.status_code} Response:\n" + r.text)
+        if r.status_code != 200:
+            raise ValueError(f"Unable to perform GET request. Status: {r.status_code} Response:\n" + r.text)
+        return r.content
+
+    def post(self, resource: str, json: dict, accept: str = None, content_type: str = None) -> dict:
         """Generic HTTP POST wrapper, dealing with standard error returning
         a JSON body object.
 
@@ -148,30 +178,47 @@ class CumulocityRestApi:
             return r.json()
         return {}
 
-    def post_file(self, resource, file, binary_meta_information):
-        """Generic POST wrapper.
+    def post_file(self, resource: str, file: str | BinaryIO, object: dict,
+                  accept: str = None, content_type: str = 'application/octet-stream'):
+        """Generic HTTP POST wrapper.
 
-        Used for posting binary data.
+        Used for posting binary data, i.e. creating binary objects in Cumulocity.
+
+        Args:
+            resource (str): Resource path
+            file (str|BinaryIO):  File-like object or a file path
+            object (dict):  File metadata, stored within Cumulocity
+            accept (str|None): Custom Accept header to use (default is
+                application/json). Specify '' to sent no Accept header.
+            content_type (str): Content type of the file sent
+                (default is application/octet-stream)
+
+        Returns:
+             The JSON response (nested dict)
+
+        Raises:
+            SyntaxError if the request cannot be processes (5xx)
+            ValueError if the response is not ok for other reasons
+                (only 201 is accepted).
         """
-        assert file is not None
-
-        headers = {'Accept': 'application/json', **self.__default_headers}
-
-        import json as js
-        payload = {
-            'object': (None, js.dumps(binary_meta_information.to_json())),
-            'filesize': (None, sys.getsizeof(file)),
-            'file': (None, file.read())
+        if isinstance(file, str):
+            file = open(file, 'rb')
+        files = {
+            'object': (None, json_lib.dumps(object)),
+            'file': (None, file, content_type or 'application/octet-stream')
         }
-
-        r = self.session.post(self.base_url + resource, files=payload, auth=self.__auth, headers=headers)
+        additional_headers = self._prepare_headers(accept=accept)
+        r = self.session.post(self.base_url + resource, files=files, headers=additional_headers)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
-            raise ValueError("Unable to perform POST request.", ("Status", r.status_code), ("Response", r.text))
-        return r.json()
+            raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
+        if r.content:
+            return r.json()
+        return {}
 
-    def put(self, resource, json, params=None, accept=None, content_type=None) -> dict:
+    def put(self, resource: str, json: dict, params: dict = None,
+            accept: str = None, content_type: str = None) -> dict:
         """Generic HTTP PUT wrapper, dealing with standard error returning
         a JSON body object.
 
@@ -206,19 +253,49 @@ class CumulocityRestApi:
             return r.json()
         return {}
 
-    def put_file(self, resource, file, media_type):
-        # pylint: disable=missing-function-docstring
-        # TODO: docs
-        headers = {'Content-Type': media_type, **self.__default_headers}
-        r = self.session.put(self.base_url + resource, data=file.read(), auth=self.__auth, headers=headers)
+    def put_file(self, resource: str, file: str | BinaryIO,
+                 accept: str = None, content_type: str = 'application/octet-stream'):
+        """Generic HTTP PUT wrapper.
+
+        Used for put'ing binary data, i.e. updating binaries in Cumulocity.
+
+        Args:
+            resource (str): Resource path
+            file (str|BinaryIO):  File-like object or a file path
+            accept (str|None): Custom Accept header to use (default is
+                application/json). Specify '' to sent no Accept header.
+            content_type (str): Content type of the file sent
+                (default is application/octet-stream)
+
+        Returns:
+             The JSON response (nested dict)
+
+        Raises:
+            KeyError if the resources is not found (404)
+            SyntaxError if the request cannot be processes (5xx)
+            ValueError if the response is not ok for other reasons
+                (only 201 is accepted).
+        """
+        if isinstance(file, str):
+            file = open(file, 'rb')
+        # for some reason, the content-type header needs to be set, so
+        # this is a reasonable default
+        if not content_type:
+            content_type = 'application/octet-stream'
+        additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
+        data = file.read()
+        r = self.session.put(self.base_url + resource, data=data, headers=additional_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
+        if r.content:
+            return r.json()
+        return {}
 
-    def delete(self, resource):
+    def delete(self, resource: str):
         """Generic HTTP POST wrapper, dealing with standard error returning
         a JSON body object.
 

@@ -14,8 +14,6 @@ from c8y_api.model import Users, User
 from c8y_api.model._base import _DictWrapper, CumulocityResource, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
 
-from c8y_api._util import error
-
 
 class NamedObject(object):
     """ Represent a named object within the database.
@@ -232,6 +230,7 @@ class ManagedObject(ComplexObject):
         self._object_path = None
         self.is_device = False
         self.is_device_group = False
+        self.is_binary = False
 
     type = SimpleObject.UpdatableProperty(name='_u_type')
     name = SimpleObject.UpdatableProperty(name='_u_name')
@@ -258,9 +257,16 @@ class ManagedObject(ComplexObject):
         """This function is used by derived classes to share the logic.
         Purposely no type information."""
         mo = super(ManagedObject, cls)._from_json(object_json, new_object)
-        mo.child_devices = cls._parse_references(object_json['childDevices'])
-        mo.child_assets = cls._parse_references(object_json['childAssets'])
-        mo.child_additions = cls._parse_references(object_json['childAdditions'])
+        if 'c8y_IsDevice' in object_json:
+            mo.is_device = True
+        if 'c8y_IsBinary' in object_json:
+            mo.is_binary = True
+        if 'childDevices' in object_json:
+            mo.child_devices = cls._parse_references(object_json['childDevices'])
+        if 'childAssets' in object_json:
+            mo.child_assets = cls._parse_references(object_json['childAssets'])
+        if 'childAdditions' in object_json:
+            mo.child_additions = cls._parse_references(object_json['childAdditions'])
         return mo
 
     @classmethod
@@ -277,6 +283,17 @@ class ManagedObject(ComplexObject):
             ManagedObject object
         """
         return cls._from_json(json, ManagedObject())
+
+    def to_json(self, only_updated=False) -> dict:
+        json = super().to_json()
+        if not only_updated:
+            if self.is_device:
+                json['c8y_IsDevice'] = {}
+            if self.is_device_group:
+                json['c8y_IsDeviceGroup'] = {}
+            if self.is_binary:
+                json['c8y_IsBinary'] = ''
+        return json
 
     @classmethod
     def _parse_references(cls, base_json):
@@ -419,9 +436,7 @@ class Device(ManagedObject):
     @classmethod
     def from_json(cls, json: dict) -> Device:
         # (no doc changes)
-        d = super()._from_json(json, Device())
-        d.is_device = True
-        return d
+        return super()._from_json(json, Device())
 
     def to_json(self, only_updated=False) -> dict:
         # (no doc changes)
@@ -642,11 +657,6 @@ class DeviceGroup(ManagedObject):
         self._assert_c8y()
         path = f'/inventory/managedObjects/{parent_id}/childAssets'
         return self.c8y.post(path, child_json, accept='application/vnd.com.nsn.cumulocity.managedObject+json')
-
-
-class Binary(ManagedObject):
-    def __init__(self, c8y=None, filename=None, media_type=None):
-        super().__init__(c8y=c8y, type=media_type, name=filename)
 
 
 class Inventory(CumulocityResource):
@@ -893,45 +903,3 @@ class DeviceGroupInventory(Inventory):
             if not group.c8y:
                 group.c8y = self
             group.create(True)
-
-
-class Binaries(object):
-    def __init__(self, c8y):
-        self.c8y = c8y
-
-    def upload(self, binary_meta_information, file_path=None, file=None):
-        assert isinstance(binary_meta_information, Binary)
-
-        try:
-            if file_path is not None:
-                file = open(file_path, 'rb')
-        except FileNotFoundError:
-            error('File not found for file path: ', file_path)
-            return None
-
-        if file is None:
-            error('No File available to upload')
-            return None
-
-        return self.c8y.post_file('/inventory/binaries', file, binary_meta_information)
-
-    def update(self, binary_id, media_type, file_path=None, file=None):
-        try:
-            if not file_path:
-                file = open(file_path, 'rb')
-        except FileNotFoundError:
-            error('File not found for file path: ', file_path)
-            return
-
-        if file:
-            error('No File available to upload')
-            return
-
-        self.c8y.put_file(f'/inventory/binaries/{binary_id}', file, media_type)
-
-    def delete(self, binary_id):
-        self.c8y.delete(f'/inventory/binaries/{binary_id}')
-
-
-
-

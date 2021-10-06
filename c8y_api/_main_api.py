@@ -11,7 +11,8 @@ from c8y_api.model.alarms import Alarms
 from c8y_api.model.applications import Applications
 from c8y_api.model.events import Events
 from c8y_api.model.identity import Identity
-from c8y_api.model.inventory import Inventory, DeviceGroupInventory, DeviceInventory, Binaries
+from c8y_api.model.binaries import Binaries
+from c8y_api.model.inventory import Inventory, DeviceGroupInventory, DeviceInventory
 from c8y_api.model.measurements import Measurements
 
 
