@@ -240,7 +240,8 @@ class ManagedObject(ComplexObject):
     def creation_datetime(self):
         """ Convert the object's creation to a Python datetime object.
 
-        :returns:  Standard Python datetime object
+        Returns:
+            Standard Python datetime object
         """
         return super()._to_datetime(self.creation_time)
 
@@ -248,7 +249,8 @@ class ManagedObject(ComplexObject):
     def update_datetime(self):
         """ Convert the object's creation to a Python datetime object.
 
-        :returns:  Standard Python datetime object
+        Returns:
+            Standard Python datetime object
         """
         return super()._to_datetime(self.update_time)
 
@@ -667,26 +669,34 @@ class Inventory(CumulocityResource):
     def get(self, id) -> ManagedObject:  # noqa (id)
         """ Retrieve a specific managed object from the database.
 
-        :param id:  ID of the managed object
-        :returns:  A ManagedObject instance
-        :raises:  KeyError if the ID is not defined within the database
+        Args:
+            ID of the managed object
+
+        Returns:
+             A ManagedObject instance
+
+        Raises:
+            KeyError if the ID is not defined within the database
         """
         managed_object = ManagedObject.from_json(self._get_object(id))
         managed_object.c8y = self.c8y  # inject c8y connection into instance
         return managed_object
 
-    def get_all(self, type=None, fragment=None, name=None, owner=None, limit=None, page_size=1000):  # noqa (type)
+    def get_all(self, type: str = None, fragment: str = None, name: str = None, owner: str = None,  # noqa (type)
+                limit: int = None, page_size: int = 1000):
         """ Query the database for managed objects and return the results
         as list.
 
-        This function is a greedy version of the select function. All
+        This function is a greedy version of the `select` function. All
         available results are read immediately and returned as list.
 
-        :returns:  List of ManagedObject instances
+        Returns:
+            List of ManagedObject instances
         """
         return list(self.select(type=type, fragment=fragment, name=name, limit=limit, page_size=page_size))
 
-    def select(self, type=None, fragment=None, name=None, owner=None, limit=None, page_size=1000):  # noqa (type)
+    def select(self, type: str = None, fragment: str = None, name: str = None, owner: str = None,  # noqa (type)
+               limit: int = None, page_size: int = 1000):
         """ Query the database for managed objects and iterate over the
         results.
 
@@ -697,14 +707,17 @@ class Inventory(CumulocityResource):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        :param type:  Managed object type
-        :param name:  Name of the managed object
-        :param fragment:  Name of a present custom/standard fragment
-        :param limit:  Limit the number of results to this number.
-        :param page_size:  Define the number of events which are read (and
-            parsed in one chunk). This is a performance related setting.
+        Args:
+            type (str):  Managed object type
+            fragment (str):  Name of a present custom/standard fragment
+            name (str):  Name of the managed object
+            owner (str):  Username of the object owner
+            limit (int): Limit the number of results to this number.
+            page_size (int): Define the number of events which are read (and
+                parsed in one chunk). This is a performance related setting.
 
-        :yield:  ManagedObject instances
+        Returns:
+            Generator for ManagedObject instances
         """
         query = None
         if name:
@@ -712,19 +725,19 @@ class Inventory(CumulocityResource):
         base_query = self._build_base_query(type=type, fragment=fragment, query=query, page_size=page_size)
         return super()._iterate(base_query, limit, ManagedObject.from_json)
 
-    def create(self, *managed_objects: ManagedObject):
+    def create(self, *objects: ManagedObject):
         """Create managed objects within the database.
 
-        :param managed_objects:  collection of ManagedObject instances
-        :returns:  None
+        Args:
+            objects (*ManagedObject): collection of ManagedObject instances
         """
-        super()._create(ManagedObject.to_json, *managed_objects)
+        super()._create(ManagedObject.to_json, *objects)
 
-    def update(self, *objects):
+    def update(self, *objects: ManagedObject):
         """ Write changes to the database.
 
-        :param objects:  A collection of ManagedObject instances
-        :returns: None
+        Args:
+            objects (*ManagedObject): collection of ManagedObject instances
 
         See also function ManagedObject.update which parses the result.
         """
@@ -749,36 +762,41 @@ class Inventory(CumulocityResource):
 
 class DeviceInventory(Inventory):
 
-    def request(self, id):  # noqa (id)
+    def request(self, id: str):  # noqa (id)
         """ Create a device request.
 
-        :param id:  Unique ID of the device (e.g. Serial, IMEI); this is
+        Args:
+            id (str): Unique ID of the device (e.g. Serial, IMEI); this is
             _not_ the database ID.
-        :returns: None
         """
         self.c8y.post('/devicecontrol/newDeviceRequests', {'id': id})
 
-    def accept(self, id):  # noqa (id)
+    def accept(self, id: str):  # noqa (id)
         """ Accept a device request.
 
-        :param id:  Unique ID of the device (e.g. Serial, IMEI); this is
+        Args:
+            id (str): Unique ID of the device (e.g. Serial, IMEI); this is
             _not_ the database ID.
-        :returns: None
         """
         self.c8y.put('/devicecontrol/newDeviceRequests/' + str(id), {'status': 'ACCEPTED'})
 
-    def get(self, id):  # noqa (id)
+    def get(self, id: str) -> Device:  # noqa (id)
         """ Retrieve a specific device object.
 
-        :param id:  ID of the device object
-        :return:  a Device instance
-        :raises:  KeyError if the ID is not defined within the database
+        Args:
+            id (str): ID of the device object
+
+        Returns:
+            A Device instance
+
+        Raises:
+            KeyError if the ID is not defined within the database
         """
         device = Device.from_json(self._get_object(id))
         device.c8y = self.c8y
         return device
 
-    def select(self, type=None, name=None, limit=None, page_size=100):  # noqa (type, parameters)
+    def select(self, type: str = None, name: str = None, limit: int = None, page_size: int = 100):  # noqa (type, parameters)
         # pylint: disable=arguments-differ
         """ Query the database for devices and iterate over the results.
 
@@ -789,41 +807,44 @@ class DeviceInventory(Inventory):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        :param type:  Managed object type
-        :param name:  Name of the device
-        :param limit:  Limit the number of results to this number.
-        :param page_size:  Define the number of events which are read (and
-            parsed in one chunk). This is a performance related setting.
+        Args:
+            type (str):  Device type
+            name (str):  Name of the device
+            limit (int): Limit the number of results to this number.
+            page_size (int): Define the number of events which are read (and
+                parsed in one chunk). This is a performance related setting.
 
-        :yield:  Device objects
+        Returns:
+            Generator for Device objects
         """
         return super().select(type=type, fragment='c8y_IsDevice', name=name, limit=limit, page_size=page_size)
 
-    def get_all(self, type=None, name=None, page_size=100):  # noqa (type, parameters)
+    def get_all(self, type: str = None, name: str = None, page_size: int = 100):  # noqa (type, parameters)
         # pylint: disable=arguments-differ
         """ Query the database for devices and return the results as list.
 
-        This function is a greedy version of the select function. All
+        This function is a greedy version of the `select` function. All
         available results are read immediately and returned as list.
 
-        :returns:  List of Device objects
+        Returns:
+            List of Device objects
         """
         return list(self.select(type=type, name=name, page_size=page_size))
 
-    def delete(self, *devices):
+    def delete(self, *devices: Device):
         """ Delete one or more devices and the corresponding within the database.
 
         The objects can be specified as instances of an database object
         (then, the id field needs to be defined) or simply as ID (integers
         or strings).
 
-        Note: In contrast to the regular *delete* function defined in class
+        Note: In contrast to the regular `delete` function defined in class
         ManagedObject, this version also removes the corresponding device
         user from database.
 
-        :param devices:  Device objects within the database specified
-            (with defined ID).
-        :returns:  None
+        Args:
+            devices (*Device): Device objects within the database specified
+                (with defined ID).
         """
         for d in devices:
             d.delete()

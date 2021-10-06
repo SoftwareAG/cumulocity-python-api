@@ -190,7 +190,7 @@ class Events(CumulocityResource):
             reverse (bool): Invert the order of results, starting with the
                 most recent one.
             limit (int): Limit the number of results to this number.
-            page_size (str): Define the number of events which are read (and
+            page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
 
         Returns:
