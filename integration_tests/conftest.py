@@ -1,3 +1,11 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+
+# pylint: disable=redefined-outer-name
+
 import logging
 import os
 
@@ -8,6 +16,27 @@ from c8y_api.app import CumulocityApp
 from c8y_api.model import Device
 
 from tests import RandomNameGenerator
+
+
+@pytest.fixture(scope='session')
+def safe_executor(logger):
+    """A safe function execution wrapper.
+
+    This provides a `execute(fun)` function which catches/logs all
+    exceptions. It returns True if the wrapped function was executed
+    without error, False otherwise.
+    """
+    # pylint: disable=broad-except
+
+    def execute(fun) -> bool:
+        try:
+            fun()
+            return True
+        except BaseException as e:
+            logger.warning(f"Caught exception ignored due to safe call: {e}")
+        return False
+
+    return execute
 
 
 @pytest.fixture(scope='session')
