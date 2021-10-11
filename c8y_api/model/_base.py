@@ -455,7 +455,7 @@ class CumulocityResource:
         params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
                                     'source': source, 'fragmentType': fragment,
                                     'valueFragmentSeries': series,
-                                    'dateFrom': after, 'dateTo': before, 'revert': str(reverse),
+                                    'dateFrom': after, 'dateTo': before, 'revert': str(reverse) if reverse else None,
                                     'pageSize': page_size}.items() if v}
         params.update({k: v for k, v in kwargs.items() if v is not None})
         return params
@@ -522,4 +522,4 @@ class CumulocityResource:
         except AttributeError:
             object_ids = objects
         for object_id in object_ids:
-            self.c8y.delete(self.resource + '/' + str(object_id))
+            self.c8y.delete(self.build_object_path(object_id))
