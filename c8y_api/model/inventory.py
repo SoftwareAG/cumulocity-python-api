@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Generator, List
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model import Users, User
@@ -256,6 +256,7 @@ class ManagedObject(ComplexObject):
 
     @classmethod
     def _from_json(cls, object_json: dict, new_object: Any) -> Any:
+        # pylint: disable=arguments-differ, arguments-renamed
         """This function is used by derived classes to share the logic.
         Purposely no type information."""
         mo = super(ManagedObject, cls)._from_json(object_json, new_object)
@@ -281,13 +282,14 @@ class ManagedObject(ComplexObject):
         Args:
             json (dict): JSON object (nested dictionary)
                 representing a managed object within Cumulocity
+
         Returns:
             ManagedObject object
         """
         return cls._from_json(json, ManagedObject())
 
     def to_json(self, only_updated=False) -> dict:
-        json = super().to_json()
+        json = super().to_json(only_updated)
         if not only_updated:
             if self.is_device:
                 json['c8y_IsDevice'] = {}
@@ -357,45 +359,85 @@ class ManagedObject(ComplexObject):
         """
         self._delete()
 
-    def add_child_asset(self, child_id: str | int):
+    def add_child_asset(self, child: ManagedObject | str | int):
         """ Link a child asset to this managed object.
 
         This operation is executed immediately. No additional call to
         the `update` method is required.
 
         Args:
-            child_id (str|int): Object ID of the child asset
+            child (ManagedObject|str|int): Child asset or its object ID
         """
-        self._add_any_child('/childAssets', child_id)
+        self._add_any_child('/childAssets', child)
 
-    def add_child_device(self, child_id: str | int):
+    def add_child_device(self, child: ManagedObject | str | int):
         """ Link a child device to this managed object.
 
         This operation is executed immediately. No additional call to
         the `update` method is required.
 
         Args:
-            child_id (str|int): Object ID of the child asset
+            child (ManagedObject|str|int): Child device or its object ID
         """
-        self._add_any_child('/childDevices', child_id)
+        self._add_any_child('/childDevices', child)
 
-    def add_child_addition(self, child_id: str | int):
+    def add_child_addition(self, child: ManagedObject | str | int):
         """ Link a child addition to this managed object.
 
         This operation is executed immediately. No additional call to
         the `update` method is required.
 
         Args:
-            child_id (str|int): Object ID of the child asset
+            child (ManagedObject|str|int): Child addition or its object ID
         """
-        self._add_any_child('/childAdditions', child_id)
+        self._add_any_child('/childAdditions', child)
 
-    def _add_any_child(self, path, child_id: str | int):
+    def unassign_child_asset(self, child: ManagedObject | str | int):
+        """Remove the link to a child asset.
+
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
+
+        Args:
+            child (ManagedObject|str|int): Child device or its object ID
+        """
+        self._unassign_any_child('/childAssets', child)
+
+    def unassign_child_device(self, child: Device | str | int):
+        """Remove the link to a child device.
+
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
+
+        Args:
+            child (Device|str|int): Child device or its object ID
+        """
+        self._unassign_any_child('/childDevices', child)
+
+    def unassign_child_addition(self, child: ManagedObject | str | int):
+        """Remove the link to a child addition.
+
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
+
+        Args:
+            child (ManagedObject|str|int): Child device or its object ID
+        """
+        self._unassign_any_child('/childAdditions', child)
+
+    def _add_any_child(self, path, child: ManagedObject | str | int):
         self._assert_c8y()
         self._assert_id()
+        child_id = child.id if hasattr(child, 'id') else child
         self.c8y.post(self._build_object_path() + path,
                       json=InventoryUtil.build_managed_object_reference(child_id),
                       accept=None)
+
+    def _unassign_any_child(self, path, child: ManagedObject | str | int):
+        self._assert_c8y()
+        self._assert_id()
+        child_id = child.id if hasattr(child, 'id') else child
+        self.c8y.delete(self._build_object_path() + path + '/' + child_id)
 
 
 class Device(ManagedObject):
@@ -479,7 +521,10 @@ class DeviceGroup(ManagedObject):
         https://cumulocity.com/guides/users-guide/device-management/#grouping-devices
     """
 
-    def __init__(self, c8y=None, name=None, owner=None, **kwargs):
+    ROOT_TYPE = 'c8y_DeviceGroup'
+    CHILD_TYPE = 'c8y_DeviceSubGroup'
+
+    def __init__(self, c8y=None, root: bool = False, name: str = None, owner: str = None, **kwargs):
         """ Build a new DeviceGroup object.
 
         A type of a device group will always be either `c8y_DeviceGroup`
@@ -493,6 +538,7 @@ class DeviceGroup(ManagedObject):
         Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
+            root (bool):  Whether the group is a root group (default is False)
             name (str):  Device name
             owner (str):  User ID of the owning user (can be left None to
                 automatically assign to the connection user upon creation)
@@ -501,79 +547,52 @@ class DeviceGroup(ManagedObject):
         Returns:
             DeviceGroup instance
         """
-        # the 'type' of a device group can be c8y_DeviceGroup or c8y_DeviceSubgroup
-        # it will be set dynamically when used
-        super().__init__(c8y=c8y, type=None, name=name, owner=owner, **kwargs)
+        super().__init__(c8y=c8y, type=self.ROOT_TYPE if root else self.CHILD_TYPE,
+                         name=name, owner=owner, **kwargs)
         self._added_child_groups = None
         self.is_device_group = True
 
     @classmethod
-    def from_json(cls, object_json):
-        return cls._from_managed_object(super().from_json(object_json))
+    def from_json(cls, json: dict) -> DeviceGroup:
+        """ Build a new DeviceGroup instance from JSON.
 
-    @classmethod
-    def _from_managed_object(cls, managed_object):
-        group = DeviceGroup(c8y=managed_object.c8y, name=managed_object.name, owner=managed_object.owner)
-        group.id = managed_object.id
-        group.child_assets = managed_object.child_assets
-        return group
+        The JSON is assumed to be in the format as it is used by the
+        Cumulocity REST API.
 
-    def to_json(self, only_updated=False):
-        raise NotImplementedError("This method cannot be implemented for the DeviceGroup class.")
+        Args:
+            json (dict): JSON object (nested dictionary)
+                representing a device group within Cumulocity
 
-    def _from_json(self, is_root):
-        object_json = super().to_json()
-        object_json['type'] = 'c8y_DeviceGroup' if is_root else 'c8y_DeviceSubgroup'
-        object_json['c8y_IsDeviceGroup'] = {}
-        return object_json
+        Returns:
+            DeviceGroup instance
+        """
+        return super()._from_json(json, DeviceGroup())
 
-    def add_group(self, name, owner=None):
-        """ Add a child group.
+    def create_child(self, name: str, owner: str = None, **kwargs) -> DeviceGroup:
+        """ Create and assign a child group.
 
         This change is written to the database immediately.
 
-        :param name:  Name of the new group
-        :param owner:  Owner of the new group
-        :returns:  Updated DeviceGroup object
+        Args:
+            name (str):  Device name
+            owner (str):  User ID of the owning user (can be left None to
+                automatically assign to the connection user upon creation)
+            kwargs:  Additional arguments are treated as custom fragments
+
+        Returns:
+            The newly created DeviceGroup object
         """
+        self._assert_c8y()
         self._assert_id()
-        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner)._from_json(is_root=False)
-        response_json = self._post_child_json(self.id, child_json)
+        child_json = DeviceGroup(name=name, owner=owner if owner else self.owner, **kwargs).to_json()
+
+        response_json = self.c8y.post(self._build_object_path() + '/childAssets', json=child_json,
+                                      accept=CumulocityRestApi.ACCEPT_MANAGED_OBJECT)
         result = self.from_json(response_json)
         result.c8y = self.c8y
         return result
 
-    def add_device(self, device_id):
-        """ Add a device to this group.
-
-        This change is written to the database immediately.
-
-        :param device_id:  Database ID of the device to add
-        :returns:  Updated DeviceGroup object
-        """
-        self._assert_id()
-        device_json = {'id': device_id}
-        response_json = self._post_child_json(self.id, device_json)
-        result = self.from_json(response_json)
-        result.c8y = self.c8y
-        return result
-
-    def add(self, *groups):
-        """ Add child groups to this instance.
-
-        Groups can be nested to any level.
-
-        :param groups:  Collection of group objects to add as children
-        :returns:  Self reference (for method chaining)
-        """
-        if len(groups) == 1 and isinstance(groups, list):
-            self.add(*groups)
-        if not self._added_child_groups:
-            self._added_child_groups = []
-        self._added_child_groups.extend(groups)
-        return self
-
-    def create(self):
+    def create(self) -> DeviceGroup:
         """ Create a new representation of this object within the database.
 
         This operation will create the group and all added child groups
@@ -586,23 +605,9 @@ class DeviceGroup(ManagedObject):
         See also function DeviceGroupInventory.create which doesn't parse
         the result.
         """
-        self._assert_c8y()
-        # 1_ create the group
-        group_json = self._from_json(is_root=True)
-        response_json = self.c8y.post('/inventory/managedObjects', group_json)
-        group_id = response_json['id']
-        # 2_ create child groups recursively
-        if self._added_child_groups:
-            self._create_child_groups(parent_id=group_id, parent=self, groups=self._added_child_groups)
-        # 3_ parse/return result
-        if self._added_child_groups:
-            # if there were child assets we need to read the object again
-            response_json = self.c8y.get('/inventory/managedObjects/' + group_id)
-        result = self.from_json(response_json)
-        result.c8y = self.c8y
-        return result
+        return super()._create()
 
-    def update(self):
+    def update(self) -> DeviceGroup:
         """ Write changed to the database.
 
         Note: Removing child groups is currently not supported.
@@ -610,58 +615,60 @@ class DeviceGroup(ManagedObject):
         :returns:  A fresh DeviceGroup instance representing the updated
             object within the database.
         """
-        # this will update any updated fields of this object as well as
-        # create and link child groups added
-        self._assert_c8y()
-        self._assert_id()
-        # 1_ update main object
-        group_json = self.to_diff_json()
-        object_path = '/inventory/managedObjects/' + self.id
-        # json might actually be empty
-        response_json = {}
-        if group_json:
-            response_json = self.c8y.post(object_path, group_json)
-        # 2_ create child groups recursively
-        if self._added_child_groups:
-            self._create_child_groups(parent_id=self.id, parent=self, groups=self._added_child_groups)
-        # 3_ parse/return result
-        if self._added_child_groups:
-            # if there were child assets we need to read the object again
-            response_json = self.c8y.get(f'/inventory/managedObjects/{self.id}')
-        result = self.from_json(response_json)
-        result.c8y = self.c8y
-        return result
+        return super()._update()
 
     def delete(self):
+        """Delete this device group.
+
+        The child groups (if there are any) are left dangling. This is
+        equivalent to using the `cascade=false` parameter in the
+        Cumulocity REST API.
+        """
         self._assert_c8y()
         self._assert_id()
-        self.c8y.delete('/inventory/managedObjects/' + str(self.id) + '?cascade=false')
+        self.c8y.delete(self._build_object_path() + '?cascade=false')
 
     def delete_tree(self):
+        """Delete this device group and its children.
+
+        This is equivalent to using the `cascade=true` parameter in the
+        Cumulocity REST API.
+        """
         self._assert_c8y()
         self._assert_id()
-        self.c8y.delete('/inventory/managedObjects/' + str(self.id) + '?cascade=true')
+        self.c8y.delete(self._build_object_path() + '?cascade=true')
 
-    def _create_child_groups(self, parent_id, parent, groups):
-        for group in groups:
-            # enrich child with defaults
-            group.c8y = parent.c8y
-            if not group.owner:
-                group.owner = parent.owner
-            # create as child assets
-            response_json = self._post_child_json(parent_id, group._from_json(is_root=False))  # noqa
-            # recursively create further levels
-            if group._added_child_groups:  # noqa
-                child_id = response_json['id']
-                self._create_child_groups(parent_id=child_id, parent=group, groups=group._added_child_groups)  # noqa
+    def assign_child_group(self, child: DeviceGroup | str | int):
+        """Link a child group to this device group.
 
-    def _post_child_json(self, parent_id, child_json):
-        self._assert_c8y()
-        path = f'/inventory/managedObjects/{parent_id}/childAssets'
-        return self.c8y.post(path, child_json, accept='application/vnd.com.nsn.cumulocity.managedObject+json')
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
+
+        Args:
+            child (DeviceGroup|str|int): Child device or its object ID
+        """
+        super().add_child_asset(child)
+
+    def unassign_child_group(self, child: DeviceGroup | str | int):
+        """Remove the link to a child group.
+
+        This operation is executed immediately. No additional call to
+        the `update` method is required.
+
+        Args:
+            child (DeviceGroup|str|int): Child device or its object ID
+        """
+        super().unassign_child_asset(child)
 
 
 class Inventory(CumulocityResource):
+    """Provides access to the Inventory API.
+
+    This class can be used for get, search for, create, update and
+    delete managed objects within the Cumulocity database.
+
+    See also: https://cumulocity.com/api/#tag/Inventory-API
+    """
 
     def __init__(self, c8y):
         super().__init__(c8y, 'inventory/managedObjects')
@@ -696,7 +703,7 @@ class Inventory(CumulocityResource):
         return list(self.select(type=type, fragment=fragment, name=name, limit=limit, page_size=page_size))
 
     def select(self, type: str = None, fragment: str = None, name: str = None, owner: str = None,  # noqa (type)
-               limit: int = None, page_size: int = 1000):
+               limit: int = None, page_size: int = 1000) -> Generator[ManagedObject]:
         """ Query the database for managed objects and iterate over the
         results.
 
@@ -719,11 +726,14 @@ class Inventory(CumulocityResource):
         Returns:
             Generator for ManagedObject instances
         """
-        query = None
-        if name:
-            query = f"name eq '{name}'"
-        base_query = self._build_base_query(type=type, fragment=fragment, query=query, page_size=page_size)
-        return super()._iterate(base_query, limit, ManagedObject.from_json)
+        return self._select(ManagedObject.from_json, type=type, fragment=fragment, name=name, owner=owner,
+                            limit=limit, page_size=page_size)
+
+    def _select(self, jsonyfy_func, type: str = None, fragment: str = None, name: str = None,
+                owner: str = None,  limit: int = None, page_size: int = 1000) -> Generator[Any]:
+        base_query = self._build_base_query(type=type, fragment=fragment, owner=owner,
+                                            query=f"name eq '{name}'" if name else None, page_size=page_size)
+        return super()._iterate(base_query, limit, jsonyfy_func)
 
     def create(self, *objects: ManagedObject):
         """Create managed objects within the database.
@@ -761,6 +771,13 @@ class Inventory(CumulocityResource):
 
 
 class DeviceInventory(Inventory):
+    """Provides access to the Device Inventory API.
+
+    This class can be used for get, search for, create, update and
+    delete device objects within the Cumulocity database.
+
+    See also: https://cumulocity.com/api/#tag/Inventory-API
+    """
 
     def request(self, id: str):  # noqa (id)
         """ Create a device request.
@@ -796,7 +813,8 @@ class DeviceInventory(Inventory):
         device.c8y = self.c8y
         return device
 
-    def select(self, type: str = None, name: str = None, limit: int = None, page_size: int = 100):  # noqa (type, parameters)
+    def select(self, type: str = None, name: str = None, owner: str = None,  # noqa (type, args)
+               limit: int = None, page_size: int = 100) -> Generator[Device]:
         # pylint: disable=arguments-differ
         """ Query the database for devices and iterate over the results.
 
@@ -810,6 +828,7 @@ class DeviceInventory(Inventory):
         Args:
             type (str):  Device type
             name (str):  Name of the device
+            owner (str):  Username of the object owner
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
@@ -817,10 +836,12 @@ class DeviceInventory(Inventory):
         Returns:
             Generator for Device objects
         """
-        return super().select(type=type, fragment='c8y_IsDevice', name=name, limit=limit, page_size=page_size)
+        return self._select(ManagedObject.from_json, type=type, fragment='c8y_IsDevice', name=name, owner=owner,
+                            limit=limit, page_size=page_size)
 
-    def get_all(self, type: str = None, name: str = None, page_size: int = 100):  # noqa (type, parameters)
-        # pylint: disable=arguments-differ
+    def get_all(self, type: str = None, name: str = None, owner: str = None,   # noqa (type, parameters)
+                page_size: int = 100) -> List[Device]:
+        # pylint: disable=arguments-differ, arguments-renamed
         """ Query the database for devices and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -829,7 +850,7 @@ class DeviceInventory(Inventory):
         Returns:
             List of Device objects
         """
-        return list(self.select(type=type, name=name, page_size=page_size))
+        return list(self.select(type=type, name=name, owner=owner, page_size=page_size))
 
     def delete(self, *devices: Device):
         """ Delete one or more devices and the corresponding within the database.
@@ -851,6 +872,13 @@ class DeviceInventory(Inventory):
 
 
 class DeviceGroupInventory(Inventory):
+    """Provides access to the Device Groups Inventory API.
+
+    This class can be used for get, search for, create, update and
+    delete device groups within the Cumulocity database.
+
+    See also: https://cumulocity.com/api/#tag/Inventory-API
+    """
 
     def get(self, group_id):
         # pylint: disable=arguments-renamed
@@ -864,53 +892,71 @@ class DeviceGroupInventory(Inventory):
         group.c8y = self.c8y
         return group
 
-    def select(self, fragment=None, name=None, page_size=100):  # noqa
-        # pylint: disable=arguments-differ
-        """ Select managed objects by various parameters.
+    def select(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,
+               name: str = None, owner: str = None, page_size: int = 100) -> Generator[DeviceGroup]:
+        # pylint: disable=arguments-differ, arguments-renamed
+        """ Select device groups by various parameters.
 
         This is a lazy implementation; results are fetched in pages but
         parsed and returned one by one.
 
         The type of all DeviceGroup objects is fixed 'c8y_DeviceGroup',
-        hence filtering by type is not possible.
+        'c8y_DeviceSubGroup' if searching by `parent` respectively. Hence
+        manual filtering by type is not supported.
 
-        :param fragment:  fragment string that is present within the objects
-        :param name:  name string of the objects to select; no partial
-            matching/patterns are supported
-        :param page_size:  number of objects to fetch per request
-        :yield:  ManagedObject instances
+        Args:
+            type (bool):  Filter for root or child groups respectively.
+                Note: If set to None, no type filter will be applied which
+                will match all kinds of managed objects. If you want to
+                match device groups only you need to use the fragment filter.
+            parent (str): ID of the parent device group
+                Note: this forces the `type` filter to be c8y_DeviceSubGroup
+            fragment (str): Additional fragment present within the objects
+            name (str): Name string of the groups to select; no partial
+                matching/patterns are supported
+            owner (str): Username of the group owner
+            page_size (int): Define the number of events which are read (and
+                parsed in one chunk). This is a performance related setting.
+
+        Returns:
+            Generator of DeviceGroup instances
         """
-        query = None
+        query_filters = []
         if name:
-            query = f"name eq '{name}'"
-        base_query = self._build_base_query(type='c8y_DeviceGroup', fragment=fragment, query=query, page_size=page_size)
-        page_number = 1
-        while True:
-            results = [DeviceGroup.from_json(x) for x in self._get_page(base_query, page_number)]
-            if not results:
-                break
-            for result in results:
-                result.c8y = self.c8y  # inject c8y connection into instance
-                yield result
-            page_number = page_number + 1
+            query_filters.append(f"name eq '{name}'")
+        if parent:
+            query_filters.append(f"bygroupid({parent})")
+            type = DeviceGroup.CHILD_TYPE
 
-    def get_all(self, fragment=None, name=None, page_size=100):  # noqa
-        # pylint: disable=arguments-differ
+        # if any query was defined, all filters must be put into the query
+        if query_filters:
+            query_filters.append(f"type eq {type}")
+            # all other filters must be set as well
+            if fragment:
+                query_filters.append(f"has({fragment})")
+            if owner:
+                query_filters.append(f"owner eq '{owner}'")
+            query = '$filter=' + ' and '.join(query_filters)
+
+            base_query = self._build_base_query(query=query, page_size=page_size)
+        # otherwise we can just build the regular query
+        else:
+            base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
+
+        return super()._iterate(base_query, limit=9999, parse_func=DeviceGroup.from_json)
+
+    def get_all(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,
+                name: str = None, owner: str = None, page_size: int = 100):  # noqa
+        # pylint: disable=arguments-differ, arguments-renamed
         """ Select managed objects by various parameters.
 
         In contract to the select method this version is not lazy. It will
         collect the entire result set before returning.
 
-        The type of all DeviceGroup objects is fixed 'c8y_DeviceGroup',
-        hence filtering by type is not possible.
-
-        :param fragment:  fragment string that is present within the objects
-        :param name:  name string of the objects to select; no partial
-            matching/patterns are supported
-        :param page_size:  number of objects to fetch per request
-        :return:  List of ManagedObject instances
+        Returns:
+            List of DeviceGroup instances
         """
-        return list(self.select(fragment=fragment, name=name, page_size=page_size))
+        return list(self.select(type=type, parent=parent, fragment=fragment, name=name, page_size=page_size))
 
     def create(self, *groups):
         """Batch create a collection of groups and entire group trees.
@@ -918,9 +964,59 @@ class DeviceGroupInventory(Inventory):
         :param groups:  collection of DeviceGroup instances; each can
             define children as needed.
         """
-        if len(groups) == 1 and isinstance(groups, list):
-            self.create(*groups)
-        for group in groups:
-            if not group.c8y:
-                group.c8y = self
-            group.create(True)
+        super()._create(DeviceGroup.to_json, *groups)
+
+    def assign_children(self, root_id, *child_ids):
+        """Link child groups to this device group.
+
+        Args:
+            root_id (str|int): ID of the root device group
+            child_ids (*str|int): ID of the child device groups
+        """
+        # adding multiple references at once is not (yet) supported
+        # refs = {'references': [InventoryUtil.build_managed_object_reference(id) for id in child_ids]}
+        # self.c8y.post(self.build_object_path(root_id) + '/childAssets', json=refs, accept='')
+        for id in child_ids:
+            self.c8y.post(self.build_object_path(root_id) + '/childAssets',
+                          json=InventoryUtil.build_managed_object_reference(id), accept='')
+
+    def unassign_children(self, root_id, *child_ids):
+        """Unlink child groups from this device group.
+
+        Args:
+            root_id (str|int): ID of the root device group
+            child_ids (*str|int): ID of the child device groups
+        """
+        refs = {'references': [InventoryUtil.build_managed_object_reference(id) for id in child_ids]}
+        self.c8y.delete(self.build_object_path(root_id) + '/childAssets', json=refs)
+
+    def delete(self, *groups: DeviceGroup | str | int):
+        """Delete one or more single device groups within the database.
+
+        The child groups (if there are any) are left dangling. This is
+        equivalent to using the `cascase=false` parameter in the
+        Cumulocity REST API.
+
+        Args:
+            groups:  Objects resp. their ID within the database
+        """
+        self._delete(False, *groups)
+
+    def delete_trees(self, *groups: DeviceGroup | str | int):
+        """Delete one or more device groups trees within the database.
+
+        This is equivalent to using the `cascade=true` parameter in the
+        Cumulocity REST API.
+
+        Args:
+            groups:  Objects resp. their ID within the database
+        """
+        self._delete(False, *groups)
+
+    def _delete(self, cascade: bool, *objects: DeviceGroup | str | int):
+        try:
+            object_ids = [o.id for o in objects]  # noqa (id)
+        except AttributeError:
+            object_ids = objects
+        for object_id in object_ids:
+            self.c8y.delete(self.build_object_path(object_id) + f"?cascade={'true' if cascade else 'false'}")
