@@ -295,12 +295,14 @@ class CumulocityRestApi:
             return r.json()
         return {}
 
-    def delete(self, resource: str):
+    def delete(self, resource: str, json: dict = None, params: dict = None):
         """Generic HTTP POST wrapper, dealing with standard error returning
         a JSON body object.
 
         Args:
             resource (str): Resource path
+            json (dict): JSON body (nested dict)
+            params (dict): Additional request parameters
 
         Returns:
              The JSON response (nested dict)
@@ -311,7 +313,9 @@ class CumulocityRestApi:
             ValueError if the response is not ok for other reasons
                 (only 200 and 204 are accepted).
         """
-        r = self.session.delete(self.base_url + resource)
+        if json:
+            assert isinstance(json, dict)
+        r = self.session.delete(self.base_url + resource, json=json, params=params, headers={'Accept': None})
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
