@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import BinaryIO
 
 from c8y_api._base_api import CumulocityRestApi
@@ -32,16 +31,6 @@ class Binary(ManagedObject):
     def content_type(self) -> str:
         """Content type set for this binary."""
         return self.contentType
-
-    @property
-    def last_updated(self) -> str:
-        """Date/time (string) of the last update to this binary."""
-        return self.lastUpdated
-
-    @property
-    def last_updated_datetime(self) -> datetime:
-        """Date/time (datetime) of the last update to this binary."""
-        return super()._to_datetime(self.lastUpdated)
 
     @classmethod
     def from_json(cls, json: dict) -> Binary:
