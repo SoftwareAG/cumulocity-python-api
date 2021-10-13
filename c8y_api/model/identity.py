@@ -8,9 +8,10 @@
 from __future__ import annotations
 
 from c8y_api._base_api import CumulocityRestApi
-from c8y_api.model import SimpleObject
+from c8y_api.model._base import SimpleObject
 from c8y_api.model._parser import SimpleObjectParser
-from c8y_api.model.inventory import ManagedObject, Inventory
+from c8y_api.model.inventory import Inventory
+from c8y_api.model.managedobjects import ManagedObject
 
 
 class ExternalId(SimpleObject):
