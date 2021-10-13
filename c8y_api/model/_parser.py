@@ -95,8 +95,7 @@ class ComplexObjectParser(SimpleObjectParser):
         if include is None:
             obj_json.update(self._format_fragments(obj))
         else:
-            # pylint: disable=protected-access
-            included = obj._updated_fragments or set()  # TODO: change to get_updated() possible?
+            included = obj.get_updates()
             obj_json.update(self._format_fragments(obj, include=included))
         return obj_json
 
