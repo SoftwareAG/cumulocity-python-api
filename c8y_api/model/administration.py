@@ -25,6 +25,14 @@ class PermissionUtil:
 
 
 class Permission(SimpleObject):
+    """Represents an Permission object within Cumulocity.
+
+    Notes:
+      - Permissions are not created/deleted but only assigned to users or
+        global roles
+
+    See also: https://cumulocity.com/api/#tag/Roles
+    """
 
     class Level(object):
         """Permission levels."""
@@ -79,16 +87,22 @@ class Permission(SimpleObject):
 
 
 class ReadPermission(Permission):
+    """Prepresents a read permission within Cumulocity."""
+    # pylint: disable=abstract-method
     def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
         super().__init__(level=Permission.Level.READ, scope=scope, type=type)
 
 
 class WritePermission(Permission):
+    """Prepresents a write permission within Cumulocity."""
+    # pylint: disable=abstract-method
     def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
         super().__init__(level=Permission.Level.WRITE, scope=scope, type=type)
 
 
 class AnyPermission(Permission):
+    """Prepresents a read/write permission within Cumulocity."""
+    # pylint: disable=abstract-method
     def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
         super().__init__(level=Permission.Level.ANY, scope=scope, type=type)
 
