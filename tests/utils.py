@@ -23,6 +23,22 @@ def get_ids(objs: List[CumulocityObject]) -> Set[str]:
 
 
 def isolate_last_call_arg(mock: Mock, name: str, pos: int = None) -> Any:
+    """Isolate arguments of the last call to a mock.
+
+    The argument can be specified by name and by position.
+
+    Args:
+        mock (Mock): the Mock to inspect
+        name (str): Name of the parameter
+        pos (int): Position of the parameter
+
+    Returns:
+        Value of the call argument
+
+    Raises:
+        KeyError if the argument was not given/found by name and the
+        position was not given/out of bounds.
+    """
     mock.assert_called()
     args, kwargs = mock.call_args
     if name in kwargs:
@@ -30,10 +46,26 @@ def isolate_last_call_arg(mock: Mock, name: str, pos: int = None) -> Any:
     if len(args) > pos:
         return args[pos]
     raise KeyError(f"Argument not found: '{name}'. "
-                   f"Not given explcitely and position ({pos}) out of of bouns.")
+                   f"Not given explcitely and position ({pos}) out of of bounds.")
 
 
 def isolate_all_call_args(mock: Mock, name: str, pos: int = None) -> List[Any]:
+    """Isolate arguments of all calls to a mock.
+
+    The argument can be specified by name and by position.
+
+    Args:
+        mock (Mock): the Mock to inspect
+        name (str): Name of the parameter
+        pos (int): Position of the parameter
+
+    Returns:
+        List of value of the call argument
+
+    Raises:
+        KeyError if the argument was not given/found by name and the
+        position was not given/out of bounds.
+    """
     mock.assert_called()
     result = []
     for args, kwargs in mock.call_args_list:
@@ -53,9 +85,10 @@ def random_name() -> str:
 
 
 def read_webcontent(source_url, target_path):
+    """Read web content to a local file."""
     response = request('get', source_url)
     if 200 <= response.status_code <= 299:
-        with open(target_path, 'w') as file:
+        with open(target_path, 'wt', encoding='utf-8') as file:
             file.write(response.text)
     else:
         raise RuntimeError('Unable to read web content. Unexpected response from web site: '
@@ -68,12 +101,21 @@ class RandomNameGenerator:
     wordlist_path = 'wordlist.txt'
     read_webcontent('https://raw.githubusercontent.com/mike-hearn/useapassphrase/master/js/wordlist.js',
                     wordlist_path)
-    with open(wordlist_path) as file:
+    with open(wordlist_path, 'rt', encoding='utf-8') as file:
         file.readline()  # skip first line
         lines = file.readlines()
     words = [re.sub('[^\\w]', '', line) for line in lines]
 
     @classmethod
     def random_name(cls, num: int = 3, sep: str = '_') -> str:
+        """Generate a readable random name from joined random words.
+
+        Args:
+            num (int):  number of random words to concactenate
+            sep (str):  concatenation separator
+
+        Returns:
+            The generated name
+        """
         words = [random.choice(cls.words) for _ in range(0, num)]
         return sep.join(words)

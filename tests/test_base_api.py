@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-# pylint: disable=protected-access
+# pylint: disable=protected-access, redefined-outer-name
 
 import base64
 from unittest.mock import patch
