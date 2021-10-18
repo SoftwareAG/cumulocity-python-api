@@ -10,7 +10,7 @@ from __future__ import annotations
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import SimpleObject
 from c8y_api.model._parser import SimpleObjectParser
-from c8y_api.model.inventory import Inventory
+
 from c8y_api.model.managedobjects import ManagedObject
 
 
@@ -129,7 +129,8 @@ class Identity(object):
     @property
     def _inventory(self):
         if not self._inventory_instance:
-            self._inventory_instance = Inventory(self.c8y)
+            mod = __import__('c8y_api.model.inventory')
+            self._inventory_instance = mod.model.Inventory(self.c8y)
         return self._inventory_instance
 
     def create(self, external_id, external_type, managed_object_id):

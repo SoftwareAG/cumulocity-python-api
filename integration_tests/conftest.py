@@ -48,17 +48,21 @@ def logger():
 @pytest.fixture(scope='session')
 def test_environment(logger):
     """Prepare the environment, i.e. read a .env file if found."""
+
+    def c8y_keys():
+        return filter(lambda x: 'C8Y_' in x, os.environ.keys())
+
     # check if there is a .env file
     if os.path.exists('.env'):
         logger.info("Environment file (.env) exists and will be considered.")
         # check if any C8Y_ variable is already defined
-        predefined_keys = [key for key in os.environ.keys() if 'C8Y_' in key]
+        predefined_keys = c8y_keys()
         if predefined_keys:
             logger.fatal("The following environment variables are already defined and may be overridden: "
                          + ', '.join(predefined_keys))
         load_dotenv()
     # list C8Y_* keys
-    defined_keys = [key for key in os.environ.keys() if 'C8Y_' in key]
+    defined_keys = c8y_keys()
     logger.info(f"Found the following keys: {', '.join(defined_keys)}.")
 
 

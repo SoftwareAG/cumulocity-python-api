@@ -4,11 +4,11 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+import dataclasses
+import logging
 import os
 import requests
-from dataclasses import dataclass
 
-from c8y_api._util import error, info
 from c8y_api._main_api import CumulocityApi
 
 
@@ -35,7 +35,7 @@ class CumulocityApp(CumulocityApi):
     tenant can be obtained buy the application using the
     `get_tenant_instance` function.
     """
-    @dataclass
+    @dataclasses.dataclass
     class Auth:
         """Bundles authentication information."""
         username: str
@@ -44,6 +44,8 @@ class CumulocityApp(CumulocityApi):
     __auth_by_tenant = {}
     __bootstrap_instance = None
     __tenant_instances = {}
+
+    __log = logging.getLogger(__name__)
 
     def __init__(self, tenant_id=None, application_key=None):
         self.baseurl = self.__get_env('C8Y_BASEURL')
@@ -83,8 +85,8 @@ class CumulocityApp(CumulocityApi):
     def __update_auth_cache(self):
         r = requests.get(self.baseurl + '/application/currentApplication/subscriptions', auth=self.__bootstrap_auth)
         if r.status_code != 200:
-            error("Unable to perform GET request.", ("Status", r.status_code), ("Response", r.text))
-        info("get subscriptions: %s", r.json())
+            self.__log.error("Unable to perform GET request. Status: {}, Response: {}", r.status_code, r.text)
+        self.__log.info("get subscriptions: {}", r.json())
         self.__auth_by_tenant.clear()
         for subscription in r.json()['users']:
             tenant = subscription['tenant']
