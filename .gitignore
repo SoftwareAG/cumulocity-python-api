@@ -8,4 +8,6 @@ venv
 venv-linux
 venv-win
 *.egg-info
-
+.env
+_version.py
+wordlist.txt
