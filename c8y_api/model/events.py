@@ -114,8 +114,8 @@ class Event(ComplexObject):
         Note: This will only send changed fields to increase performance.
 
         Returns:
-            A fresh Event object representing what was
-            created within the database (including the ID).
+            A fresh Event object representing what the updated
+            state within the database (including the ID).
         """
         return super()._update()
 
@@ -130,7 +130,7 @@ class Event(ComplexObject):
         Args:
             other_id (str):  Database ID of the event to update.
 
-        Returns
+        Returns:
             A fresh Event instance representing the updated object
             within the database.
 
