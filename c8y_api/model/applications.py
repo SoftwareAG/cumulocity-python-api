@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Generator, List
 
+from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import SimpleObject, CumulocityResource
 from c8y_api.model._parser import SimpleObjectParser
 
@@ -30,7 +31,8 @@ class Application(SimpleObject):
     HOSTED_TYPE = "HOSTED"
     MICROSERVICE_TYPE = "MICROSERVICE"
 
-    def __init__(self, c8y=None, name=None, type=None, availability=None, owner=None):  # noqa (type)
+    def __init__(self, c8y: CumulocityRestApi = None, name: str = None, type: str = None, availability: str = None,
+                 owner: str = None):
         super().__init__(c8y=c8y)
         self.name = name
         self.type = type
@@ -38,7 +40,7 @@ class Application(SimpleObject):
         self.owner = owner
 
     @classmethod
-    def from_json(cls, json) -> Application:
+    def from_json(cls, json: dict) -> Application:
         # (no doc update required)
         obj = super()._from_json(json, Application())
         obj.owner = json['owner']['tenant']['id']
@@ -54,10 +56,10 @@ class Applications(CumulocityResource):
     See also: https://cumulocity.com/api/#tag/Application-API
     """
 
-    def __init__(self, c8y):
+    def __init__(self, c8y: CumulocityRestApi):
         super().__init__(c8y=c8y, resource='application/applications')
 
-    def get(self, application_id) -> Application:
+    def get(self, application_id: str) -> Application:
         """Retrieve a specific object from the database.
 
         Args:
