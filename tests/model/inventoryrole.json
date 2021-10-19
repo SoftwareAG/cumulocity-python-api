@@ -1,0 +1,26 @@
+{
+  "name": "Manager",
+  "description": "Can read all data of the asset and manage all inventory data, but cannot perform operations. Can also acknowledge and clear alarms. Can create and updates dashboards.",
+  "self": "https://t12345.eu-latest.cumulocity.com/user/inventoryroles/2",
+  "id": 2,
+  "permissions": [
+    {
+      "permission": "READ",
+      "id": 2,
+      "type": "*",
+      "scope": "*"
+    },
+    {
+      "permission": "ADMIN",
+      "id": 3,
+      "type": "*",
+      "scope": "MANAGED_OBJECT"
+    },
+    {
+      "permission": "ADMIN",
+      "id": 4,
+      "type": "*",
+      "scope": "ALARM"
+    }
+  ]
+}

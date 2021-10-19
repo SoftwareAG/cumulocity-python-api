@@ -167,7 +167,7 @@ class SimpleObject(CumulocityObject):
         """
         # no need to assert the ID - this function is only used when
         # the database ID is defined
-        return self._build_resource_path() + '/' + self.id
+        return self._build_resource_path() + '/' + str(self.id)
 
     @classmethod
     def from_json(cls, json: dict) -> Any[SimpleObject]:

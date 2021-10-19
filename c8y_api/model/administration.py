@@ -55,35 +55,34 @@ class Permission(SimpleObject):
             'type': 'type',
             'scope': 'scope'})
 
-    def __init__(self, level=Level.ANY, scope=Scope.ANY, type='*'):
-        """
-        :param level: one of ADMIN, READ, * (default)
-        :param type: type on which to restrict or * (default)
-        :param scope: one of ALARM, AUDIT, EVENT, MEASUREMENT, MANAGED_OBJECT, OPERATION, or * (default)
+    def __init__(self, level: str = Level.ANY, scope: str = Scope.ANY, type: str = '*'):
+        """Create a new Permission instance.
+
+        Args:
+            level (str): One of ADMIN, READ, * (default)
+            scope (str): One of ALARM, AUDIT, EVENT, MEASUREMENT,
+                MANAGED_OBJECT, OPERATION, or * (default)
+            type (str): Type on which to restrict or * (default)
         """
         super().__init__(c8y=None)
-        self.id = None
         self.level = level
         self.type = type
         self.scope = scope
 
     @classmethod
-    def from_json(cls, object_json) -> Permission:
+    def from_json(cls, object_json: dict) -> Permission:
+        # no doc change required
         return cls._from_json(object_json, Permission())
 
-    def to_json(self, only_updated=False):
-        if only_updated:
-            raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
-        return self._to_json(self)
-
-    def create(self) -> Permission:
-        raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
-
-    def update(self) -> Permission:
-        raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
-
-    def delete(self):
-        raise NotImplementedError('Permissions are read-only objects within Cumulocity.')
+    def to_json(self, only_updated=False) -> dict:
+        # no doc change required
+        json = self._to_json()
+        # for permissions it is actually ok to give the ID if there is any
+        # for updates, this will create less objects within the database
+        if self.id:
+            # permission IDs are actually ints
+            json['id'] = int(self.id)
+        return json
 
 
 class ReadPermission(Permission):
@@ -108,19 +107,33 @@ class AnyPermission(Permission):
 
 
 class InventoryRole(SimpleObject):
+    """Represent an instance of an inventory role object in Cumulocity.
 
-    __parser = SimpleObjectParser({
-            'id': 'id',
+    Instances of this class are returned by functions of the corresponding
+    Inventory Role API.
+    Use this class to create new or update inventory role objects.
+
+    See also: https://cumulocity.com/api/#tag/Inventory-Roles
+    """
+
+    _parser = SimpleObjectParser({
             '_u_name': 'name',
             '_u_description': 'description'})
+    _resource = '/user/inventoryroles'
 
-    def __init__(self, id=None, c8y=None, name=None, description=None, permissions=None):  # noqa
-        """
-        :param c8y:
-        :param name: name of the inventory role
+    def __init__(self, c8y: CumulocityRestApi = None, name: str = None, description: str = None,
+                 permissions: List[Permission] = None):
+        """Create a new InventoryRole instance.
+
+        Args:
+            c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                to be set for direct manipulation (create, delete)
+            name (str):  Name of the inventory role
+            description (str):  A description for the inventory role
+            permissions (List[Permission]):  A collection of permissions that
+                the inventory role assembles
         """
         super().__init__(c8y)
-        self.id = id
         self._u_name = name
         self._u_description = description
         self.permissions = permissions if permissions else []
@@ -129,47 +142,41 @@ class InventoryRole(SimpleObject):
     description = SimpleObject.UpdatableProperty('_u_description')
 
     @classmethod
-    def from_json(cls, object_json):
-        r = cls.__parser.from_json(object_json, InventoryRole())
-        r.permissions = list(map(lambda p: Permission.from_json(p), object_json['permissions']))
-        return r
+    def from_json(cls, json: dict) -> InventoryRole:
+        # no doc change required
+        obj = super()._from_json(json, InventoryRole())
+        obj.permissions = list(map(lambda p: Permission.from_json(p), json['permissions']))
+        return obj
 
-    def to_full_json(self):
-        j = self.__parser.to_full_json(self)
-        j['permissions'] = list(map(lambda p: p._from_json(), self.permissions))
-        return j
+    def to_json(self, only_updated=False) -> dict:
+        # no doc change required
+        json = super()._to_json(only_updated)
+        json['permissions'] = list(map(lambda p: p.to_json(), self.permissions))
+        return json
 
-    def to_diff_json(self):
-        j = self.__parser.to_diff_json(self)
-        # the permission list can only be specified as a whole
-        j['permissions'] = list(map(lambda p: p._from_json(), self.permissions))
-        return j
+    def create(self) -> InventoryRole:
+        """Create the role within the database.
 
-    def create(self, ignore_result=False):
-        """Will write the object to the database as a new instance."""
-        self._assert_c8y()
-        response_json = self.c8y.post('/user/inventoryroles', self.to_full_json())
-        if not ignore_result:
-            result = self.from_json(response_json)
-            result.c8y = self.c8y
-            return result
-        return None
+        Returns:
+            A fresh InventoryRole object representing what was
+            created within the database (including the ID).
+        """
+        return super()._create()
 
-    def update(self, ignore_result=False):
-        """Will update the Inventory Role object"""
-        self._assert_c8y()
-        self._assert_id()
-        response_json = self.c8y.put(f'/user/inventoryroles/{self.id}', self.to_diff_json())
-        if not ignore_result:
-            result = self.from_json(response_json)
-            result.c8y = self.c8y
-            return result
-        return None
+    def update(self) -> InventoryRole:
+        """Update the role within the database.
+
+        Note: This will only send changed fields to increase performance.
+
+        Returns:
+            A fresh InventoryRole object representing the updated
+            database state (including the ID).
+        """
+        return super()._update()
 
     def delete(self):
-        """Will delete the object within the database."""
-        self._assert_c8y()
-        self.c8y.delete(f'/user/inventoryroles/{self.id}')
+        """Delete the role within the database."""
+        super()._delete()
 
 
 class InventoryRoleAssignment(SimpleObject):
@@ -552,28 +559,68 @@ class User(SimpleObject):
 
 
 class InventoryRoles(CumulocityResource):
+    """Provides access to the InventoryRole API.
+
+    This class can be used for get, search for, create, update and
+    delete inventory roles within the Cumulocity database.
+
+    See also: https://cumulocity.com/api/#tag/Inventory-Roles
+    """
 
     def __init__(self, c8y):
-        super().__init__(c8y, 'user/inventoryroles')
+        super().__init__(c8y, '/user/inventoryroles')
         self.object_name = "roles"
 
-    def get(self, object_id):
-        role = InventoryRole.from_json(self._get_object(object_id))
+    def get(self, id: str | int) -> InventoryRole:
+        """Get a specific inventory role object.
+
+        Args:
+            id (str|int): Cumulocity ID of the inventory role
+
+        Returns:
+            An InventoryRole instance for this ID
+
+        Raises:
+            SyntaxError if the ID is not defined.
+
+        Note: In contrast to other API the InventoryRole API does not raise
+        an KeyError (i.e. 404) for undefined ID but a SyntaxError (HTTP 500).
+        """
+        role = InventoryRole.from_json(self._get_object(id))
         role.c8y = self.c8y  # inject c8y connection into instance
         return role
 
-    def get_all(self, page_size=1000):
-        """Lazy implementation."""
+    def select(self, limit: int = None, page_size: int = 1000) -> Generator[InventoryRole]:
+        """Get all defined inventory roles.
+
+        This function is implemented in a lazy fashion - results will only be
+        fetched from the database as long there is a consumer for them.
+
+        Note: The InventoryRole API does not support filters.
+
+        Args:
+            limit (int): Limit the number of results to this number.
+            page_size (int): Define the number of objects read (and parsed
+                in one chunk). This is a performance related setting.
+
+        Returns:
+            Generator for InventoryRole objects
+        """
         base_query = self._build_base_query(page_size=page_size)
-        page_number = 1
-        while True:
-            results = [InventoryRole.from_json(x) for x in self._get_page(base_query, page_number)]
-            if not results:
-                break
-            for result in results:
-                result.c8y = self.c8y  # inject c8y connection into instance
-                yield result
-            page_number = page_number + 1
+        return super()._iterate(base_query, limit, InventoryRole.from_json)
+
+    def get_all(self, limit: int = None, page_size: int = 1000) -> List[InventoryRole]:
+        """Get all defined inventory roles.
+
+        This function is a greedy version of the `select` function. All
+        available results are read immediately and returned as list.
+
+        See `select` for a documentation of arguments.
+
+        Returns:
+            List of InventoryRole objects
+        """
+        return list(self.select(limit=limit, page_size=page_size))
 
     def select_assignments(self, username):
         query = f'/user/{self.c8y.tenant_id}/users/{username}/roles/inventory'
@@ -586,6 +633,22 @@ class InventoryRoles(CumulocityResource):
 
     def get_all_assignments(self, username):
         return list(self.select_assignments(username))
+
+    def create(self, *roles: InventoryRole):
+        """Create objects within the database.
+
+        Args:
+            roles (*InventoryRole):  Collection of InventoryRole instances
+        """
+        super()._create(InventoryRole.to_full_json, *roles)
+
+    def update(self, *roles: InventoryRole):
+        """Write changes to the database.
+
+        Args:
+            roles (*InventoryRole):  Collection of InventoryRole instances
+        """
+        super()._update(InventoryRole.to_diff_json, *roles)
 
 
 class Users(CumulocityResource):
