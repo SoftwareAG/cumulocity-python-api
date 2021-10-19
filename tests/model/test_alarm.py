@@ -34,7 +34,7 @@ def sample_alarm() -> Alarm:
 def test_parsing():
     """Verify that parsing an Alarm from JSON works."""
     path = os.path.dirname(__file__) + '/alarm.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         alarm_json = json.load(f)
     event = Alarm.from_json(alarm_json)
 

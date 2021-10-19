@@ -18,7 +18,7 @@ from c8y_api.model import GlobalRole
 def sample_role() -> GlobalRole:
     """Provide a sample global role, read from JSON file."""
     path = os.path.dirname(__file__) + '/global_role.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         role_json = json.load(f)
 
     return GlobalRole.from_json(role_json)
@@ -27,7 +27,7 @@ def sample_role() -> GlobalRole:
 def test_parsing():
     """Verify that parsing a GlobalRole from JSON works."""
     path = os.path.dirname(__file__) + '/global_role.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         role_json = json.load(f)
     role = GlobalRole.from_json(role_json)
 

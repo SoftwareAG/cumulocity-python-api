@@ -16,7 +16,7 @@ from c8y_api.model import User
 def sample_user() -> User:
     """Provide a sample user, read from JSON file."""
     path = os.path.dirname(__file__) + '/user.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         user_json = json.load(f)
 
     return User.from_json(user_json)
@@ -27,7 +27,7 @@ def test_parsing():
 
     # 1) read a sample user from file
     path = os.path.dirname(__file__) + '/user.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         user_json = json.load(f)
 
     user = User.from_json(user_json)

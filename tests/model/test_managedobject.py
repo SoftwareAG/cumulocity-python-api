@@ -19,7 +19,7 @@ def test_parsing():
 
     # 1) read a sample object from file
     path = os.path.dirname(__file__) + '/managed_object.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         object_json = json.load(f)
 
     mo = ManagedObject.from_json(object_json)

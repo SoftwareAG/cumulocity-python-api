@@ -13,7 +13,7 @@ from c8y_api.model import Application
 def test_parsing():
     """Verify that parsing a Event from JSON works."""
     path = os.path.dirname(__file__) + '/application.json'
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         application_json = json.load(f)
     application = Application.from_json(application_json)
 

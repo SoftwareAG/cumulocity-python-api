@@ -34,7 +34,7 @@ def sample_device() -> Device:
 @pytest.fixture(scope='session')
 def sample_json() -> dict:
     path = os.path.dirname(__file__) + '/device.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         return json.load(f)
 
 

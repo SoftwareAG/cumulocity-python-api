@@ -31,7 +31,7 @@ def sample_event() -> Event:
 def test_parsing():
     """Verify that parsing a Event from JSON works."""
     path = os.path.dirname(__file__) + '/event.json'
-    with open(path) as f:
+    with open(path, encoding='utf-8', mode='rt') as f:
         event_json = json.load(f)
     event = Event.from_json(event_json)
 
