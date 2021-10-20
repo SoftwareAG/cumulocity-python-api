@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 from __future__ import annotations
 
 from typing import List
@@ -11,7 +13,6 @@ from typing import List
 import pytest
 
 from c8y_api import CumulocityApi
-from c8y_api.model import Event
 from c8y_api.model import Device, Alarm
 
 from tests import RandomNameGenerator
@@ -101,14 +102,14 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
             assert alarm.status == Alarm.Status.ACKNOWLEDGED
 
         # 5) apply mode updates
-        model = Event(text='another update', simple_attribute='value')
+        model = Alarm(text='another update', simple_attribute='value')
         live_c8y.alarms.apply_to(model, *alarm_ids)
 
         # -> the new text should be in all events
         alarms = live_c8y.alarms.get_all(**get_filter)
         assert len(alarms) == 2
-        assert all([a.text == 'another update' for a in alarms])
-        assert all([a.simple_attribute == 'value' for a in alarms])
+        assert all(a.text == 'another update' for a in alarms)
+        assert all(a.simple_attribute == 'value' for a in alarms)
 
     finally:
         live_c8y.alarms.delete_by(**get_filter)
@@ -145,7 +146,7 @@ def test_apply_by(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):
 
     # -> all matching objects should have been updated
     alarms = live_c8y.alarms.get_all(**filter_kwargs)
-    assert all([a.status == model.status for a in alarms])
+    assert all(a.status == model.status for a in alarms)
 
 
 def test_count(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):

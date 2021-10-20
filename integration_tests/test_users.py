@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 import pytest
 
 from c8y_api import CumulocityApi
@@ -61,6 +63,20 @@ def user_factory(live_c8y: CumulocityApi):
 
     for u in created_users:
         u.delete()
+
+
+def test_set_password(live_c8y: CumulocityApi, user_factory):
+    """Verify that the password of a user can be set and removed."""
+
+    user = user_factory()
+
+    with pytest.raises(ValueError) as ve:
+        user.update_password('pw')
+        assert 'least' in str(ve)
+
+    # this is not a real password, obviously.
+    # but it should meet the password requirements
+    user.update_password('ja89NAk,2k23jhL_Paasd0')
 
 
 def test_set_owner(live_c8y: CumulocityApi, user_factory):

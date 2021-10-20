@@ -4,8 +4,11 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=too-many-lines
+
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Generator, List
 
 from c8y_api._base_api import CumulocityRestApi
@@ -70,9 +73,9 @@ class Permission(SimpleObject):
         self.scope = scope
 
     @classmethod
-    def from_json(cls, object_json: dict) -> Permission:
+    def from_json(cls, json: dict) -> Permission:
         # no doc change required
-        return cls._from_json(object_json, Permission())
+        return cls._from_json(json, Permission())
 
     def to_json(self, only_updated=False) -> dict:
         # no doc change required
@@ -180,66 +183,43 @@ class InventoryRole(SimpleObject):
 
 
 class InventoryRoleAssignment(SimpleObject):
-    __parser = SimpleObjectParser({
-            'id': 'id',
-            'group': 'managedObject'})
+    """Represent an instance of an inventory role assignment in Cumulocity.
 
-    def __init__(self, c8y=None, username=None, group=None, roles=None):
-        """
-        :param c8y:
-        :param username: user to which to assign the inventory roles
-        :param group: id of the group on which to assign the inventory roles
-        :param roles: list of inventory role objects to assign
+    This class is used internally by the InventoryRole and InventoryRoles
+    classes. It cannot be used directly.
+
+    See also: https://cumulocity.com/api/#tag/Inventory-Roles
+    """
+    _parser = SimpleObjectParser({
+            'managed_object': 'managedObject'})
+
+    def __init__(self, c8y: CumulocityRestApi = None, managed_object: str = None,
+                 roles: List[InventoryRole] = None):
+        """Create a new InventoryRoleAssignment instance.
+
+        Args:
+            c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                to be set for direct manipulation (create, delete)
+            managed_object (str):  ID of the managed object for which the roles
+                are assigned
+            roles (List[InventoryRole]): List of inventory role objects to assign
         """
         super().__init__(c8y)
-        self.id = None
-        self.username = username
-        self.group = group
-        self.roles = roles if roles else []
+        self.managed_object = managed_object
+        self.roles: List[InventoryRole] = roles if roles else []
 
     @classmethod
-    def from_json(cls, object_json):
-        r = cls.__parser.from_json(object_json, InventoryRoleAssignment())
-        r.roles = list(map(lambda p: InventoryRole.from_json(p), object_json['roles']))
-        return r
+    def from_json(cls, json: dict) -> InventoryRoleAssignment:
+        # no doc change required
+        obj = cls._parser.from_json(json, InventoryRoleAssignment())
+        obj.roles = list(map(lambda p: InventoryRole.from_json(p), json['roles']))
+        return obj
 
-    def to_full_json(self):
-        j = self.__parser.to_full_json(self)
-        j['roles'] = list(map(lambda r: r._from_json(), self.roles))
+    def to_json(self, only_updated=False) -> dict:
+        # no doc change required
+        j = super().to_json(only_updated)
+        j['roles'] = list(map(lambda r: r.to_json(), self.roles))
         return j
-
-    def to_diff_json(self):
-        return self.to_full_json()
-
-    def create(self, ignore_result=False):
-        """Will write the object to the database as a new instance."""
-        self._assert_c8y()
-        base_path = f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory'
-        result_json = self.c8y.post(base_path, self.to_full_json())
-        if not ignore_result:
-            return self.from_json(result_json)
-        return None
-
-    def update(self, ignore_result=False):
-        """Will update the Inventory Role object"""
-        self._assert_c8y()
-        result_json = self.c8y.put(self._build_object_path(), self.to_diff_json())
-        if not ignore_result:
-            return self.from_json(result_json)
-        return None
-
-    def delete(self):
-        """Will delete the object within the database."""
-        self._assert_c8y()
-        self._assert_username()
-        self.c8y.delete(self._build_object_path())
-
-    def _build_object_path(self):
-        return f'/user/{self.c8y.tenant_id}/users/{self.username}/roles/inventory/{self.id}'
-
-    def _assert_username(self):
-        if not self.username:
-            raise ValueError("Username must be provided.")
 
 
 class GlobalRole(SimpleObject):
@@ -275,26 +255,39 @@ class GlobalRole(SimpleObject):
     description = SimpleObject.UpdatableProperty('_u_description')
 
     @classmethod
-    def from_json(cls, role_json) -> GlobalRole:
+    def from_json(cls, json: dict) -> GlobalRole:
         # no doc change
-        role: GlobalRole = cls._from_json(role_json, GlobalRole())
+        role: GlobalRole = cls._from_json(json, GlobalRole())
         # role ID are int for some reason - convert for consistency
         role.id = str(role.id)
-        if role_json['roles'] and role_json['roles']['references']:
-            role.permission_ids = {ref['role']['id'] for ref in role_json['roles']['references']}
-        if role_json['applications']:
-            role.application_ids = {ref['id'] for ref in role_json['applications']}
+        if json['roles'] and json['roles']['references']:
+            role.permission_ids = {ref['role']['id'] for ref in json['roles']['references']}
+        if json['applications']:
+            role.application_ids = {ref['id'] for ref in json['applications']}
         return role
 
     # custom implementation for to_json not required
 
     def create(self) -> GlobalRole:
+        """Create the GlobalRole within the database.
+
+        Returns:
+            A fresh GlobalRole object representing what was
+            created within the database (including the ID).
+        """
         return super()._create()
 
     def update(self) -> GlobalRole:
+        """Update the GlobalRole within the database.
+
+        Returns:
+            A fresh GlobalRole object representing what the updated
+            state within the database (including the ID).
+        """
         return super()._update()
 
     def delete(self):
+        """Delete the GlobalRole within the database."""
         super()._delete()
 
     def add_permissions(self, *permissions: str):
@@ -355,21 +348,30 @@ class UserUtil:
 
     @staticmethod
     def build_user_reference(tenant_id: str, username: str) -> dict:
+        """Build the JSON structure for a user reference."""
         return {'user': {'self': f'/user/{tenant_id}/users/{username}'}}
 
     @staticmethod
     def build_owner_reference(user_id: str) -> dict:
+        """Build the JSON structure for an owner reference."""
         return {'owner': user_id}
 
     @staticmethod
     def build_delegate_reference(user_id: str) -> dict:
+        """Build the JSON structure for a delegate reference."""
         return {'delegatedBy': user_id}
 
     @staticmethod
-    def build_application_references(*ids):
+    def build_application_references(*ids) -> List[dict]:
+        """Build the JSON structure for a applicaiton reference."""
         if not ids:
             return []
         return [{'id': str(aid), 'type': 'MICROSERVICE'} for aid in ids]
+
+    @staticmethod
+    def build_inventoryrole_assignment(object_id: int | str, *role_ids: int | str) -> dict:
+        """Build the JSON structure for an inventory role assignment."""
+        return {'managedObject': int(object_id), 'roles': [{'id': int(rid)} for rid in role_ids]}
 
 
 class User(SimpleObject):
@@ -447,19 +449,26 @@ class User(SimpleObject):
     require_password_reset = SimpleObject.UpdatableProperty('_u_require_password_reset')
 
     @property
-    def last_password_change(self):
+    def last_password_change(self) -> datetime:
+        """Get the last password change time."""
+        # hint: could be cached, but it is rarely accessed multiple times
+        return self._last_password_change
+
+    @property
+    def last_password_change_datetime(self) -> datetime:
+        """Get the last password change time."""
         # hint: could be cached, but it is rarely accessed multiple times
         return _DateUtil.to_datetime(self._last_password_change)
 
     @classmethod
-    def from_json(cls, user_json) -> User:
-        user = cls._from_json(user_json, User())
-        if user_json['groups'] and user_json['groups']['references']:
-            user.global_role_ids = {str(ref['group']['id']) for ref in user_json['groups']['references']}
-        if user_json['roles'] and user_json['roles']['references']:
-            user.permission_ids = {ref['role']['id'] for ref in user_json['roles']['references']}
-        if 'applications' in user_json:
-            user.application_ids = {x['id'] for x in user_json['applications']}
+    def from_json(cls, json: dict) -> User:
+        user = cls._from_json(json, User())
+        if json['groups'] and json['groups']['references']:
+            user.global_role_ids = {str(ref['group']['id']) for ref in json['groups']['references']}
+        if json['roles'] and json['roles']['references']:
+            user.permission_ids = {ref['role']['id'] for ref in json['roles']['references']}
+        if 'applications' in json:
+            user.application_ids = {x['id'] for x in json['applications']}
         # if user_json['customProperties']:
         #     user.custom_properties = cls.__custom_properties_parser.from_json(user_json['customProperties'],
         #                                                                       WithUpdatableFragments())
@@ -468,24 +477,50 @@ class User(SimpleObject):
     # no need to override the standard to_json method
 
     def create(self) -> User:
+        """Create the User within the database.
+
+        Returns:
+            A fresh User object representing what was
+            created within the database (including the ID).
+        """
         return self._create()
 
     def update(self) -> User:
+        """Update the User within the database.
+
+        Returns:
+            A fresh User object representing what the updated
+            state within the database (including the ID).
+        """
+        # user update is not ID, but username based,
+        # hence this custom implementation
         self._assert_c8y()
         self._assert_username()
         result_json = self.c8y.put(self._build_user_path(), self.to_diff_json(), accept=self._accept)
         return self.from_json(result_json)
 
     def delete(self):
+        """Delete the User within the database."""
         self._delete()
 
-    def update_password(self, new_password):
-        pass
+    def update_password(self, new_password: str):
+        """Update the password.
+
+        This operation is executed immediately. No additional call to
+        the `update` function required.
+
+        Args:
+            new_password (str): The new password to set
+        """
+        self._assert_c8y()
+        self._assert_username()
+        Users(self.c8y).set_password(self.username, new_password)
 
     def set_owner(self, user_id: str):
         """Set the owner for this user.
 
-        This function is applied immediately.
+        This operation is executed immediately. No additional call to
+        the `update` function required.
 
         Params:
             user_id (str): ID of the owner to set; can be None to
@@ -498,7 +533,8 @@ class User(SimpleObject):
     def set_delegate(self, user_id: str):
         """Set the delegate for this user.
 
-        This function is applied immediately.
+        This operation is executed immediately. No additional call to
+        the `update` function required.
 
         Params:
             user_id (str): ID of the delegate to set; can be None to
@@ -508,39 +544,94 @@ class User(SimpleObject):
         self._assert_username()
         Users(self.c8y).set_delegate(self.username, user_id)
 
-    def assign_global_role(self, role_id):
+    def assign_global_role(self, role_id: str):
+        """Assign a global role.
+
+        This operation is executed immediately. No call to `update`
+        is required.
+
+        Args:
+            role_id (str): Object ID of an existing global role
+        """
         self._assert_c8y()
         self._assert_username()
         GlobalRoles(self.c8y).assign_users(role_id, self.username)
 
     def unassign_global_role(self, role_id):
+        """Unassign a global role.
+
+        This operation is executed immediately. No call to `update`
+        is required.
+
+        Args:
+            role_id (str): Object ID of an assigned global role
+        """
         self._assert_c8y()
         self._assert_username()
         GlobalRoles(self.c8y).unassign_users(role_id, self.username)
 
-    def retrieve_global_roles(self):
+    def retrieve_global_roles(self) -> List[GlobalRole]:
+        """Retrieve users's global roles.
+
+        This operation is executed immediately. No call to `update`
+        is required.
+
+        Returns:
+            A list of assigned global roles.
+        """
         self._assert_c8y()
         self._assert_username()
         return GlobalRoles(self.c8y).get_all(self.username)
 
     def retrieve_inventory_role_assignments(self):
+        """Retrieve users's inventory roles.
+
+        This operation is executed immediately. No call to `update`
+        is required.
+
+        Returns:
+            A list of assigned inventory roles.
+        """
         self._assert_c8y()
         self._assert_username()
         return InventoryRoles(self.c8y).get_all_assignments(self.username)
 
-    def assign_inventory_roles(self, group_id, role_ids):
-        """Assign an inventory role for a specific device group.
+    def assign_inventory_roles(self, object_id: str | int, *roles: str | int | InventoryRole):
+        """Assign an inventory role.
 
-        The assignment is executed immediately. No call to :ref:`update`
+        This operation is executed immediately. No call to `update`
         is required.
 
-        :param group_id  object ID of an existing device group
-        :param role_ids  object ID of an existing inventory role
+        Args:
+            object_id (str): Object ID of an existing managed object
+                (i.e. device group)
+            roles (*str|*int|*InventoryRole): Existing InventoryRole objects resp.
+                the ID of existing inventory roles
         """
+
+        def resolve_role_ids(*rs: InventoryRole | int | str) -> List[int | str]:
+            if isinstance(rs[0], InventoryRole):
+                return [r.id for r in rs]
+            return list(rs)
+
         self._assert_c8y()
         roles_path = self._build_user_path() + '/roles/inventory'
-        assignment_json = {'managedObject': group_id, 'roles': [{'id': rid} for rid in role_ids]}
+        assignment_json = UserUtil.build_inventoryrole_assignment(object_id, *resolve_role_ids(*roles))
         self.c8y.post(roles_path, assignment_json)
+
+    def unassign_inventory_roles(self, *assignment_ids: str):
+        """Unassign an inventory role.
+
+        This operation is executed immediately. No call to `update`
+        is required.
+
+        Args:
+            assignment_ids (*str): Object ID of existing inventory role
+                assignments (for this user)
+        """
+        base_path = self._build_user_path() + '/roles/inventory/'
+        for id in assignment_ids:
+            self.c8y.delete(base_path + str(id))
 
     def _build_resource_path(self):
         # overriding the default as we need the tenant ID in there
@@ -622,16 +713,37 @@ class InventoryRoles(CumulocityResource):
         """
         return list(self.select(limit=limit, page_size=page_size))
 
-    def select_assignments(self, username):
+    def select_assignments(self, username: str) -> Generator[InventoryRoleAssignment]:
+        """Get all inventory role assignments of a user.
+
+        This function is implemented in a lazy fashion - results will only be
+        fetched from the database as long there is a consumer for them.
+
+        Args:
+            username (str):  Username of a Cumulocity user
+
+        Returns:
+             Generator for InventoryRoleAssignment objects
+        """
         query = f'/user/{self.c8y.tenant_id}/users/{username}/roles/inventory'
         assignments_json = self.c8y.get(query)
         for j in assignments_json['inventoryAssignments']:
             result = InventoryRoleAssignment.from_json(j)
-            result.username = username  # username is not part of the parse json and needs to be injected
             result.c8y = self.c8y  # inject c8y connection into instance
             yield result
 
-    def get_all_assignments(self, username):
+    def get_all_assignments(self, username: str) -> List[InventoryRoleAssignment]:
+        """Get all inventory role assignments of a user.
+
+        This function is a greedy version of the `select_assignments`
+        function. All available results are read immediately and returned
+        as list.
+
+        See `select_assignments` for a documentation of arguments.
+
+        Returns:
+            List of InventoryRoleAssignment objects
+        """
         return list(self.select_assignments(username))
 
     def create(self, *roles: InventoryRole):
@@ -725,9 +837,23 @@ class Users(CumulocityResource):
         return list(self.select(username, groups, page_size))
 
     def create(self, *users):
-        super()._create(lambda u: u._to_full_json(), *users)   # noqa
+        """Create users within the database.
 
-    def set_owner(self, user_id: str, owner_id: str):
+        Args:
+            users (*User):  Collection of User instances
+        """
+        super()._create(lambda u: u.to_full_json(), *users)
+
+    def set_password(self, username: str, new_password: str):
+        """Set the password of a user.
+
+        Args:
+            username (str):  Username of a Cumulocity user
+            new_password (str): The new password to set
+        """
+        self.c8y.put(self.resource + '/' + username, {'password': new_password})
+
+    def set_owner(self, user_id: str, owner_id: str | None):
         """Set the owner of a given user.
 
         Params:
@@ -740,7 +866,7 @@ class Users(CumulocityResource):
         else:
             self.c8y.delete(self.build_object_path(user_id) + '/owner')
 
-    def set_delegate(self, user_id: str, delegate_id: str):
+    def set_delegate(self, user_id: str, delegate_id: str | None):
         """Set the delegate of a given user.
 
         Params:

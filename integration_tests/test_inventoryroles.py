@@ -6,7 +6,7 @@
 
 import pytest
 
-from c8y_api.model import InventoryRole, Permission, ReadPermission, WritePermission, AnyPermission
+from c8y_api.model import User, InventoryRole, Permission, ReadPermission, WritePermission, AnyPermission
 
 from tests import RandomNameGenerator
 
@@ -29,7 +29,7 @@ def test_CRUD(live_c8y):
 
     # 2) update the role
     role.description = 'new description'
-    del(role.permissions[0])
+    del role.permissions[0]
     updated_role = role.update()
     # -> updated role has all the changed fields
     assert updated_role.id == role.id
@@ -77,3 +77,37 @@ def test_CRUD2(live_c8y):
     # (unfortunately this throws a SyntaxError instead of a KeyError)
     with pytest.raises(SyntaxError):
         live_c8y.inventory_roles.get(created_role.id)
+
+
+def test_assignments(live_c8y, sample_device, factory):
+    """Verify that inventory roles can be assigned, retrieved and unassigned."""
+    username = 'user_' + RandomNameGenerator.random_name(2)
+    role1_name = 'role_' + RandomNameGenerator.random_name(2)
+    role2_name = 'role_' + RandomNameGenerator.random_name(2)
+
+    # create a user
+    user = User(username=username, email='test@test.com')
+    user = factory(user)
+
+    # create inventory roles
+    role1 = InventoryRole(name=role1_name, permissions=[
+        ReadPermission(scope=Permission.Scope.ALARM),
+        WritePermission(scope=Permission.Scope.AUDIT)])
+    role1 = factory(role1)
+    role2 = InventoryRole(name=role2_name, permissions=[
+        ReadPermission(scope=Permission.Scope.ANY),
+        WritePermission(scope=Permission.Scope.MEASUREMENT)])
+    role2 = factory(role2)
+
+    # assign inventory roles
+    user.assign_inventory_roles(sample_device.id, role1, role2)
+
+    # verify that roles are assigned
+    assigned_roles = user.retrieve_inventory_role_assignments()
+    assert {role1_name, role2_name} == {x.name for x in assigned_roles[0].roles}
+
+    # delete the assignment
+    user.unassign_inventory_roles(assigned_roles[0].id)
+
+    # verify that the assignment is gone
+    assert not user.retrieve_inventory_role_assignments()
