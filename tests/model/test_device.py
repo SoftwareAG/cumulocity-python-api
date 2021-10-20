@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-# pylint: disable: redefined-outer-name
+# pylint: disable=redefined-outer-name
 
 import json
 import os
@@ -33,6 +33,7 @@ def sample_device() -> Device:
 
 @pytest.fixture(scope='session')
 def sample_json() -> dict:
+    """Provide sample device JSON."""
     path = os.path.dirname(__file__) + '/device.json'
     with open(path, encoding='utf-8', mode='rt') as f:
         return json.load(f)
@@ -87,11 +88,12 @@ def test_parsing(sample_json):
     assert test_fragment.false == test_json['false']
 
 
-def get_json_arg(mock: Mock) -> dict:
-    return isolate_last_call_arg(mock, name='json', pos=1)
-
-
 def get_json_arg_keys(mock: Mock) -> set:
+    """Get keys from 'json' arguments."""
+
+    def get_json_arg(m: Mock) -> dict:
+        return isolate_last_call_arg(m, name='json', pos=1)
+
     return set(get_json_arg(mock).keys())
 
 

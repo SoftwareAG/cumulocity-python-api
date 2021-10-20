@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 import os
 import threading
 import time
@@ -28,7 +30,7 @@ def device_registry(test_environment, logger) -> CumulocityDeviceRegistry:
         bootstrap_password = os.environ['C8Y_DEVICEBOOTSTRAP_PASSWORD']
     except KeyError as e:
         raise RuntimeError(f"Missing Cumulocity environment variable: {e} "
-                           "Please define the required variables directly or setup a .env file.")
+                           "Please define the required variables directly or setup a .env file.") from e
 
     return CumulocityDeviceRegistry(base_url, bootstrap_tenantr, bootstrap_user, bootstrap_password)
 
@@ -46,7 +48,8 @@ def sample_device(live_c8y: CumulocityApi, device_registry: CumulocityDeviceRegi
     # the request can be accepted once there was some communication
     # we will do this asynchronously
     def await_communication_and_accept():
-        for i in range(1, 100):
+        # pylint: disable=bare-except
+        for _ in range(1, 100):
             try:
                 live_c8y.device_inventory.accept(device_id)
                 break

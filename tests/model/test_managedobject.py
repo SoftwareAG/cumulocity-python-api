@@ -4,7 +4,7 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-# pylint: disable: redefined-outer-name
+# pylint: disable=redefined-outer-name
 
 import json
 import os
@@ -142,7 +142,7 @@ def test_dot_access(object_with_fragments):
 
 def test_fragment_presence(object_with_fragments):
     """Verify that fragment presence can be checked."""
-    
+
     kwargs, mo = object_with_fragments
 
     for attr_name in kwargs.keys():

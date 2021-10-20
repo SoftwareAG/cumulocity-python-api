@@ -176,17 +176,6 @@ def test_trees(live_c8y: CumulocityApi, safe_executor):
     # -> child 1.1 and child 1.2 are the children of child 1
     assert {child11.id, child12.id} == {x.id for x in live_c8y.group_inventory.get_all(parent=child1.id)}
 
-    # TODO: cascade=false doesn't work
-    # # remove root folder (not cascading)
-    # root.delete()
-    # # -> children are still there
-    # assert live_c8y.group_inventory.get(child1.id)
-    # assert live_c8y.group_inventory.get(child2.id)
-    #
-    # # create a new root and assign children
-    # new_root = DeviceGroup(live_c8y, root=True, name=f'Root2-{name}').create()
-    # live_c8y.group_inventory.assign_children(new_root.id, child1.id, child2.id)
-
     # remove child 1 (cascading)
     live_c8y.group_inventory.delete_trees(child1.id)
     # -> children are gone as well
@@ -197,3 +186,26 @@ def test_trees(live_c8y: CumulocityApi, safe_executor):
     # -> all created groups are gone
     with pytest.raises(KeyError):
         live_c8y.group_inventory.get(child21.id)
+
+
+@pytest.mark.skip  # cascade=false doesn't work
+def test_non_cascade_delete(live_c8y: CumulocityApi, safe_executor):
+    """Verify that non-cascading delete works as expected."""
+    name = RandomNameGenerator.random_name(2)
+    root = DeviceGroup(live_c8y, root=True, name=f'Root-{name}').create()
+    child1 = root.create_child(name=f'Child1-{name}')
+    child2 = root.create_child(name=f'Child2-{name}')
+
+    child1.create_child(name=f'Child11-{name}')
+    child1.create_child(name=f'Child12-{name}')
+    child2.create_child(name=f'Child21-{name}')
+
+    # remove root folder (not cascading)
+    root.delete()
+    # -> children are still there
+    assert live_c8y.group_inventory.get(child1.id)
+    assert live_c8y.group_inventory.get(child2.id)
+
+    # cleanup
+    child1.delete_tree()
+    child2.delete_tree()

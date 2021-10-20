@@ -172,7 +172,7 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code != 201 and r.status_code != 200:
+        if r.status_code not in (200, 201):
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.content:
             return r.json()
@@ -201,11 +201,16 @@ class CumulocityRestApi:
             ValueError if the response is not ok for other reasons
                 (only 201 is accepted).
         """
-        if isinstance(file, str):
-            file = open(file, 'rb')
+
+        def ensure_open_file(f):
+            if isinstance(f, str):
+                with open(f, 'rb') as fp:
+                    return fp
+            return f
+
         files = {
             'object': (None, json_lib.dumps(object)),
-            'file': (None, file, content_type or 'application/octet-stream')
+            'file': (None, ensure_open_file(file), content_type or 'application/octet-stream')
         }
         additional_headers = self._prepare_headers(accept=accept)
         r = self.session.post(self.base_url + resource, files=files, headers=additional_headers)
@@ -276,14 +281,19 @@ class CumulocityRestApi:
             ValueError if the response is not ok for other reasons
                 (only 201 is accepted).
         """
-        if isinstance(file, str):
-            file = open(file, 'rb')
+
+        def read_file_data(f):
+            if isinstance(f, str):
+                with open(f, 'rb') as fp:
+                    return fp.read()
+            return f.read()
+
         # for some reason, the content-type header needs to be set, so
         # this is a reasonable default
         if not content_type:
             content_type = 'application/octet-stream'
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
-        data = file.read()
+        data = read_file_data(file)
         r = self.session.put(self.base_url + resource, data=data, headers=additional_headers)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
@@ -320,7 +330,7 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code != 204 and r.status_code != 200:
+        if r.status_code not in (200, 204):
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
 
     @classmethod

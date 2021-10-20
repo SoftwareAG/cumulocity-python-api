@@ -95,8 +95,8 @@ class Measurement(ComplexObject):
     # these need to be defined like this for the abstract super functions
     _resource = '/measurement/measurements'
     _parser = ComplexObjectParser({'type': 'type', 'time': 'time'}, ['source'])
-    # todo: _accept
-    # todo: _not_updatable
+    # _accept
+    # _not_updatable
 
     def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):
         """ Create a new Measurement object.

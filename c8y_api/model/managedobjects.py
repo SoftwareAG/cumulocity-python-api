@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from c8y_api import CumulocityRestApi
+from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import _DictWrapper, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
 from c8y_api.model.administration import User, Users
@@ -248,21 +248,21 @@ class ManagedObject(ComplexObject):
         return super()._to_datetime(self.update_time)
 
     @classmethod
-    def _from_json(cls, object_json: dict, new_object: Any) -> Any:
-        # pylint: disable=arguments-differ, arguments-renamed
+    def _from_json(cls, json: dict, obj: Any) -> Any:
+        # pylint: disable=arguments-differ
         """This function is used by derived classes to share the logic.
         Purposely no type information."""
-        mo = super(ManagedObject, cls)._from_json(object_json, new_object)
-        if 'c8y_IsDevice' in object_json:
+        mo = super(ManagedObject, cls)._from_json(json, obj)
+        if 'c8y_IsDevice' in json:
             mo.is_device = True
-        if 'c8y_IsBinary' in object_json:
+        if 'c8y_IsBinary' in json:
             mo.is_binary = True
-        if 'childDevices' in object_json:
-            mo.child_devices = cls._parse_references(object_json['childDevices'])
-        if 'childAssets' in object_json:
-            mo.child_assets = cls._parse_references(object_json['childAssets'])
-        if 'childAdditions' in object_json:
-            mo.child_additions = cls._parse_references(object_json['childAdditions'])
+        if 'childDevices' in json:
+            mo.child_devices = cls._parse_references(json['childDevices'])
+        if 'childAssets' in json:
+            mo.child_assets = cls._parse_references(json['childAssets'])
+        if 'childAdditions' in json:
+            mo.child_additions = cls._parse_references(json['childAdditions'])
         return mo
 
     @classmethod

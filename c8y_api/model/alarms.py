@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import List, Generator
 
-from c8y_api import CumulocityRestApi
+from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import CumulocityResource, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
 from c8y_api.model._util import _DateUtil

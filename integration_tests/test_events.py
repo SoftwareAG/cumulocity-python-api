@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 from __future__ import annotations
 
 from logging import Logger
@@ -11,8 +13,7 @@ from logging import Logger
 import pytest
 
 from c8y_api import CumulocityApi
-from c8y_api.model import Event
-from model import Device
+from c8y_api.model import Event, Device
 from tests import RandomNameGenerator
 
 
@@ -107,7 +108,7 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
         # -> the new text should be in all events
         events = live_c8y.events.get_all(type=typename)
         assert len(events) == 2
-        assert all([e.text == 'another update' for e in events])
+        assert all(e.text == 'another update' for e in events)
 
     finally:
         live_c8y.events.delete(*event_ids)

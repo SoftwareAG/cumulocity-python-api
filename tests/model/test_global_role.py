@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 from __future__ import annotations
 
 import json

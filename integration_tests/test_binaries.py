@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 import os
 from tempfile import NamedTemporaryFile
 
@@ -19,7 +21,7 @@ from tests import RandomNameGenerator
 def file_factory(logger):
     """Provide a file factory which creates test files and deletes them
     after the session."""
-
+    # pylint: disable=consider-using-with
     created_files = []
 
     def create_file() -> (str, str):

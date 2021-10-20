@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 import json
 import os
 
@@ -54,13 +56,14 @@ def test_parsing():
 
 
 def test_formatting(sample_user: User):
-
+    """Verify that user formatting works."""
     user_json = sample_user.to_json()
     assert 'id' not in user_json
 
 
 def test_updating(sample_user: User):
     """Verify that updating the user properties are recorded properly."""
+    # pylint: disable=protected-access
 
     # 1) some fields are readonly
     sample_user.id = 'x'

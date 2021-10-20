@@ -193,7 +193,7 @@ class DeviceInventory(Inventory):
 
     def get_all(self, type: str = None, name: str = None, owner: str = None,   # noqa (type, parameters)
                 page_size: int = 100) -> List[Device]:
-        # pylint: disable=arguments-differ, arguments-renamed
+        # pylint: disable=arguments-differ
         """ Query the database for devices and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -233,7 +233,7 @@ class DeviceGroupInventory(Inventory):
     """
 
     def get(self, group_id):
-        # pylint: disable=arguments-renamed
+        # pylint: disable=arguments-differ, arguments-renamed
         """ Retrieve a specific device group object.
 
         :param group_id:  ID of the device group object

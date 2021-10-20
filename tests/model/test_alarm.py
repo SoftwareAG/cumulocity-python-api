@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 from __future__ import annotations
 
 import json
@@ -14,7 +16,7 @@ from unittest.mock import Mock
 import pytest
 
 from c8y_api.model import Alarm
-from utils import isolate_last_call_arg
+from tests.utils import isolate_last_call_arg
 
 
 @pytest.fixture(scope='function')

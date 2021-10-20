@@ -4,10 +4,9 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-# pylint: disable: redefined-outer-name
+# pylint: disable=redefined-outer-name
 
 from typing import List
-from unittest.mock import patch, Mock
 
 import pytest
 

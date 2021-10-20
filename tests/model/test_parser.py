@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 import random
 import pytest
 
@@ -18,6 +20,7 @@ def simple_object_and_mapping():
     """Provide a simple object instance and corresponding mapping definition
     for simple parser tests."""
     class TestClass:
+        """Encapsulating test data."""
         def __init__(self):
             self.int_field = random.randint(1, 100)
             self.string_field = RandomNameGenerator.random_name()

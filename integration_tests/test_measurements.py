@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=redefined-outer-name
+
 from datetime import datetime, timedelta
 from dateutil import tz
 import logging
@@ -39,7 +41,7 @@ def measurement_factory(live_c8y: CumulocityApi):
         # 1) create device
         device = Device(c8y=live_c8y, type=f'{typename}_device', name=typename, test_marker={'name': typename}).create()
         created_devices.append(device)
-        logging.info(f'Created device #{device.id}')
+        logging.info('Created device #{}', device.id)
 
         # 2) create measurements
         ms = []
@@ -49,7 +51,7 @@ def measurement_factory(live_c8y: CumulocityApi):
             m = Measurement(c8y=live_c8y, type=typename, source=device.id, time=measurement_time)
             m[fragment] = {series: Count(i+1)}
             m = m.create()
-            logging.info(f'Created measurement #{m.id}: {m.to_json()}')
+            logging.info('Created measurement #{}: {}', m.id, m.to_json())
             ms.append(m)
         if auto_delete:
             created_measurements.extend(ms)
@@ -66,6 +68,7 @@ def measurement_factory(live_c8y: CumulocityApi):
 
 @pytest.fixture(scope='function')
 def measurements_for_deletion(measurement_factory):
+    """Provide measurements that can be deleted."""
     return measurement_factory(10, auto_delete=False)
 
 
