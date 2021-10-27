@@ -4,24 +4,48 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+import dataclasses
+import logging
 import os
 import requests
-from dataclasses import dataclass
 
-from c8y_api._util import error, info
-from c8y_api._main_api import CumulocityApi as NativeCumulocityApi
+from c8y_api._main_api import CumulocityApi
 
 
-class CumulocityApi(NativeCumulocityApi):
+class CumulocityApp(CumulocityApi):
+    """Application-like Cumulocity API.
 
-    @dataclass
+    Provides usage centric access to a Cumulocity instance.
+
+    Note: In contract to the standard Cumulocity API, this class evaluates
+    the environment to resolve the authorization information automatically.
+    This class is best used in Cumulocity microservices (applications).
+
+    This class supports two application authentication modes:
+        - PER_TENANT
+        - MULTITENANT
+
+    If the application is executed in PER_TENANT mode, all necessary
+    authentication information is provided directly by Cumulocity as
+    environment variables injected into the Docker container.
+
+    If the application is executed in MULTITENANT mode, only the so-called
+    bootstrap user's authentication information is injected into the Docker
+    container. An CumulocityApi instances providing access to a specific
+    tenant can be obtained buy the application using the
+    `get_tenant_instance` function.
+    """
+    @dataclasses.dataclass
     class Auth:
+        """Bundles authentication information."""
         username: str
         password: str
 
     __auth_by_tenant = {}
     __bootstrap_instance = None
     __tenant_instances = {}
+
+    __log = logging.getLogger(__name__)
 
     def __init__(self, tenant_id=None, application_key=None):
         self.baseurl = self.__get_env('C8Y_BASEURL')
@@ -61,23 +85,38 @@ class CumulocityApi(NativeCumulocityApi):
     def __update_auth_cache(self):
         r = requests.get(self.baseurl + '/application/currentApplication/subscriptions', auth=self.__bootstrap_auth)
         if r.status_code != 200:
-            error("Unable to perform GET request.", ("Status", r.status_code), ("Response", r.text))
-        info("get subscriptions: %s", r.json())
+            self.__log.error("Unable to perform GET request. Status: {}, Response: {}", r.status_code, r.text)
+        self.__log.info("get subscriptions: {}", r.json())
         self.__auth_by_tenant.clear()
         for subscription in r.json()['users']:
             tenant = subscription['tenant']
             username = subscription['name']
             password = subscription['password']
-            self.__auth_by_tenant[tenant] = CumulocityApi.Auth(username, password)
+            self.__auth_by_tenant[tenant] = CumulocityApp.Auth(username, password)
 
     @classmethod
-    def get_bootstrap_instance(cls):
+    def get_bootstrap_instance(cls) -> CumulocityApi:
+        """Provide access to the bootstrap instance in a multi-tenant
+        application setup.
+
+        Returns:
+            A CumulocityApi instance authorized for the bootstrap user
+        """
         if not cls.__bootstrap_instance:
-            cls.__bootstrap_instance = CumulocityApi()
+            cls.__bootstrap_instance = CumulocityApp()
         return cls.__bootstrap_instance
 
     @classmethod
-    def get_tenant_instance(cls, tenant_id):
+    def get_tenant_instance(cls, tenant_id) -> CumulocityApi:
+        """Provide access to a tenant-specific instance in a multi-tenant
+        application setup.
+
+        Args:
+            tenant_id (str):  ID of the tenant to get access to
+
+        Returns:
+            A CumulocityApi instance authorized for a tenant user
+        """
         if tenant_id not in cls.__tenant_instances:
-            cls.__tenant_instances[tenant_id] = CumulocityApi(tenant_id)
+            cls.__tenant_instances[tenant_id] = CumulocityApp(tenant_id)
         return cls.__tenant_instances[tenant_id]

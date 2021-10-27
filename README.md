@@ -21,32 +21,42 @@ python3 -m venv venv
 source venv/bin/activate
 ``` 
 
+### Installation from PyPI
+
+The recommended way is to install the lastest distribution package directly from the Python Package Index (PyPI).
+You can either add _c8y_api_ as a dependency to your project using _setup.cfg_, or install it manually:
+
+```shell
+pip install c8y_api
+```
+
 ### Installation using pip
 
-The module is released as standard Python wheel (_.whl_ file). It can be
-installed using pip using the following command:
+Releases are also archived within the GitHub releases page. The module is released as standard Python wheel (_.whl_ file).
+It can be ownloaded and installed using pip using the following command:
 
-```
+```shell
 pip install <release wheel file>
 ```
 
-This will install all necessary dependencies automatically.  For your
-references, the module's dependencies are also listed in file _requirements.txt_.
+Like installing from PyPI, this will install all necessary dependencies automatically.  For your
+reference, the module's dependencies are also listed in file _requirements.txt_.
  
 ### Manual installation
 
-The module sources can be used directly within your Python 3 project. Simply
-copy the _c8y_api_ folder to your sources root and install the requirements by
-running the following command. The _requirements.txt_ file is part of the sources.
+Alternatively, you can clone the repository. The module sources can be used directly within your Python 3 project.
+Simply copy the _c8y_api_ folder to your sources root and install the requirements by running the following command:
 
-```
+```shell
 pip3 install -r requirements.txt
 ```
+
+The _requirements.txt_ file is part of the sources.
 
 If the _c8y_api_ folder is in your sources root folder all imports should
 work right away. Alternatively you can add _c8y_api_ to your _PYHTONPATH_:
 
-```
+```shell
 export PYTHONPATH=<project-root>/c8y_api; $PYTHONPATH
 ```
 

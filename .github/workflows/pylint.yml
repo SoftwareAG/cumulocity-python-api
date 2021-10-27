@@ -19,4 +19,4 @@ jobs:
         pip install pylint
     - name: Analysing the code with pylint
       run: |
-        pylint --rcfile pylintrc --fail-under=9 c8y_api sample tests integration_tests
+        pylint --rcfile pylintrc --fail-under=9 c8y_api tests integration_tests

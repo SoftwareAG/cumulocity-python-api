@@ -1,0 +1,23 @@
+{
+  "creationTime": "2021-09-09T17:02:40.123Z",
+  "id": "31833718",
+  "self": "https://t12345.eu-latest.cumulocity.com/event/events/31833718",
+  "source": {
+    "id": "16414700",
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/16414700"
+  },
+  "text": "OK",
+  "time": "2021-09-09T17:02:40.123Z",
+  "type": "Resultado",
+  "custom_attribute": "value",
+  "custom_fragment": {
+    "key": "value",
+    "test": {
+      "string": "string",
+      "int": 123,
+      "float": 12.3,
+      "true": true,
+      "false": false
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "activeVersionId": "642712105",
+  "availability": "MARKET",
+  "contextPath": "connectivity",
+  "id": "1035",
+  "key": "connectivity-agent-server-key",
+  "manifest": {
+    "apiVersion": "1",
+    "billingMode": "RESOURCES",
+    "contextPath": "connectivity",
+    "isolation": "MULTI_TENANT",
+    "livenessProbe": {
+      "failureThreshold": 3,
+      "httpGet": {
+        "path": "/health",
+        "port": 80
+      },
+      "initialDelaySeconds": 360,
+      "periodSeconds": 30,
+      "successThreshold": 1,
+      "timeoutSeconds": 10
+    },
+    "noAppSwitcher": true,
+    "provider": {
+      "name": "Cumulocity GmbH"
+    },
+    "readinessProbe": {
+      "failureThreshold": 3,
+      "httpGet": {
+        "path": "/health",
+        "port": 80
+      },
+      "initialDelaySeconds": 30,
+      "periodSeconds": 30,
+      "successThreshold": 1,
+      "timeoutSeconds": 10
+    },
+    "requiredRoles": [
+      "ROLE_INVENTORY_READ",
+      "ROLE_OPTION_MANAGEMENT_READ",
+      "ROLE_OPTION_MANAGEMENT_ADMIN"
+    ],
+    "resources": {
+      "cpu": "2000m",
+      "memory": "1Gi"
+    },
+    "roles": ["ROLE_CONNECTIVITY_READ", "ROLE_CONNECTIVITY_ADMIN"],
+    "settingsCategory": null,
+    "version": "1010.0.8"
+  },
+  "name": "connectivity-agent-server",
+  "owner": {
+    "self": "https://t12345.eu-latest.cumulocity.com/tenant/tenants/management",
+    "tenant": {
+      "id": "management"
+    }
+  },
+  "requiredRoles": [
+    "ROLE_INVENTORY_READ",
+    "ROLE_OPTION_MANAGEMENT_READ",
+    "ROLE_OPTION_MANAGEMENT_ADMIN"
+  ],
+  "roles": ["ROLE_CONNECTIVITY_READ", "ROLE_CONNECTIVITY_ADMIN"],
+  "self": "https://t12345.eu-latest.cumulocity.com/application/applications/1035",
+  "type": "MICROSERVICE"
+}

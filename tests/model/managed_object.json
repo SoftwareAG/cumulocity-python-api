@@ -1,0 +1,113 @@
+{
+  "additionParents": {
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/additionParents",
+    "references": []
+  },
+  "childDevices": {
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/childDevices",
+    "references": []
+  },
+  "childAssets": {
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/childAssets",
+    "references": []
+  },
+  "type": "c8y_Application_3142",
+  "childAdditions": {
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/childAdditions",
+    "references": []
+  },
+  "name": "apama-ctrl-1c-4g",
+  "assetParents": {
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/assetParents",
+    "references": []
+  },
+  "deviceParents": {
+    "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120/deviceParents",
+    "references": []
+  },
+  "self": "https://t12345.eu-latest.cumulocity.com/inventory/managedObjects/120",
+  "id": "120",
+  "c8y_Status": {
+    "lastUpdated": {
+      "date": {
+        "$date": "2021-08-31T17:13:01.070Z"
+      },
+      "offset": 0
+    },
+    "instances": {
+      "apama-ctrl-1c-4g-scope-t12345-deployment-859d7f6b7-djd7x": {
+        "lastUpdated": {
+          "date": {
+            "$date": "2021-08-31T17:13:01.070Z"
+          },
+          "offset": 0
+        },
+        "memoryInBytes": 4294967296,
+        "scheduled": true,
+        "restarts": 1,
+        "cpuInMillis": 1000
+      }
+    },
+    "details": {
+      "desired": 1,
+      "aggregatedResources": {
+        "memory": "4294M",
+        "cpu": "1000m"
+      },
+      "test": {
+        "string": "string",
+        "int": 123,
+        "float": 12.3,
+        "true": true,
+        "false": false
+      },
+      "active": 1,
+      "restarts": 1
+    },
+    "status": "Up"
+  },
+  "com_cumulocity_model_Agent": {},
+  "c8y_ActiveAlarmsStatus": {
+    "major": 6,
+    "critical": 0
+  },
+  "applicationOwner": "management",
+  "c8y_SupportedLogs": [
+    "syslog"
+  ],
+  "c8y_Subscriptions": {
+    "t12345": {
+      "lastUpdated": {
+        "date": {
+          "$date": "2021-08-31T17:13:01.070Z"
+        },
+        "offset": 0
+      },
+      "instances": {
+        "apama-ctrl-1c-4g-scope-t12345-deployment-859d7f6b7-djd7x": {
+          "lastUpdated": {
+            "date": {
+              "$date": "2021-08-31T17:13:01.070Z"
+            },
+            "offset": 0
+          },
+          "memoryInBytes": 4294967296,
+          "scheduled": true,
+          "restarts": 1,
+          "cpuInMillis": 1000
+        }
+      },
+      "details": {
+        "desired": 1,
+        "aggregatedResources": {
+          "memory": "4294M",
+          "cpu": "1000m"
+        },
+        "active": 1,
+        "restarts": 1
+      },
+      "status": "Up"
+    }
+  },
+  "applicationId": "3142"
+}
