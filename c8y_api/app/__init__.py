@@ -7,8 +7,8 @@
 import dataclasses
 import logging
 import os
-import requests
 
+from c8y_api._base_api import c8y_keys
 from c8y_api._main_api import CumulocityApi
 
 
@@ -27,13 +27,15 @@ class CumulocityApp(CumulocityApi):
 
     If the application is executed in PER_TENANT mode, all necessary
     authentication information is provided directly by Cumulocity as
-    environment variables injected into the Docker container.
+    environment variables injected into the Docker container. A corresponding
+    instance can be created by invoking `CumulocityApp()` (without any parameter).
 
     If the application is executed in MULTITENANT mode, only the so-called
     bootstrap user's authentication information is injected into the Docker
     container. An CumulocityApi instances providing access to a specific
     tenant can be obtained buy the application using the
-    `get_tenant_instance` function.
+    `get_tenant_instance` function or by invoking `CumulocityApp(id)` (with the
+    ID of the tenant that should handle the requests).
     """
     @dataclasses.dataclass
     class Auth:
@@ -41,58 +43,78 @@ class CumulocityApp(CumulocityApi):
         username: str
         password: str
 
-    __auth_by_tenant = {}
-    __bootstrap_instance = None
-    __tenant_instances = {}
+    _auth_by_tenant = {}
+    _bootstrap_instance = None
+    _tenant_instances = {}
 
-    __log = logging.getLogger(__name__)
+    _log = logging.getLogger(__name__)
 
-    def __init__(self, tenant_id=None, application_key=None):
-        self.baseurl = self.__get_env('C8Y_BASEURL')
+    def __init__(self, tenant_id: str = None, application_key: str = None):
+        """Create a new tenant specific instance.
+
+        Args:
+            tenant_id (str|None):  If None, it is assumed that the application
+                is running in an PER_TENANT environment and the instance is
+                created for the injected tenant information. Otherwise it is
+                assumed that the application is running in a MULTITENANT
+                environment and the provided ID reflects the ID of a
+                subscribed tenant.
+            application_key (str|None): An application key to include in
+                all requests for tracking purposes.
+
+        Returns:
+            A new CumulocityApp instance
+        """
         if tenant_id:
             self.tenant_id = tenant_id
-            bootstrap_tenant_id = self.__get_env('C8Y_BOOTSTRAP_TENANT')
-            bootstrap_username = self.__get_env('C8Y_BOOTSTRAP_USER')
-            bootstrap_password = self.__get_env('C8Y_BOOTSTRAP_PASSWORD')
-            self.__bootstrap_auth = self.__build_auth(bootstrap_tenant_id, bootstrap_username, bootstrap_password)
-            auth = self.__get_auth(tenant_id)
-            self.username = auth.username
-            self.__password = auth.password
-            super().__init__(self.baseurl, self.tenant_id, auth.username, auth.password,
+            auth = self._get_tenant_auth(tenant_id)
+            baseurl = self._get_env('C8Y_BASEURL')
+            super().__init__(baseurl, tenant_id, auth.username, auth.password,
                              tfa_token=None, application_key=application_key)
         else:
-            self.tenant_id = self.__get_env('C8Y_TENANT')
-            self.username = self.__get_env('C8Y_USER')
-            self.__password = self.__get_env('C8Y_PASSWORD')
-            super().__init__(self.baseurl, self.tenant_id, self.username, self.__password,
+            baseurl = self._get_env('C8Y_BASEURL')
+            tenant_id = self._get_env('C8Y_TENANT')
+            username = self._get_env('C8Y_USER')
+            password = self._get_env('C8Y_PASSWORD')
+            super().__init__(baseurl, tenant_id, username, password,
                              tfa_token=None, application_key=application_key)
 
     @staticmethod
-    def __get_env(name):
-        val = os.getenv(name)
-        assert val, "Missing environment variable: " + name
-        return val
+    def _get_env(name: str) -> str:
+        try:
+            return os.environ[name]
+        except KeyError as e:
+            raise ValueError(f"Missing environment variable: {name}. Found {', '.join(c8y_keys())}.") from e
 
-    @staticmethod
-    def __build_auth(tenant_id, username, password):
-        return f'{tenant_id}/{username}', password
+    @classmethod
+    def _get_tenant_auth(cls, tenant_id: str) -> Auth:
+        if tenant_id not in cls._auth_by_tenant:
+            cls._auth_by_tenant = cls._read_subscriptions()
+        return cls._auth_by_tenant[tenant_id]
 
-    def __get_auth(self, tenant_id):
-        if tenant_id not in self.__auth_by_tenant:
-            self.__update_auth_cache()
-        return self.__auth_by_tenant[tenant_id]
+    @classmethod
+    def _read_subscriptions(cls):
+        """Read subscribed tenant's auth information.
 
-    def __update_auth_cache(self):
-        r = requests.get(self.baseurl + '/application/currentApplication/subscriptions', auth=self.__bootstrap_auth)
-        if r.status_code != 200:
-            self.__log.error("Unable to perform GET request. Status: {}, Response: {}", r.status_code, r.text)
-        self.__log.info("get subscriptions: {}", r.json())
-        self.__auth_by_tenant.clear()
-        for subscription in r.json()['users']:
+        Returns:
+            A dict of tenant auth information by ID
+        """
+        subscriptions = cls.get_bootstrap_instance().get('/application/currentApplication/subscriptions')
+        cache = {}
+        for subscription in subscriptions['users']:
             tenant = subscription['tenant']
             username = subscription['name']
             password = subscription['password']
-            self.__auth_by_tenant[tenant] = CumulocityApp.Auth(username, password)
+            cache[tenant] = CumulocityApp.Auth(username, password)
+        return cache
+
+    @classmethod
+    def _create_bootstrap_instance(cls) -> CumulocityApi:
+        baseurl = cls._get_env('C8Y_BASEURL')
+        tenant_id = cls._get_env('C8Y_BOOTSTRAP_TENANT')
+        username = cls._get_env('C8Y_BOOTSTRAP_USER')
+        password = cls._get_env('C8Y_BOOTSTRAP_PASSWORD')
+        return CumulocityApi(baseurl, tenant_id, username, password)
 
     @classmethod
     def get_bootstrap_instance(cls) -> CumulocityApi:
@@ -102,9 +124,9 @@ class CumulocityApp(CumulocityApi):
         Returns:
             A CumulocityApi instance authorized for the bootstrap user
         """
-        if not cls.__bootstrap_instance:
-            cls.__bootstrap_instance = CumulocityApp()
-        return cls.__bootstrap_instance
+        if not cls._bootstrap_instance:
+            cls._bootstrap_instance = cls._create_bootstrap_instance()
+        return cls._bootstrap_instance
 
     @classmethod
     def get_tenant_instance(cls, tenant_id) -> CumulocityApi:
@@ -117,6 +139,6 @@ class CumulocityApp(CumulocityApi):
         Returns:
             A CumulocityApi instance authorized for a tenant user
         """
-        if tenant_id not in cls.__tenant_instances:
-            cls.__tenant_instances[tenant_id] = CumulocityApp(tenant_id)
-        return cls.__tenant_instances[tenant_id]
+        if tenant_id not in cls._tenant_instances:
+            cls._tenant_instances[tenant_id] = CumulocityApp(tenant_id)
+        return cls._tenant_instances[tenant_id]
