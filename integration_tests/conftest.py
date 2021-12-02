@@ -12,6 +12,7 @@ import os
 from dotenv import load_dotenv
 import pytest
 
+from c8y_api._base_api import c8y_keys
 from c8y_api.app import CumulocityApp
 from c8y_api.model import Device
 
@@ -48,9 +49,6 @@ def logger():
 @pytest.fixture(scope='session')
 def test_environment(logger):
     """Prepare the environment, i.e. read a .env file if found."""
-
-    def c8y_keys():
-        return filter(lambda x: 'C8Y_' in x, os.environ.keys())
 
     # check if there is a .env file
     if os.path.exists('.env'):
