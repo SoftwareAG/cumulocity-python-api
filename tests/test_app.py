@@ -6,9 +6,11 @@
 
 from __future__ import annotations
 
+import base64
 import os
 from unittest.mock import patch
 
+import jwt
 import pytest
 import responses
 from unittest import mock
@@ -33,7 +35,7 @@ env_multi_tenant = {
 }
 
 
-@mock.patch.dict(os.environ, env_per_tenant)
+@mock.patch.dict(os.environ, env_per_tenant, clear=True)
 def test_per_tenant():
     """Verify that the instance will be created properly within a
     per tenant environment"""
@@ -52,7 +54,7 @@ def test_per_tenant():
         c8y.get('/xyz')
 
 
-@mock.patch.dict(os.environ, env_multi_tenant)
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__invalid_call():
     """Verify that calling the constructor without arguments in a multi-tenant
     environment will result in an ValueError."""
@@ -63,7 +65,7 @@ def test_multi_tenant__invalid_call():
     assert 'C8Y' in str(e)
 
 
-@mock.patch.dict(os.environ, env_multi_tenant)
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__bootstrap_instance():
     """Verify that the bootstrap instance will be created propertly within a
     multi-tenant environment."""
@@ -82,7 +84,7 @@ def test_multi_tenant__bootstrap_instance():
         c8y.get('/xyz')
 
 
-@mock.patch.dict(os.environ, env_multi_tenant)
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__cached_instances():
     """Verify that instances are cached by their tenant ID and the cache
     is evaluated propertly."""
@@ -117,7 +119,7 @@ def test_multi_tenant__cached_instances():
         assert c8y.password == 'password'
 
 
-@mock.patch.dict(os.environ, env_multi_tenant)
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__caching_instances():
     """Verify that a uncached instance is build using the """
     # pylint: disable=protected-access
@@ -137,7 +139,7 @@ def test_multi_tenant__caching_instances():
         assert c8y.password == 'password'
 
 
-@mock.patch.dict(os.environ, env_multi_tenant)
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_read_subscriptions():
     """Verify that the subscriptions are read and parsed properly."""
     # pylint: disable=protected-access
@@ -162,3 +164,64 @@ def test_read_subscriptions():
         assert 't54321' in subscriptions
         assert subscriptions['t12345'].password == 'pass12345'
         assert subscriptions['t54321'].username == 'user54321'
+
+
+def test_get_tenant_instance_from_headers():
+    """Verify that the authorization header is parsed and passed correctly
+    when the tenant ID is resolved from the request headers."""
+
+    # we setup the internal resolve function to return a proper tenant ID
+    with patch('c8y_api.app.CumulocityApp._resolve_tenant_id_from_auth_header') as resolve_mock:
+        resolve_mock.return_value = 't12345'
+
+        # we intercept all calls to the internal _get function
+        with patch('c8y_api.app.CumulocityApp._get_tenant_instance') as get_mock:
+            CumulocityApp.get_tenant_instance(headers={'auTHOrization': 'auth_header'})
+            # -> the resolve function is called with the parsed auth header
+            resolve_mock.assert_called_once_with('auth_header')
+            # -> the get function is called with the tenant ID returned
+            #    by the resolve function
+            get_mock.assert_called_once_with('t12345')
+
+
+def b64encode(auth_string: str) -> str:
+    """Encode a string with base64. This uses UTF-8 encoding."""
+    return base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+
+
+@pytest.mark.parametrize('auth_string, tenant_id', [
+    ('t12345/some@domain.com:password', 't12345'),
+    ('t12345/some@domain.com', 't12345')])
+def test_resolve_tenant_basic(auth_string: str, tenant_id: str):
+    """Verify that parsing of an Basic authentication string works as expected."""
+    # pylint: disable=protected-access
+    assert tenant_id == CumulocityApp._resolve_tenant_id_basic(b64encode(auth_string))
+
+
+@pytest.mark.parametrize('auth_string, hint', [
+    ('some@domain.com:password', 'tenant')])
+def test_resolve_tenant_basic_bad(auth_string: str, hint: str):
+    """Verify that parsing of an Basic authentication string works as expected."""
+    # pylint: disable=protected-access
+    with pytest.raises(ValueError) as e:
+        CumulocityApp._resolve_tenant_id_basic(b64encode(auth_string))
+    assert hint in str(e)
+
+
+def test_resolve_tenant_token():
+    """Verify that parsing of an Bearer authentication string works as expected."""
+    # pylint: disable=protected-access
+    payload = {
+        'jti': None,
+        'iss': 't12345.cumulocity.com',
+        'aud': 't12345.cumulocity.com',
+        'sub': 'some.user@softwareag.com',
+        'tci': '0722ff7b-684f-4177-9614-3b7949b0b5c9',
+        'iat': 1638281885,
+        'nbf': 1638281885,
+        'exp': 1639491485,
+        'tfa': False,
+        'ten': 't12345',
+        'xsrfToken': 'something'}
+    encoded = jwt.encode(payload, key='key')
+    assert CumulocityApp._resolve_tenant_id_token(encoded) == 't12345'
