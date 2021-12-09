@@ -3,6 +3,8 @@
 
 ## Work in progress
 
+## Version 1.0.2
+
 ### Changed
 
 * Added this changelog :-)
