@@ -7,10 +7,19 @@
 from __future__ import annotations
 
 import json as json_lib
-from typing import Union, Dict, BinaryIO
+import os
+from typing import Union, Dict, BinaryIO, Set
 
 import requests
 import collections
+
+
+def c8y_keys() -> Set[str]:
+    """Provide the names of defined Cumulocity environment variables.
+
+    Returns: A set of environment variable names, starting with 'C8Y_'
+    """
+    return set(filter(lambda x: 'C8Y_' in x, os.environ.keys()))
 
 
 class CumulocityRestApi:
