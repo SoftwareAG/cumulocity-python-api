@@ -7,19 +7,23 @@
 from __future__ import annotations
 
 import json as json_lib
-import os
-from typing import Union, Dict, BinaryIO, Set
+from typing import Union, Dict, BinaryIO
 
-import requests
 import collections
+import requests
+from requests.auth import AuthBase, HTTPBasicAuth
+
+from c8y_api._util import JWT
 
 
-def c8y_keys() -> Set[str]:
-    """Provide the names of defined Cumulocity environment variables.
+class HTTPBearerAuth(AuthBase):
+    """Token based authentication."""
 
-    Returns: A set of environment variable names, starting with 'C8Y_'
-    """
-    return set(filter(lambda x: 'C8Y_' in x, os.environ.keys()))
+    def __init__(self, token: str):
+        self.token = token
+
+    def __call__(self, r):
+        r.headers['Authorization'] = 'Bearer ' + self.token
 
 
 class CumulocityRestApi:
@@ -36,9 +40,12 @@ class CumulocityRestApi:
     ACCEPT_GLOBAL_ROLE = 'application/vnd.com.nsn.cumulocity.group+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
-    def __init__(self, base_url: str, tenant_id: str, username: str, password: str,
-                 tfa_token: str = None, application_key: str = None):
+    def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None, tfa_token: str = None,
+                 auth: AuthBase = None, application_key: str = None):
         """Build a CumulocityRestApi instance.
+
+        One of `auth` or `username/password` must be provided. The TFA token
+        parameter is only sensible for basic authentication.
 
         Args:
             base_url (str):  Cumulocity base URL, e.g. https://cumulocity.com
@@ -46,26 +53,33 @@ class CumulocityRestApi:
             username (str):  Username
             password (str):  User password
             tfa_token (str):  Currently valid two factor authorization token
+            auth (AuthBase):  Authentication details
             application_key (str):  Application ID to include in requests
                 (for billing/metering purposes).
         """
         self.base_url = base_url
         self.tenant_id = tenant_id
-        self.username = username
-        self.password = password
-        self.tfa_token = tfa_token
         self.application_key = application_key
-        self.__auth = f'{tenant_id}/{username}', password
+
+        if auth:
+            self.auth = auth
+            self.username = self._resolve_username(auth)
+        elif username and password:
+            self.auth = HTTPBasicAuth(f'{tenant_id}/{username}', password)
+            self.username = username
+        else:
+            raise ValueError("One of 'auth' or 'username/password' must be defined.")
+
         self.__default_headers = {}
-        if self.tfa_token:
-            self.__default_headers['tfatoken'] = self.tfa_token
+        if tfa_token:
+            self.__default_headers['tfatoken'] = tfa_token
         if self.application_key:
             self.__default_headers[self.HEADER_APPLICATION_KEY] = self.application_key
         self.session = self._create_session()
 
     def _create_session(self) -> requests.Session:
         s = requests.Session()
-        s.auth = self.__auth
+        s.auth = self.auth
         s.headers = {'Accept': 'application/json'}
         if self.application_key:
             s.headers.update({self.HEADER_APPLICATION_KEY: self.application_key})
@@ -88,7 +102,7 @@ class CumulocityRestApi:
         hs = self.__default_headers
         if additional_headers:
             hs.update(additional_headers)
-        rq = requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.__auth)
+        rq = requests.Request(method=method, url=self.base_url + resource, headers=hs, auth=self.auth)
         if json:
             rq.json = json
         return rq.prepare()
@@ -211,18 +225,20 @@ class CumulocityRestApi:
                 (only 201 is accepted).
         """
 
-        def ensure_open_file(f):
-            if isinstance(f, str):
-                with open(f, 'rb') as fp:
-                    return fp
-            return f
+        def perform_post(open_file):
+            files = {
+                'object': (None, json_lib.dumps(object)),
+                'file': (None, open_file, content_type or 'application/octet-stream')
+            }
+            additional_headers = self._prepare_headers(accept=accept)
+            return self.session.post(self.base_url + resource, files=files, headers=additional_headers)
 
-        files = {
-            'object': (None, json_lib.dumps(object)),
-            'file': (None, ensure_open_file(file), content_type or 'application/octet-stream')
-        }
-        additional_headers = self._prepare_headers(accept=accept)
-        r = self.session.post(self.base_url + resource, files=files, headers=additional_headers)
+        if isinstance(file, str):
+            with open(file, 'rb') as f:
+                r = perform_post(f)
+        else:
+            r = perform_post(file)
+
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -341,6 +357,20 @@ class CumulocityRestApi:
             raise SyntaxError(f"Invalid DELETE request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code not in (200, 204):
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
+
+    @classmethod
+    def _resolve_username(cls, auth: AuthBase):
+        """Resolve the username from the authentication information.
+
+        For Basic authentication the username will be simply read from the
+        provided data, for Bearer authentication the token will be parsed
+        and the username resolved from the payload.
+        """
+        if isinstance(auth, HTTPBasicAuth):
+            return auth.username
+        if isinstance(auth, HTTPBearerAuth):
+            return JWT(auth.token).username
+        raise ValueError(f"Unexpected AuthBase instance: {auth.__class__}. Unable to resolve username.")
 
     @classmethod
     def _prepare_headers(cls, **kwargs) -> Union[dict, None]:
