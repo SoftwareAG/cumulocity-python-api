@@ -9,7 +9,7 @@
   `CumulocityRestAPI` and `CumulocityAPI`. This parameter should be the new standard to use (instead of just
   username and password).
 
-* _Warning_, this release replaces the 'all purpose' class `CumulocityApp` with specialized versions for multi-tenant
+* _Warning_, this release replaces the 'all-purpose' class `CumulocityApp` with specialized versions for multi-tenant
   (`MultiTenantCumulocityApp`) and single tenant (`SimpleCumulocityApp`) environments.
 
 ### Added
