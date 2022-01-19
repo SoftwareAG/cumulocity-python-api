@@ -6,18 +6,22 @@
 
 from __future__ import annotations
 
-import base64
 import os
-from unittest.mock import patch
+import time
+from unittest import mock
+from unittest.mock import patch, Mock
 
-import jwt
 import pytest
 import responses
-from unittest import mock
+
+from requests.auth import HTTPBasicAuth, AuthBase
 
 from c8y_api import CumulocityApi
-from c8y_api.app import CumulocityApp
+from c8y_api.app import SimpleCumulocityApp, MultiTenantCumulocityApp, _CumulocityAppBase
+from c8y_api._auth import HTTPBearerAuth, AuthUtil
+from c8y_api._jwt import JWT
 
+from tests.utils import b64encode, build_auth_string, sample_jwt, isolate_last_call_arg
 
 env_per_tenant = {
     'C8Y_BASEURL': 'http://baseurl',
@@ -40,12 +44,15 @@ def test_per_tenant():
     """Verify that the instance will be created properly within a
     per tenant environment"""
 
-    c8y = CumulocityApp()
+    c8y = SimpleCumulocityApp()
 
+    # -> instance was initialized with environment variables
     assert c8y.tenant_id == env_per_tenant['C8Y_TENANT']
     assert c8y.username == env_per_tenant['C8Y_USER']
-    assert c8y.password == env_per_tenant['C8Y_PASSWORD']
+    assert isinstance(c8y.auth, HTTPBasicAuth)
+    assert c8y.auth.password == env_per_tenant['C8Y_PASSWORD']
 
+    # -> requests will be prepended with the base url
     with responses.RequestsMock() as rsps:
         rsps.add(method='GET',
                  url=env_per_tenant['C8Y_BASEURL'] + '/xyz',
@@ -55,27 +62,19 @@ def test_per_tenant():
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
-def test_multi_tenant__invalid_call():
-    """Verify that calling the constructor without arguments in a multi-tenant
-    environment will result in an ValueError."""
-
-    with pytest.raises(ValueError) as e:
-        CumulocityApp()
-
-    assert 'C8Y' in str(e)
-
-
-@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__bootstrap_instance():
     """Verify that the bootstrap instance will be created propertly within a
     multi-tenant environment."""
 
-    c8y = CumulocityApp.get_bootstrap_instance()
+    c8y = MultiTenantCumulocityApp().bootstrap_instance
 
+    # -> bootstrap instance is initialized with environment variables
     assert c8y.tenant_id == env_multi_tenant['C8Y_BOOTSTRAP_TENANT']
     assert c8y.username == env_multi_tenant['C8Y_BOOTSTRAP_USER']
-    assert c8y.password == env_multi_tenant['C8Y_BOOTSTRAP_PASSWORD']
+    assert isinstance(c8y.auth, HTTPBasicAuth)
+    assert c8y.auth.password == env_multi_tenant['C8Y_BOOTSTRAP_PASSWORD']
 
+    # -> requests will be prepended with the base url
     with responses.RequestsMock() as rsps:
         rsps.add(method='GET',
                  url=env_multi_tenant['C8Y_BASEURL'] + '/xyz',
@@ -85,58 +84,87 @@ def test_multi_tenant__bootstrap_instance():
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
-def test_multi_tenant__cached_instances():
+def test_multi_tenant__caching_instances():
     """Verify that instances are cached by their tenant ID and the cache
     is evaluated propertly."""
     # pylint: disable=protected-access
 
     # prepare a mock instance cache
-    cached_tenants = {'t12345': CumulocityApi('baseurl', 't12345', 'user', 'password')}
+    get_auth_mock = Mock(return_value=HTTPBasicAuth('username', 'password'))
 
-    with patch.object(CumulocityApp, '_get_tenant_auth') as get_auth_mock:
-        get_auth_mock.return_value = CumulocityApp.Auth('username', 'password')
+    c8y_factory = MultiTenantCumulocityApp(cache_ttl=2)
+    c8y_factory._get_tenant_auth = get_auth_mock
 
-        # when the instance of the requested ID is in the cache it will be
-        # retured and no further calls are necessary
-        with patch.dict(CumulocityApp._tenant_instances, cached_tenants):
-            c8y = CumulocityApp.get_tenant_instance('t12345')
-            # -> attributes reflect what's in the mock cache
-            assert c8y.tenant_id == 't12345'
-            assert c8y.username == 'user'
-            assert c8y.password == 'password'
-        # -> the tenant auth info was not refreshed
-        get_auth_mock.assert_not_called()
+    # (1) get a specific instance
+    c8y = c8y_factory.get_tenant_instance('t12345')
+    # -> auth was read
+    get_auth_mock.assert_called_with('t12345')
+    # -> the instance is cached
+    assert 't12345' in c8y_factory._tenant_instances
+    # -> attributes reflect what's in the mock cache
+    assert c8y.tenant_id == 't12345'
+    assert c8y.username == 'username'
+    assert isinstance(c8y.auth, HTTPBasicAuth)
+    assert c8y.auth.password == 'password'
 
-        # when the constructor is called an new instance is created in an case
-        # here this will result in the mock being called
-        c8y = CumulocityApp('t12345')
-        # -> the tenant auth info was read
-        get_auth_mock.assert_called()
-        # -> the attributes reflect what the auth call returned
-        assert c8y.tenant_id == 't12345'
-        assert c8y.base_url == env_multi_tenant['C8Y_BASEURL']
-        assert c8y.username == 'username'
-        assert c8y.password == 'password'
+    # (2) let's do that again
+    get_auth_mock.reset_mock()
+    c8y2 = c8y_factory.get_tenant_instance('t12345')
+    # -> auth was not read again
+    get_auth_mock.assert_not_called()
+    # -> the instance is just the same
+    assert c8y2 is c8y
+
+    # (3) let's wait for the TTL to pass and try again
+    get_auth_mock.reset()
+    time.sleep(2)
+    c8y3 = c8y_factory.get_tenant_instance('t12345')
+    # -> auth was read again
+    get_auth_mock.assert_called_with('t12345')
+    # -> the instance is a new one
+    assert c8y3 is not c8y
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
-def test_multi_tenant__caching_instances():
-    """Verify that a uncached instance is build using the """
+def test_multi_tenant__build_from_subscriptions():
+    """Verify that a uncached instance is build using the subscriptions."""
     # pylint: disable=protected-access
 
-    with patch.object(CumulocityApp, '_read_subscriptions') as read_subscriptions:
-        read_subscriptions.return_value = {'t12345': CumulocityApp.Auth('username', 'password')}
+    with patch.object(MultiTenantCumulocityApp, '_read_subscriptions') as read_subscriptions:
+        # we mock _read_subscriptions so that we don't need an actual
+        # connection and it returns what we want
+        read_subscriptions.return_value = {'t12345': HTTPBasicAuth('username', 'password')}
 
-        c8y = CumulocityApp.get_tenant_instance('t12345')
+        c8y_factory = MultiTenantCumulocityApp()
+        c8y = c8y_factory.get_tenant_instance('t12345')
 
-        # -> auth cache was rebuild
+        # -> subscriptions have been read
         read_subscriptions.assert_called()
+        # -> subscriptions are cached
+        assert 't12345' in c8y_factory._subscribed_auths
         # -> instance is now in cache
-        assert 't12345' in CumulocityApp._tenant_instances
+        assert 't12345' in c8y_factory._tenant_instances
         # -> attributes reflect was was returned by the subscriptions mock
         assert c8y.tenant_id == 't12345'
         assert c8y.username == 'username'
-        assert c8y.password == 'password'
+        assert isinstance(c8y.auth, HTTPBasicAuth)
+        assert c8y.auth.password == 'password'
+
+        # using the same tenant ID again
+        read_subscriptions.reset_mock()
+        c8y2 = c8y_factory.get_tenant_instance('t12345')
+        # -> this will be the exact same instance
+        assert c8y2 is c8y
+        # -> subscriptions are not read again
+        read_subscriptions.assert_not_called()
+
+        # clearing tenant from cache and reading again
+        del c8y_factory._tenant_instances['t12345']
+        c8y3 = c8y_factory.get_tenant_instance('t12345')
+        # -> tenant instance is build again
+        assert c8y3 is not c8y
+        # -> subscriptions are not read again because they are cached
+        read_subscriptions.assert_not_called()
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
@@ -153,75 +181,92 @@ def test_read_subscriptions():
          'password': 'pass54321'},
     ]}
 
+    base_url = 'https://base.com'
+    tenant_id = 't0'
+    user = 'user'
+    password = 'pass'
+
     with responses.RequestsMock() as rsps:
+        # we want to ensure that exactly this is called
         rsps.add(method='GET',
-                 url=env_multi_tenant['C8Y_BASEURL'] + '/application/currentApplication/subscriptions',
+                 url=base_url + '/application/currentApplication/subscriptions',
                  status=200,
                  json=mock_response)
 
-        subscriptions = CumulocityApp._read_subscriptions()
+        # we just need any CumulocityApi to do this call
+        c8y = CumulocityApi(base_url=base_url, tenant_id=tenant_id, username=user, password=password)
+        subscriptions = MultiTenantCumulocityApp._read_subscriptions(c8y)
+        # -> subscriptions were parsed correctly
         assert 't12345' in subscriptions
         assert 't54321' in subscriptions
         assert subscriptions['t12345'].password == 'pass12345'
         assert subscriptions['t54321'].username == 'user54321'
 
 
-def test_get_tenant_instance_from_headers():
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
+@pytest.mark.parametrize('auth_value, tenant_id', [
+    (b64encode('t12345/some@domain.com:password'), 't12345'),
+    (sample_jwt(sub='someuser@domain.com', ten='t543'), 't543'),
+])
+def test_get_tenant_instance_from_headers(auth_value, tenant_id):
     """Verify that the authorization header is parsed and passed correctly
     when the tenant ID is resolved from the request headers."""
-
-    # we setup the internal resolve function to return a proper tenant ID
-    with patch('c8y_api.app.CumulocityApp._resolve_tenant_id_from_auth_header') as resolve_mock:
-        resolve_mock.return_value = 't12345'
-
-        # we intercept all calls to the internal _get function
-        with patch('c8y_api.app.CumulocityApp._get_tenant_instance') as get_mock:
-            CumulocityApp.get_tenant_instance(headers={'auTHOrization': 'auth_header'})
-            # -> the resolve function is called with the parsed auth header
-            resolve_mock.assert_called_once_with('auth_header')
-            # -> the get function is called with the tenant ID returned
-            #    by the resolve function
-            get_mock.assert_called_once_with('t12345')
-
-
-def b64encode(auth_string: str) -> str:
-    """Encode a string with base64. This uses UTF-8 encoding."""
-    return base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
-
-
-@pytest.mark.parametrize('auth_string, tenant_id', [
-    ('t12345/some@domain.com:password', 't12345'),
-    ('t12345/some@domain.com', 't12345')])
-def test_resolve_tenant_basic(auth_string: str, tenant_id: str):
-    """Verify that parsing of an Basic authentication string works as expected."""
     # pylint: disable=protected-access
-    assert tenant_id == CumulocityApp._resolve_tenant_id_basic(b64encode(auth_string))
+
+    c8y_factory = MultiTenantCumulocityApp()
+
+    # we intercept all calls to the internal _get function
+    c8y_factory._get_tenant_instance = Mock()
+
+    # request a tenant instance from header dict
+    c8y_factory.get_tenant_instance(headers={'auTHOrization': build_auth_string(auth_value)})
+    # -> the get function is called with the tenant ID
+    c8y_factory._get_tenant_instance.assert_called_once_with(tenant_id)
 
 
-@pytest.mark.parametrize('auth_string, hint', [
-    ('some@domain.com:password', 'tenant')])
-def test_resolve_tenant_basic_bad(auth_string: str, hint: str):
-    """Verify that parsing of an Basic authentication string works as expected."""
+@pytest.mark.parametrize('auth_value, username', [
+    (b64encode('t12345/some@domain.com:password'), 't12345/some@domain.com'),
+    (b64encode('someuser@domain.com:password'), 'someuser@domain.com'),
+    (sample_jwt(sub='someuser@domain.com', ten='t12345'), 'someuser@domain.com'),
+])
+def test_get_user_instance(auth_value, username):
+    """Verify that a user instance is obtained from inbound HTTP headers."""
     # pylint: disable=protected-access
-    with pytest.raises(ValueError) as e:
-        CumulocityApp._resolve_tenant_id_basic(b64encode(auth_string))
-    assert hint in str(e)
+
+    c8y = _CumulocityAppBase(log=Mock())
+    # we intercept calls to the _build function
+    c8y._build_user_instance = Mock()
+
+    # build a user instance
+    c8y.get_user_instance(headers={'Authorization': build_auth_string(auth_value)})
+    # -> _build was called with a proper auth
+    call_arg = isolate_last_call_arg(c8y._build_user_instance, 'auth', 0)
+    assert isinstance(call_arg, AuthBase)
+    # -> username and tenant_id should be correct
+    if isinstance(call_arg, HTTPBasicAuth):
+        assert call_arg.username == username
+    if isinstance(call_arg, HTTPBearerAuth):
+        assert JWT(call_arg.token).username == username
 
 
-def test_resolve_tenant_token():
-    """Verify that parsing of an Bearer authentication string works as expected."""
+@mock.patch.dict(os.environ, env_per_tenant, clear=True)
+@pytest.mark.parametrize('auth_value, username', [
+    # (b64encode('t555/some@domain.com:password'), 't555/some@domain.com'),
+    # (b64encode('someuser@domain.com:password'), 'someuser@domain.com'),
+    (sample_jwt(sub='someuser@domain.com', ten='t543'), 'someuser@domain.com'),
+])
+def test_build_user_instance(auth_value, username):
+    """Verify that a user instance can be created from a proper set of
+    inbound HTTP headers."""
     # pylint: disable=protected-access
-    payload = {
-        'jti': None,
-        'iss': 't12345.cumulocity.com',
-        'aud': 't12345.cumulocity.com',
-        'sub': 'some.user@softwareag.com',
-        'tci': '0722ff7b-684f-4177-9614-3b7949b0b5c9',
-        'iat': 1638281885,
-        'nbf': 1638281885,
-        'exp': 1639491485,
-        'tfa': False,
-        'ten': 't12345',
-        'xsrfToken': 'something'}
-    encoded = jwt.encode(payload, key='key')
-    assert CumulocityApp._resolve_tenant_id_token(encoded) == 't12345'
+
+    # build a Auth instance from the auth value
+    auth = AuthUtil.parse_auth_string(build_auth_string(auth_value))
+
+    with patch.dict(os.environ, env_per_tenant, clear=True):
+        c8y_app = SimpleCumulocityApp()
+        user_c8y = c8y_app._build_user_instance(auth)
+        # -> the tenant ID matches the parent
+        assert user_c8y.tenant_id == c8y_app.tenant_id
+        # -> the username is parsed from the auth
+        assert user_c8y.username == username

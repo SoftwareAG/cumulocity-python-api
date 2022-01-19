@@ -1,0 +1,65 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+
+from __future__ import annotations
+
+
+from dotenv import load_dotenv
+from inputimeout import inputimeout, TimeoutOccurred
+
+from c8y_api.app import SimpleCumulocityApp
+from c8y_api.model import Celsius, Device, Measurement
+
+# A simple (per tenant) Cumulocity application can be created just like this.
+# The authentication information is read from the standard Cumulocity
+# environment variables that are injected into the Docker container.
+
+load_dotenv()  # load environment from a .env if present
+c8y = SimpleCumulocityApp()
+print("CumulocityApp initialized.")
+print(f"{c8y.base_url}, Tenant: {c8y.tenant_id}, User:{c8y.username}")
+
+
+# The SimpleCumulocityApp behaves just like any other CumulocityApi instance,
+# e.g. ...
+
+# Reading users:
+print("\nRegistered users:")
+for u in c8y.users.get_all():
+    print(f"  {u.username}, {u.id}")
+
+# Reading devices:
+print("\nDevices:")
+for d in c8y.device_inventory.get_all(page_size=100):
+    print(f"  {d.name} #{d.id}")
+
+# Creating devices
+new_device = Device(c8y, type='test_SomeDevice', name='MyTestDevice', custom_fragment={'foo': 'bar'}).create()
+print(f"\nCreated new device: {new_device.name} #{new_device.id}")
+
+# Creating Measurements
+print("\nMeasurements:")
+for v in range(0, 10):
+    m = Measurement(c8y, type='test_SomeMeasurementType', source=new_device.id,
+                    c8y_TemperatureMeasurement={'t': Celsius(v)}).create()
+    print(f"  Created measurement: #{m.id}, JSON: {m.to_full_json()}")
+
+
+# Cleaning up
+print("\n\nCleanup:\n\n")
+
+wait_time = 300  # seconds
+try:
+    inputimeout(f"Press ENTER to continue. (Timeout: {wait_time}s)", timeout=wait_time)
+except TimeoutOccurred:
+    pass
+
+# Removing measurements
+c8y.measurements.delete_by(source=new_device.id)
+print('\nMeasurements removed.')
+
+new_device.delete()
+print('\nDevice removed.')

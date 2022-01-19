@@ -6,15 +6,17 @@
 
 from __future__ import annotations
 
+import base64
 import random
 import re
 from typing import List, Set, Any
 from unittest.mock import Mock
 
+import jwt
 import pytest
 from requests import request
 
-from c8y_api.model._base import CumulocityObject  # noqa
+from c8y_api.model._base import CumulocityObject
 
 
 def get_ids(objs: List[CumulocityObject]) -> Set[str]:
@@ -119,3 +121,33 @@ class RandomNameGenerator:
         """
         words = [random.choice(cls.words) for _ in range(0, num)]
         return sep.join(words)
+
+
+def b64encode(auth_string: str) -> str:
+    """Encode a string with base64. This uses UTF-8 encoding."""
+    return base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+
+
+def build_auth_string(auth_value: str) -> str:
+    """Build a complete auth string from an base64 encoded auth value.
+    This detects the type based on the `auth_value` contents, assuming
+    that JWT tokens always start with an '{'."""
+    auth_type = 'BEARER' if auth_value.startswith('ey') else 'BASIC'
+    return f'{auth_type} {auth_value}'
+
+
+def sample_jwt(**kwargs) -> str:
+    """Create a test JWT token (as string). Additional claims ca be
+    specified via `kwargs`."""
+    payload = {
+        'jti': None,
+        'iss': 't12345.cumulocity.com',
+        'aud': 't12345.cumulocity.com',
+        'tci': '0722ff7b-684f-4177-9614-3b7949b0b5c9',
+        'iat': 1638281885,
+        'nbf': 1638281885,
+        'exp': 1639491485,
+        'tfa': False,
+        'xsrfToken': 'something'}
+    payload.update(**kwargs)
+    return jwt.encode(payload, key='key')

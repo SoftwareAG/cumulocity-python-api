@@ -42,7 +42,8 @@ def httpbin_basic() -> CumulocityRestApi:
 def assert_auth_header(c8y, headers):
     """Assert that the given auth header is correctly formatted."""
     auth_header = headers['Authorization'].lstrip('Basic ')
-    expected = f'{c8y.tenant_id}/{c8y.username}:{c8y.password}'
+    pw = c8y.auth.password
+    expected = f'{c8y.tenant_id}/{c8y.username}:{pw}'
     assert base64.b64decode(auth_header) == expected.encode('utf-8')
 
 
@@ -225,7 +226,7 @@ def test_get_explicit(httpbin_basic: CumulocityRestApi):
 
 def test_get_ordered_response():
     """Verify that the response JSON can be ordered on request."""
-    c8y = CumulocityRestApi(base_url='', tenant_id='', username='', password='')
+    c8y = CumulocityRestApi(base_url='url', tenant_id='t12345', username='user', password='pass')
 
     with patch('requests.Session.get') as get_mock:
         mock_response = requests.Response()
@@ -244,7 +245,7 @@ def test_get_ordered_response():
 
 def test_get_404():
     """Verify that a 404 results in a KeyError and a message naming the missing resource."""
-    c8y = CumulocityRestApi(base_url='', tenant_id='', username='', password='')
+    c8y = CumulocityRestApi(base_url='url', tenant_id='t12345', username='user', password='pass')
 
     with patch('requests.Session.get') as get_mock:
         mock_response = requests.Response()

@@ -3,6 +3,45 @@
 
 ## Work in progress
 
+### Notes
+
+* _Warning_, this release is a breaking change as it introduces an `auth` parameter to the API base classes,
+  `CumulocityRestAPI` and `CumulocityAPI`. This parameter should be the new standard to use (instead of just
+  username and password).
+
+* _Warning_, this release replaces the 'all-purpose' class `CumulocityApp` with specialized versions for multi-tenant
+  (`MultiTenantCumulocityApp`) and single tenant (`SimpleCumulocityApp`) environments.
+
+### Added
+
+* Added `_util.py` file to hold all cross-class auxiliary functionality.
+
+* Added `_auth.py` file to hold all cross-class authentication functionality. Moved corresponding code from file
+  `app.__init__.py` to the `AuthUtil` class.
+ 
+* Added `_jwt.py` with `JWT` class which encapsulates JWT handling for the libraries purpose. This is _not_ a full
+  JWT implementation. 
+
+* Added `HTMLBearerAuth` class which encapsulates Cumulocity's JWT token-based authentication mechanism. 
+ 
+* Added token-based authentication support. All API classes now can be initialized with an AuthBase parameter which
+  would allow all kinds of authentication mechanisms. As of now, `HTTPbasicAuth` and `HTTPBearerAuth` is supported.
+
+* Added caching with TTL/Max Size strategies to `MultiTenantCumulocityApp` and `SimpleCumulocityApp`.
+
+* Added samples: `user_sessions.py` illustrating how user sessions can be obtained and `simple_tenant_app.py` 
+  illustrating how the `SimpleCumulocityApp` class is used.
+
+* Added requirements: `cachetools` (for caching), `inputtimeout` and `flask` (for samples).
+
+### Changed
+
+* Fixed file opening in `post_file` function in `_base_api.py` to avoid files already being closed when posting.
+
+* Removed class `CumulocityApp` as it was too generic and hard to use. Replaces with classes `SimpleCumulocityApp`
+  which behaves pretty much identical and `MultiTenantCumulocityApp` which behances more like a factory.
+
+
 ## Version 1.0.2
 
 ### Changed
