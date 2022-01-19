@@ -13,17 +13,8 @@ import collections
 import requests
 from requests.auth import AuthBase, HTTPBasicAuth
 
-from c8y_api._util import JWT
-
-
-class HTTPBearerAuth(AuthBase):
-    """Token based authentication."""
-
-    def __init__(self, token: str):
-        self.token = token
-
-    def __call__(self, r):
-        r.headers['Authorization'] = 'Bearer ' + self.token
+from c8y_api._auth import HTTPBearerAuth
+from c8y_api._jwt import JWT
 
 
 class CumulocityRestApi:
@@ -63,7 +54,7 @@ class CumulocityRestApi:
 
         if auth:
             self.auth = auth
-            self.username = self._resolve_username(auth)
+            self.username = self._resolve_username_from_auth(auth)
         elif username and password:
             self.auth = HTTPBasicAuth(f'{tenant_id}/{username}', password)
             self.username = username
@@ -359,7 +350,7 @@ class CumulocityRestApi:
             raise ValueError(f"Unable to perform DELETE request. Status: {r.status_code} Response:\n" + r.text)
 
     @classmethod
-    def _resolve_username(cls, auth: AuthBase):
+    def _resolve_username_from_auth(cls, auth: AuthBase):
         """Resolve the username from the authentication information.
 
         For Basic authentication the username will be simply read from the
