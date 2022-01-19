@@ -9,3 +9,6 @@ setuptools_scm~=6.2
 invoke~=1.6.0
 pylint=2.11.1
 PyJWT~=2.3.0
+cachetools~=5.0.0
+inputimeout~=1.0.4
+flask~=2.0.2

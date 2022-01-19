@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+from requests.auth import AuthBase
+
 from c8y_api._base_api import CumulocityRestApi
 
 from c8y_api.model.administration import Users, GlobalRoles, InventoryRoles
@@ -22,9 +24,10 @@ class CumulocityApi(CumulocityRestApi):
     Provides usage centric access to a Cumulocity instance.
     """
 
-    def __init__(self, base_url: str, tenant_id: str, username: str, password: str,
-                 tfa_token: str = None, application_key: str = None):
-        super().__init__(base_url, tenant_id, username, password, tfa_token, application_key)
+    def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None,
+                 tfa_token: str = None, auth: AuthBase = None, application_key: str = None):
+        super().__init__(base_url, tenant_id, username=username, password=password, tfa_token=tfa_token,
+                         auth=auth, application_key=application_key)
         self.__measurements = Measurements(self)
         self.__inventory = Inventory(self)
         self.__binaries = Binaries(self)
