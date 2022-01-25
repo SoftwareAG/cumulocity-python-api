@@ -200,7 +200,7 @@ def test_read_subscriptions():
         assert 't12345' in subscriptions
         assert 't54321' in subscriptions
         assert subscriptions['t12345'].password == 'pass12345'
-        assert subscriptions['t54321'].username == 'user54321'
+        assert subscriptions['t54321'].username == 't54321/user54321'
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
