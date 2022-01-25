@@ -3,6 +3,8 @@
 
 ## Work in progress
 
+## Version 1.1
+
 ### Notes
 
 * _Warning_, this release is a breaking change as it introduces an `auth` parameter to the API base classes,
