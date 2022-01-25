@@ -194,7 +194,7 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
             tenant = subscription['tenant']
             username = subscription['name']
             password = subscription['password']
-            cache[tenant] = HTTPBasicAuth(username, password)
+            cache[tenant] = HTTPBasicAuth(f'{tenant}/{username}', password)
         return cache
 
     @classmethod

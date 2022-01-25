@@ -3,6 +3,23 @@
 
 ## Work in progress
 
+## Version 1.1.1
+
+### Added
+
+* Added Multi-Tenant sample script (`samples/multi_tenant_app.py`).
+
+* Added task `build-ms` task and corresponding script files to generate Cumulocity microservices from sample scripts.
+
+### Fixes
+
+* Fixed authentication (username must include tenant ID) for subscribed tenants in multi-tenant scenarios. 
+
+* Fixed pylint dependency in `requirements.txt`.
+
+* Added `cachetools` to library dependencies in `setup.cfg`.
+
+
 ## Version 1.1
 
 ### Notes
