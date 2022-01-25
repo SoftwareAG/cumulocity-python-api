@@ -3,6 +3,8 @@
 
 ## Work in progress
 
+## Version 1.1.1
+
 ### Added
 
 * Added Multi-Tenant sample script (`samples/multi_tenant_app.py`).
@@ -15,7 +17,7 @@
 
 * Fixed pylint dependency in `requirements.txt`.
 
-* Added `cachetools` to library dependencies in `setup.cfg`  
+* Added `cachetools` to library dependencies in `setup.cfg`.
 
 
 ## Version 1.1
