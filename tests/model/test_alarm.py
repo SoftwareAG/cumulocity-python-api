@@ -103,3 +103,11 @@ def test_formatting(sample_alarm: Alarm):
                      'simple_string', 'simple_int', 'simple_float', 'simple_true', 'simple_false',
                      'complex_1', 'complex_2'}
     assert set(alarm_json.keys()) == expected_keys
+
+
+def test_default_datetime():
+    """Verify that by default the current datetime will be applied."""
+    alarm = Alarm(None, 'type', time=None, source='12345')
+
+    assert alarm.time
+    assert 'time' in alarm.to_full_json()

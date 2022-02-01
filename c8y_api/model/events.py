@@ -44,17 +44,18 @@ class Event(ComplexObject):
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
             type (str):  Event type
-            time (str|datetime):  Date/time of the event. Can be provided as
-                timezone-aware datetime object or formatted string (in
+            time (str|datetime|None):  Date/time of the event. Can be provided
+                as timezone-aware datetime object or formatted string (in
                 standard ISO format incl. timezone: YYYY-MM-DD'T'HH:MM:SS.SSSZ
                 as it is returned by the Cumulocity REST API).
+                The current datetime in UTC will be used if not provided.
             source (str):  ID of the device which this event is raised by
             text (str):  Event test/description
             kwargs:  Additional arguments are treated as custom fragments
         """
         super().__init__(c8y=c8y, **kwargs)
         self.type = type
-        self.time = _DateUtil.ensure_timestring(time)
+        self.time = _DateUtil.ensure_timestring(time) or _DateUtil.now_timestring()
         self.source = source
         self._u_text = text
         self.creation_time = None
