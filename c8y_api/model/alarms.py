@@ -59,11 +59,11 @@ class Alarm(ComplexObject):
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
             type (str):  Alarm type
-            time (str|datetime|None):  Date/time of the alarm. Can be provided
-                as timezone-aware datetime object or formatted string (in
+            time (str|datetime):  Date/time of the alarm. Can be provided as
+                timezone-aware datetime object or formatted string (in
                 standard ISO format incl. timezone: YYYY-MM-DD'T'HH:MM:SS.SSSZ
                 as it is returned by the Cumulocity REST API).
-                The current datetime in UTC will be used if not provided.
+                Use 'now' to set  to current datetime in UTC.
             source (str):  ID of the device which this Alarm is raised by
             text (str):  Alarm test/description
             status (str):  Alarm status
@@ -83,7 +83,7 @@ class Alarm(ComplexObject):
         # as a datetime object. It will be converted to string immediately
         # as there is no scenario where a manually created object won't be
         # written to Cumulocity anyways
-        self.time = _DateUtil.ensure_timestring(time) or _DateUtil.now_timestring()
+        self.time = _DateUtil.ensure_timestring(time)
 
     text = SimpleObject.UpdatableProperty('_u_text')
     status = SimpleObject.UpdatableProperty('_u_status')
@@ -156,15 +156,11 @@ class Alarm(ComplexObject):
     def create(self) -> Alarm:
         """Create the Alarm within the database.
 
-        Note: If not yet defined, this will set the event date to now.
-
         Returns:
             A fresh Alarm instance representing the created object
             within the database. This instance can be used to get at the ID
             of the new Alarm object.
         """
-        if not self.time:
-            self.time = _DateUtil.now_timestring()
         return super()._create()
 
     def update(self) -> Alarm:

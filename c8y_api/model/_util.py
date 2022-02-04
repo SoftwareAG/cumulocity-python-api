@@ -32,11 +32,14 @@ class _DateUtil(object):
 
     @staticmethod
     def ensure_timestring(time):
-        """Ensure that a given timestring reflects a proper, timezone aware date/time."""
+        """Ensure that a given timestring reflects a proper, timezone aware date/time.
+        A static string 'now' will be converted to the current datetime in UTC."""
         if isinstance(time, datetime):
             if not time.tzinfo:
                 raise ValueError("A specified datetime needs to be timezone aware.")
             return _DateUtil.to_timestring(time)
+        if time == 'now':
+            return _DateUtil.now_timestring()
         return time  # assuming it is a timestring
 
     @staticmethod
