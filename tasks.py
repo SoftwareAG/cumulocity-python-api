@@ -25,7 +25,7 @@ def show_version(_):
 def lint(c, scope='all'):
     """Run PyLint."""
     if scope == 'all':
-        scope = 'c8y_api tests integration_tests'
+        scope = 'c8y_api tests integration_tests samples'
     c.run(f'pylint {scope}')
 
 

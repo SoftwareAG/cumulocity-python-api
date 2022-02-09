@@ -3,6 +3,22 @@
 
 ## Work in progress
 
+_None for now_
+
+## Version 1.2
+
+### Changed
+
+* Changed behavior of Events and Alarms API. Previously, an undefined event/alarm time was set to the current datetime 
+  when invoking the `.create` function on the object. This was handy but inconsistent to the REST API behavior and
+  therefore removed. Instead, the constructor can now be invoked with `time='now'` as a shorthand. The `time` field
+  is never set to a default value automatically.
+
+* Added `samples` folder to linting task.
+
+* Added device agent registration sample (Thanks Nick!).
+
+
 ## Version 1.1.1
 
 ### Added

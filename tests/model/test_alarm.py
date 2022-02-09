@@ -58,7 +58,13 @@ def test_parsing():
 def test_default_values():
     """Verify that the full JSON is enriched with creation defaults."""
     # 1) create a minimal Alarm instance
-    alarm = Alarm(type='type', source='123', text='text',  severity='MAJOR')
+    alarm = Alarm(type='type', source='123', text='text', severity='MAJOR')
+
+    # -> status is not set
+    assert not alarm.status
+    # -> time is not set
+    assert not alarm.time
+
     alarm_json = alarm.to_full_json()
 
     # -> status should not be defaulted
@@ -71,8 +77,8 @@ def test_default_values():
     alarm.c8y.post = Mock()
     alarm.from_json = Mock()  # mocking this as the post result will be crap
     alarm.create()
-    # -> posted JSON should contain a time although not set in the object
-    assert 'time' in isolate_last_call_arg(alarm.c8y.post, 'json', 1)
+    # -> posted JSON should not contain a time as it is not set in the object
+    assert 'time' not in isolate_last_call_arg(alarm.c8y.post, 'json', 1)
 
 
 def test_formatting(sample_alarm: Alarm):
@@ -103,3 +109,11 @@ def test_formatting(sample_alarm: Alarm):
                      'simple_string', 'simple_int', 'simple_float', 'simple_true', 'simple_false',
                      'complex_1', 'complex_2'}
     assert set(alarm_json.keys()) == expected_keys
+
+
+def test_now_datetime():
+    """Verify that by default the current datetime will be applied."""
+    alarm = Alarm(None, 'type', time='now', source='12345')
+
+    assert alarm.time
+    assert 'time' in alarm.to_full_json()
