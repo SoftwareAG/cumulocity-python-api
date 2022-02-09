@@ -10,6 +10,10 @@
   therefore removed. Instead, the constructor can now be invoked with `time='now'` as a shorthand. The `time` field
   is never set to a default value automatically.
 
+* Added `samples` folder to linting task.
+
+* Added device agent registration sample (Thanks Nick!).
+
 
 ## Version 1.1.1
 
