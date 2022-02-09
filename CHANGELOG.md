@@ -3,6 +3,10 @@
 
 ## Work in progress
 
+_None for now_
+
+## Version 1.2
+
 ### Changed
 
 * Changed behavior of Events and Alarms API. Previously, an undefined event/alarm time was set to the current datetime 
