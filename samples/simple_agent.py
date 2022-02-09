@@ -1,59 +1,72 @@
-import pickle
-from c8y_api.app import CumulocityApi
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+
+import os
+import uuid
+
+import dotenv
+
 from c8y_api import CumulocityDeviceRegistry
-from c8y_api.model import ManagedObject, Device, Event
+from c8y_api.model import Device, Event
 
-# TODO: enter base URL
-base_url = 'cumulocity.com'
-# TODO: enter tenant id
-tenant_id = '*'
-bootstrap_username = 'devicebootstrap'
-bootstrap_password = 'Fhdt1bb1f'
-device_external_id = 'python-device-external-id'
+# Usually, each Cumulocity device agent has its own access credentials which
+# are created by Cumulocity during the device registration process.
+# This sample simulates this using multiple threads and Cumulocity connections.
+#
+# See also: https://cumulocity.com/guides/users-guide/device-management/#connecting-devices
+#
+# The authentication information is read from the environment. Please provide
+# the environment variables mentioned below (a .env file is accepted as well).
 
-# Just for demo purposes, do not save device credentials into a txt file in production!
-def save_credentials(cr):
-    print(f'Saving credentials')
-    with open('credentials.txt', 'wb') as credentials_file:
-        pickle.dump(cr, credentials_file)
-    credentials_file.close()
+dotenv.load_dotenv()
+base_url = os.environ['C8Y_BASEURL']
+tenant_id = 'management'
+bootstrap_username = os.environ['C8Y_DEVICEBOOTSTRAP_USER']
+bootstrap_password = os.environ['C8Y_DEVICEBOOTSTRAP_PASSWORD']
 
+device_external_id = f'c8y_api-{uuid.uuid1()}'
 
-def load_credentials():
-    with open('credentials.txt', 'rb') as credentials_file:
-        cr = pickle.load(credentials_file)
-        return cr
+print(f"Generated device ID: {device_external_id}"
+      "\nPlease open the Cumulocity UI and register a device for this ID.")
+input("\nPress ENTER to continue.")
 
+# The device registry is a special version of the Cumulocity API,
+# it should be used using device bootstrap credentials.
+c8y_registry = CumulocityDeviceRegistry(base_url, tenant_id, bootstrap_username, bootstrap_password)
 
-def provision_device():
-    print(f'Please register and accept a device with ID: {device_external_id} on the Cumulocity tenant {base_url}')
-    c8y_device_registry = CumulocityDeviceRegistry(base_url, tenant_id, bootstrap_username, bootstrap_password)
-    cr = c8y_device_registry.await_credentials(device_external_id)
-    save_credentials(cr)
-    return cr
+print("\nThis client will now continously query for the device credentials."
+      "\nPlease approve the request within the Cumulocity UI.")
+# The registry provides two auxiliary functions, `await_credentials` which
+# blocks until the device registration was acknowledged and `await_connection`
+# which does the same and automatically constructs a corresponding connection
+c8y_device = c8y_registry.await_connection(device_external_id)
+print(f"Device registration successful. Username: {c8y_device.username}")
 
+# The device connection is then used to define the device's digital twin
+# within the Cumulocity database:
+device = Device(c8y_device, type='sag_PythonDevice', name='Sample Python Device').create()
+print(f"Digital twin created. Database ID: {device.id}")
 
-def create_device(c8yapi: CumulocityApi):
-    device_mo = Device(c8yapi, 'sag_PythonDevice', 'Python device', None).create()
-    c8yapi.identity.create(device_external_id, 'c8y_Serial', device_mo.id)
-    return device_mo
+# It is recommended to register the external ID as a serial as well:
+c8y_device.identity.create(device_external_id, 'c8y_Serial', device.id)
+print("External ID created.")
 
+# We now send a simple event from the device
+event = Event(c8y_device, type='sag_PythonInitDone', source=device.id,
+              text='Device initialization done.').create()
 
-try:
-    credentials = load_credentials()
-except (FileNotFoundError, EOFError) as e:
-    print(f'Device credentials not found.')
-    credentials = provision_device()
+# Cleaning up
+input("\nPress ENTER to continue to cleanup.")
 
-# print(f'Connection successful. Device credentials: username = {credentials.username} password = {credentials.password}')
-c8y_agent = CumulocityApi(base_url, credentials.tenant_id, credentials.username, credentials.password)
+print("\nCleanup:\n")
 
-# check if device is already created
-try:
-    device = c8y_agent.identity.get_object(device_external_id, 'c8y_Serial')
-except KeyError:
-    print('Device is not present on the Cumulocity side')
-    device = create_device(c8y_agent)
+# Removing the external ID
+c8y_device.identity.delete(device_external_id, 'c8y_Serial')
+print("External ID removed.")
 
-event = Event(None, 'sag_PythonInitDone', None, device.id, 'Device initialization is done')
-c8y_agent.events.create(event)
+# Removing the device
+c8y_device.device_inventory.delete(device)  # this will also remove the device user
+print("Digital twin removed (incl user).")
