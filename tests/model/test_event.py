@@ -111,3 +111,11 @@ def test_updating(sample_event: Event):
     expected_updates.update({'simple_float', 'simple_false', 'complex_2'})
     assert len(sample_event.get_updates()) == len(expected_updates)
     assert set(sample_event.to_diff_json().keys()) == expected_updates
+
+
+def test_now_datetime():
+    """Verify that by default the current datetime will be applied."""
+    event = Event(None, type='type', time='now')
+
+    assert event.time
+    assert 'time' in event.to_full_json()

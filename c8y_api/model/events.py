@@ -48,6 +48,7 @@ class Event(ComplexObject):
                 timezone-aware datetime object or formatted string (in
                 standard ISO format incl. timezone: YYYY-MM-DD'T'HH:MM:SS.SSSZ
                 as it is returned by the Cumulocity REST API).
+                Use 'now' to set  to current datetime in UTC.
             source (str):  ID of the device which this event is raised by
             text (str):  Event test/description
             kwargs:  Additional arguments are treated as custom fragments
@@ -98,14 +99,10 @@ class Event(ComplexObject):
     def create(self) -> Event:
         """Create the Event within the database.
 
-        Note: If not yet defined, this will set the event date to now.
-
         Returns:
             A fresh Event object representing what was
             created within the database (including the ID).
         """
-        if not self.time:
-            self.time = _DateUtil.to_timestring(datetime.utcnow())
         return super()._create()
 
     def update(self) -> Event:
