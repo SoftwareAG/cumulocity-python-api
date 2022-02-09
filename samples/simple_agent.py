@@ -55,7 +55,7 @@ c8y_device.identity.create(device_serial, 'c8y_Serial', device.id)
 print("External ID created.")
 
 # We now send a simple event from the device
-event = Event(c8y_device, type='sag_PythonInitDone', source=device.id,
+event = Event(c8y_device, type='sag_PythonInitDone', source=device.id, time='now',
               text='Device initialization done.').create()
 
 # Cleaning up
@@ -69,4 +69,4 @@ print("External ID removed.")
 
 # Removing the device
 c8y_device.device_inventory.delete(device)  # this will also remove the device user
-print("Digital twin removed (incl user).")
+print("Digital twin removed (including user).")
