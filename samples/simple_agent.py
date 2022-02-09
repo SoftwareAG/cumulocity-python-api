@@ -27,10 +27,10 @@ tenant_id = 'management'
 bootstrap_username = os.environ['C8Y_DEVICEBOOTSTRAP_USER']
 bootstrap_password = os.environ['C8Y_DEVICEBOOTSTRAP_PASSWORD']
 
-device_external_id = f'c8y_api-{uuid.uuid1()}'
+device_serial = f'c8y_api-{uuid.uuid1()}'
 
-print(f"Generated device ID: {device_external_id}"
-      "\nPlease open the Cumulocity UI and register a device for this ID.")
+print(f"Generated device serial: {device_serial}"
+      "\nPlease open the Cumulocity UI and register a device for this serial.")
 input("\nPress ENTER to continue.")
 
 # The device registry is a special version of the Cumulocity API,
@@ -42,7 +42,7 @@ print("\nThis client will now continously query for the device credentials."
 # The registry provides two auxiliary functions, `await_credentials` which
 # blocks until the device registration was acknowledged and `await_connection`
 # which does the same and automatically constructs a corresponding connection
-c8y_device = c8y_registry.await_connection(device_external_id)
+c8y_device = c8y_registry.await_connection(device_serial)
 print(f"Device registration successful. Username: {c8y_device.username}")
 
 # The device connection is then used to define the device's digital twin
@@ -51,7 +51,7 @@ device = Device(c8y_device, type='sag_PythonDevice', name='Sample Python Device'
 print(f"Digital twin created. Database ID: {device.id}")
 
 # It is recommended to register the external ID as a serial as well:
-c8y_device.identity.create(device_external_id, 'c8y_Serial', device.id)
+c8y_device.identity.create(device_serial, 'c8y_Serial', device.id)
 print("External ID created.")
 
 # We now send a simple event from the device
@@ -64,7 +64,7 @@ input("\nPress ENTER to continue to cleanup.")
 print("\nCleanup:\n")
 
 # Removing the external ID
-c8y_device.identity.delete(device_external_id, 'c8y_Serial')
+c8y_device.identity.delete(device_serial, 'c8y_Serial')
 print("External ID removed.")
 
 # Removing the device
