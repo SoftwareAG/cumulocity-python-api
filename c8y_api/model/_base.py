@@ -336,7 +336,12 @@ class ComplexObject(SimpleObject):
 
         :param name: Name of the custom fragment
         """
-        return self.__getitem__(name)
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            ) from None
 
     def _setattr_(self, name, value):
         if name in self.fragments:
@@ -405,6 +410,15 @@ class ComplexObject(SimpleObject):
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
+
+    def items(self) -> list[tuple[str, any]]:
+        return self.fragments.items()
+
+    def keys(self) -> list[str]:
+        return self.fragments.keys()
+
+    def values(self) -> list[any]:
+        return self.fragments.values()
 
 
 class CumulocityResource:
