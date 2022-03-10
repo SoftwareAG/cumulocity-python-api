@@ -16,11 +16,6 @@ from c8y_api.model._base import _DictWrapper
 from c8y_api.model._util import _DateUtil
 
 
-class Value(dict):
-    """Generic datapoint."""
-    def __init__(self, value, unit):
-        super().__init__(value=value, unit=unit)
-
 class Operation(ComplexObject):
     """ Represents an instance of a operation object in Cumulocity.
 
@@ -33,11 +28,11 @@ class Operation(ComplexObject):
 
     # these need to be defined like this for the abstract super functions
     _resource = '/devicecontrol/operations'
-    _parser = ComplexObjectParser({'deviceId': 'deviceId'})
+    _parser = ComplexObjectParser({'deviceId': 'deviceId', 'description': 'description'}, [])
     # _accept
     # _not_updatable
 
-    def __init__(self, c8y=None, deviceId=None, **kwargs):
+    def __init__(self, c8y=None, deviceId=None, description=None, **kwargs):
         """ Create a new Operation object.
 
         Params:
@@ -52,6 +47,7 @@ class Operation(ComplexObject):
         """
         super().__init__(c8y, **kwargs)
         self.deviceId = deviceId
+        self.description = description
 
 
     @classmethod
