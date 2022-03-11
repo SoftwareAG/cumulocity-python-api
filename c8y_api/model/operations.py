@@ -193,8 +193,7 @@ class Operations(CumulocityResource):
             List of matching Measurement objects
         """
         return list(self.select(agentId=agentId, deviceId=deviceId, status=status,
-                                fragment=fragment, value=value, series=series,
-                                before=before, after=after, min_age=min_age, max_age=max_age,
+                                fragment=fragment, before=before, after=after, min_age=min_age, max_age=max_age,
                                 reverse=reverse, limit=limit, page_size=page_size))
 
     def get_last(self, agentId=None, deviceId=None, status=None, fragment=None, value=None, series=None,  # noqa (type)
@@ -213,7 +212,7 @@ class Operations(CumulocityResource):
         if not before and not min_age:
             after = '1970-01-01'
         base_query = self._build_base_query(agentId=agentId, deviceId=deviceId, status=status,
-                                            fragment=fragment, value=value, series=series, after=after,
+                                            fragment=fragment, after=after,
                                             before=before, min_age=min_age, reverse=True, page_size=1)
         m = Operation.from_json(self._get_page(base_query, "1")[0])
         m.c8y = self.c8y  # inject c8y connection into instance

@@ -52,6 +52,14 @@ print("\nOperation")
 new_operation = Operation(c8y, new_device.id, 'Shell command', c8y_Command={'text': 'myCommand'})
 new_operation.create()
 
+operationList = c8y.operations.get_all(agentId=new_device.id, status='PENDING', page_size=1)
+pending_operation = operationList[0]
+
+#TODO
+#pending_operation.status = 'EXECUTING'
+#pending_operation.update()
+
+
 # Cleaning up
 print("\n\nCleanup:\n\n")
 
