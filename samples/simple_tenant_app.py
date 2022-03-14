@@ -54,10 +54,10 @@ new_operation.create()
 
 operationList = c8y.operations.get_all(agentId=new_device.id, status='PENDING', page_size=1)
 pending_operation = operationList[0]
+print(pending_operation.status)
 
-#TODO
-#pending_operation.status = 'EXECUTING'
-#pending_operation.update()
+pending_operation.status = 'EXECUTING'
+pending_operation.update()
 
 
 # Cleaning up

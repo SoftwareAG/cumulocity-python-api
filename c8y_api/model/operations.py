@@ -28,11 +28,11 @@ class Operation(ComplexObject):
 
     # these need to be defined like this for the abstract super functions
     _resource = '/devicecontrol/operations'
-    _parser = ComplexObjectParser({'deviceId': 'deviceId', 'description': 'description'}, [])
+    _parser = ComplexObjectParser({'deviceId': 'deviceId', 'description': 'description', 'status': 'status'}, [])
     # _accept
     # _not_updatable
 
-    def __init__(self, c8y=None, deviceId=None, description=None, **kwargs):
+    def __init__(self, c8y=None, deviceId=None, description=None, status=None, **kwargs):
         """ Create a new Operation object.
 
         Params:
@@ -48,6 +48,7 @@ class Operation(ComplexObject):
         super().__init__(c8y, **kwargs)
         self.deviceId = deviceId
         self.description = description
+        self.status = status
 
 
     @classmethod
@@ -71,6 +72,9 @@ class Operation(ComplexObject):
         # (no doc update required)
         # creation time is always excluded
         obj_json = super()._to_json(only_updated, exclude={'creation_time'})
+        # obj_json['status'] = self.status
+        print('Test')
+        obj_json['status'] = self.status
         # source needs to be set manually, but it cannot be updated
         if not only_updated and self.deviceId:
             obj_json['deviceId'] = self.deviceId
