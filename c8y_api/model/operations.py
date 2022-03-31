@@ -75,6 +75,7 @@ class Operation(ComplexObject):
         # obj_json['status'] = self.status
         print('Test')
         obj_json['status'] = self.status
+        obj_json['description'] = self.description
         # source needs to be set manually, but it cannot be updated
         if not only_updated and self.deviceId:
             obj_json['deviceId'] = self.deviceId
