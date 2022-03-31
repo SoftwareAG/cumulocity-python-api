@@ -109,9 +109,6 @@ class Operation(ComplexObject):
         """Update the Operation within the database."""
         return super()._update()
 
-    def delete(self):
-        """Delete the Operation within the database."""
-        self._delete()
 
 
 class Operations(CumulocityResource):
