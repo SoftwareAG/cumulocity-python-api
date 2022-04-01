@@ -101,7 +101,7 @@ def sample_device(logger: logging.Logger, live_c8y: CumulocityApi) -> Device:
     """Provide an sample device, just for testing purposes."""
 
     typename = RandomNameGenerator.random_name()
-    device = Device(live_c8y, type=typename, name=typename).create()
+    device = Device(live_c8y, type=typename, name=typename, com_cumulocity_model_Agent={}).create()
     logger.info(f"Created test device #{device.id}, name={device.name}")
 
     yield device
