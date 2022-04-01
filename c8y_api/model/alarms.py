@@ -105,7 +105,7 @@ class Alarm(ComplexObject):
         Returns:
             Standard Python datetime object for the alarm's creation time.
         """
-        return super()._to_datetime(self.time)
+        return super()._to_datetime(self.creation_time)
 
     @property
     def first_occurrence_datetime(self) -> datetime:
