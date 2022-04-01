@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from logging import Logger
+from typing import List
 
 import pytest
 
@@ -31,11 +32,24 @@ def sample_device(logger: Logger, live_c8y: CumulocityApi) -> Device:
     logger.info(f"Deleted test device #{device.id}")
 
 
+@pytest.fixture(scope='session')
+def sample_events(factory, sample_device) -> List[Event]:
+    """Provide a set of sample Event instances that will automatically
+    be removed after the test function."""
+    typename = RandomNameGenerator.random_name()
+    result = []
+    for i in range(1, 6):
+        event = Event(type=f'{typename}_{i}', text=f'{typename} text', source=sample_device.id,
+                      time='2020-12-31T11:33:55Z')
+        result.append(factory(event))
+    return result
+
+
 def test_CRUD(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
     """Verify that basic CRUD functionality works."""
 
     typename = RandomNameGenerator.random_name()
-    event = Event(c8y=live_c8y, type=typename, text=f'{typename} text', source=sample_device.id)
+    event = Event(c8y=live_c8y, type=typename, text=f'{typename} text', time='now', source=sample_device.id)
 
     created_event = event.create()
     try:
@@ -115,3 +129,30 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
 
     # 6) assert deletion
     assert not live_c8y.events.get_all(type=typename)
+
+
+def test_filter_by_update_time(live_c8y: CumulocityApi, sample_device, sample_events: List[Event]):
+    """Verify that filtering by lastUpdatedTime works as expected."""
+
+    event = sample_events[0]
+
+    # created events should all have different update times
+    # -> we use the middle/pivot element for queries
+    updated_datetimes = [a.updated_datetime for a in sample_events]
+    updated_datetimes.sort()
+    pivot = updated_datetimes[len(updated_datetimes)//2]
+
+    before_events = live_c8y.events.get_all(source=event.source, updated_before=pivot)
+    after_events = live_c8y.events.get_all(source=event.source, updated_after=pivot)
+
+    # -> selected events should match the update times from 'before'
+    # upper boundary, i.e. before/to timestamp is exclusive -> does not include pivot
+    before_datetimes = list(filter(lambda x: x < pivot, updated_datetimes))
+    result_datetimes = [a.updated_datetime for a in before_events]
+    assert sorted(result_datetimes) == sorted(before_datetimes)
+
+    # -> selected events should match the update times from 'after'
+    # lower boundary, i.e. after/from timestamp is inclusive -> includes pivot
+    after_datetimes = list(filter(lambda x: x >= pivot, updated_datetimes))
+    result_datetimes = [a.updated_datetime for a in after_events]
+    assert sorted(result_datetimes) == sorted(after_datetimes)

@@ -450,7 +450,10 @@ class CumulocityResource:
     def _prepare_query_params(type=None, name=None, fragment=None, source=None,  # noqa (type)
                               series=None, owner=None,
                               device_id=None, agent_id=None, bulk_id=None,
-                              before=None, after=None, min_age=None, max_age=None,
+                              before=None, after=None,
+                              created_before=None, created_after=None,
+                              updated_before=None, updated_after=None,
+                              min_age=None, max_age=None,
                               reverse=None, page_size=None, **kwargs):
         # min_age/max_age should be timedelta objects that can be used for
         # alternative calculation of the before/after parameters
@@ -469,13 +472,20 @@ class CumulocityResource:
         # if so they need to be timezone aware
         before = _DateUtil.ensure_timestring(before)
         after = _DateUtil.ensure_timestring(after)
+        created_before = _DateUtil.ensure_timestring(created_before)
+        created_after = _DateUtil.ensure_timestring(created_after)
+        updated_before = _DateUtil.ensure_timestring(updated_before)
+        updated_after = _DateUtil.ensure_timestring(updated_after)
 
         params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
                                     'source': source, 'fragmentType': fragment,
                                     'valueFragmentSeries': series,
                                     'deviceId': device_id, 'agentId': agent_id,
                                     'bulkOperationId': bulk_id,
-                                    'dateFrom': after, 'dateTo': before, 'revert': str(reverse) if reverse else None,
+                                    'dateFrom': after, 'dateTo': before,
+                                    'createdFrom': created_after, 'createdTo': created_before,
+                                    'lastUpdatedFrom': updated_after, 'lastUpdatedTo': updated_before,
+                                    'revert': str(reverse) if reverse else None,
                                     'pageSize': page_size}.items() if v}
         params.update({k: v for k, v in kwargs.items() if v is not None})
         return params
