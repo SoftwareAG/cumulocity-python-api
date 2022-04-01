@@ -276,7 +276,7 @@ class SimpleObject(CumulocityObject):
         self.c8y.delete(self._build_object_path())
 
 
-class ComplexObject(SimpleObject):
+class ComplexObject(SimpleObject, dict):
     """Abstract base class for all complex cumulocity objects
     (that can have custom fragments)."""
 
@@ -336,7 +336,12 @@ class ComplexObject(SimpleObject):
 
         :param name: Name of the custom fragment
         """
-        return self.__getitem__(name)
+        try:
+            return self.__getitem__(name)
+        except KeyError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            ) from None
 
     def _setattr_(self, name, value):
         if name in self.fragments:
@@ -406,6 +411,18 @@ class ComplexObject(SimpleObject):
         result.c8y = self.c8y
         return result
 
+    def items(self):
+        """Returns the objects' fragments as dictionary items."""
+        return self.fragments.items()
+
+    def keys(self):
+        """Returns the objects' fragment names."""
+        return self.fragments.keys()
+
+    def values(self):
+        """Returns the objects' fragment values."""
+        return self.fragments.values()
+
 
 class CumulocityResource:
     """Abstract base class for all Cumulocity API resources."""
@@ -432,6 +449,7 @@ class CumulocityResource:
     @staticmethod
     def _prepare_query_params(type=None, name=None, fragment=None, source=None,  # noqa (type)
                               series=None, owner=None,
+                              device_id=None, agent_id=None, bulk_id=None,
                               before=None, after=None,
                               created_before=None, created_after=None,
                               updated_before=None, updated_after=None,
@@ -462,6 +480,8 @@ class CumulocityResource:
         params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
                                     'source': source, 'fragmentType': fragment,
                                     'valueFragmentSeries': series,
+                                    'deviceId': device_id, 'agentId': agent_id,
+                                    'bulkOperationId': bulk_id,
                                     'dateFrom': after, 'dateTo': before,
                                     'createdFrom': created_after, 'createdTo': created_before,
                                     'lastUpdatedFrom': updated_after, 'lastUpdatedTo': updated_before,

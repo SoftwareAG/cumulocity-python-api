@@ -13,6 +13,7 @@ from c8y_api.model.identity import *
 from c8y_api.model.inventory import *
 from c8y_api.model.managedobjects import *
 from c8y_api.model.measurements import *
+from c8y_api.model.operations import *
 
 __all__ = ['administration', 'inventory', 'measurements', 'events',
            'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',

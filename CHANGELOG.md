@@ -14,6 +14,10 @@
 
 * Added device agent registration sample (Thanks Nick!).
 
+* Added support for operations (Thanks Alex!).
+
+* All objects with fragments can now be converted to Pandas Series (Thanks Sam!).
+
 
 ## Version 1.1.1
 
