@@ -276,7 +276,7 @@ class SimpleObject(CumulocityObject):
         self.c8y.delete(self._build_object_path())
 
 
-class ComplexObject(SimpleObject):
+class ComplexObject(SimpleObject, dict):
     """Abstract base class for all complex cumulocity objects
     (that can have custom fragments)."""
 
@@ -411,13 +411,16 @@ class ComplexObject(SimpleObject):
         result.c8y = self.c8y
         return result
 
-    def items(self) -> list[tuple[str, any]]:
+    def items(self):
+        """Returns the objects' fragments as dictionary items."""
         return self.fragments.items()
 
-    def keys(self) -> list[str]:
+    def keys(self):
+        """Returns the objects' fragment names."""
         return self.fragments.keys()
 
-    def values(self) -> list[any]:
+    def values(self):
+        """Returns the objects' fragment values."""
         return self.fragments.values()
 
 
