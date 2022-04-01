@@ -1,0 +1,12 @@
+{
+	"creationTime": "2022-04-01T13:22:44.474Z",
+	"deviceId": "123456",
+	"deviceName": "Device_123456",
+	"self": "https://t12345.cumulocity.com/devicecontrol/operations/42439953",
+	"id": "42439953",
+	"status": "EXECUTING",
+	"c8y_Command": {
+		"text": "service ftpd stop"
+	},
+	"description": "Operation description"
+}
