@@ -27,14 +27,15 @@ class Event(ComplexObject):
     See also: https://cumulocity.com/api/#tag/Events
     """
 
-    _resource = '/event/events/'
+    _resource = '/event/events'
     # _accept can remain default
     _parser = ComplexObjectParser({
         'type': 'type',
         'time': 'time',
         '_u_text': 'text',
-        'creation_time': 'creationTime'},
-        ['source'])
+        'creation_time': 'creationTime',
+        'updated_time': 'lastUpdated',
+        }, ['source'])
 
     def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,
                  source: str = None, text: str = None, **kwargs):  # noqa (type)
@@ -59,6 +60,7 @@ class Event(ComplexObject):
         self.source = source
         self._u_text = text
         self.creation_time = None
+        self.updated_time = None
 
     text = SimpleObject.UpdatableProperty('_u_text')
 
@@ -79,6 +81,15 @@ class Event(ComplexObject):
             Standard Python datetime object
         """
         return super()._to_datetime(self.creation_time)
+
+    @property
+    def updated_datetime(self) -> datetime:
+        """Convert the alarm's last updated time to a Python datetime object.
+
+        Returns:
+            Standard Python datetime object for the alarm's last updated time.
+        """
+        return super()._to_datetime(self.updated_time)
 
     @classmethod
     def from_json(cls, json: dict) -> Event:
@@ -163,6 +174,8 @@ class Events(CumulocityResource):
 
     def select(self, type: str = None, source: str = None, fragment: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
+               created_before: str | datetime = None, created_after: str | datetime = None,
+               updated_before: str | datetime = None, updated_after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Event]:
         """Query the database for events and iterate over the results.
@@ -182,6 +195,14 @@ class Events(CumulocityResource):
                 events assigned to a time before this date are returned.
             after (str|datetime):  Datetime object or ISO date/time string. Only
                 events assigned to a time after this date are returned.
+            created_before (str|datetime):  Datetime object or ISO date/time string.
+                Only events changed at a time before this date are returned.
+            created_after (str|datetime):  Datetime object or ISO date/time string.
+                Only events changed at a time after this date are returned.
+            updated_before (str|datetime):  Datetime object or ISO date/time string.
+                Only events changed at a time before this date are returned.
+            updated_after (str|datetime):  Datetime object or ISO date/time string.
+                Only events changed at a time after this date are returned.
             min_age (timedelta): Minimum age for selected events.
             max_age (timedelta): Maximum age for selected events.
             reverse (bool): Invert the order of results, starting with the
@@ -194,12 +215,17 @@ class Events(CumulocityResource):
             Generator for Event objects
         """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
-                                            before=before, after=after, min_age=min_age, max_age=max_age,
+                                            before=before, after=after,
+                                            created_before=created_before, created_after=created_after,
+                                            updated_before=updated_before, updated_after=updated_after,
+                                            min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
         return super()._iterate(base_query, limit, Event.from_json)
 
     def get_all(self, type: str = None, source: str = None, fragment: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
+               created_before: str | datetime = None, created_after: str | datetime = None,
+               updated_before: str | datetime = None, updated_after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Event]:
         """Query the database for events and return the results as list.
@@ -213,7 +239,11 @@ class Events(CumulocityResource):
             List of Event objects
         """
         return list(self.select(type=type, source=source, fragment=fragment,
-                                before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
+                                before=before, after=after,
+                                created_before=created_before, created_after=created_after,
+                                updated_before=updated_before, updated_after=updated_after,
+                                min_age=min_age, max_age=max_age,
+                                reverse=reverse,
                                 limit=limit, page_size=page_size))
 
     def create(self, *events: Event):
