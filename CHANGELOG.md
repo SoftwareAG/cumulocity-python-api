@@ -1,7 +1,19 @@
 # Changelog
 
+## Version 1.3
 
-## Work in progress
+### Changed
+
+* All objects with fragments can now be converted to Pandas Series (Thanks Sam!).
+
+### Added 
+
+* Added support for operations (Thanks Alex!).
+
+* Added support for lastUpdated field in alarms and events.
+
+
+## Version 1.2
 
 ### Changed
 
@@ -13,12 +25,6 @@
 * Added `samples` folder to linting task.
 
 * Added device agent registration sample (Thanks Nick!).
-
-* Added support for operations (Thanks Alex!).
-
-* All objects with fragments can now be converted to Pandas Series (Thanks Sam!).
-
-* Added support for lastUpdated field in alarms and events.
 
 
 ## Version 1.1.1
