@@ -3,6 +3,24 @@
 
 ## Work in progress
 
+_None for now_
+
+
+## Version 1.3
+
+### Changed
+
+* All objects with fragments can now be converted to Pandas Series (Thanks Sam!).
+
+### Added 
+
+* Added support for operations (Thanks Alex!).
+
+* Added support for lastUpdated field in alarms and events.
+
+
+## Version 1.2
+
 ### Changed
 
 * Changed behavior of Events and Alarms API. Previously, an undefined event/alarm time was set to the current datetime 
@@ -13,12 +31,6 @@
 * Added `samples` folder to linting task.
 
 * Added device agent registration sample (Thanks Nick!).
-
-* Added support for operations (Thanks Alex!).
-
-* All objects with fragments can now be converted to Pandas Series (Thanks Sam!).
-
-* Added support for lastUpdated field in alarms and events.
 
 
 ## Version 1.1.1
