@@ -85,15 +85,15 @@ def factory(logger, live_c8y: CumulocityApi):
         if not obj.c8y:
             obj.c8y = live_c8y
         o = obj.create()
-        logger.info(f'Created object #{o.id}, ({o.__class__.__name__})')
+        logger.info(f"Created object #{o.id}, ({o.__class__.__name__})")
         created.append(o)
         return o
 
     yield factory_fun
 
     for c in created:
-        logger.info(f'Removed object #{c.id}, ({c.__class__.__name__})')
         c.delete()
+        logger.info(f"Removed object #{c.id}, ({c.__class__.__name__})")
 
 
 @pytest.fixture(scope='session')
@@ -101,7 +101,7 @@ def sample_device(logger: logging.Logger, live_c8y: CumulocityApi) -> Device:
     """Provide an sample device, just for testing purposes."""
 
     typename = RandomNameGenerator.random_name()
-    device = Device(live_c8y, type=typename, name=typename).create()
+    device = Device(live_c8y, type=typename, name=typename, com_cumulocity_model_Agent={}).create()
     logger.info(f"Created test device #{device.id}, name={device.name}")
 
     yield device

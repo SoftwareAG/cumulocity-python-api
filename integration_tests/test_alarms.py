@@ -23,7 +23,7 @@ def test_CRUD(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
 
     typename = RandomNameGenerator.random_name()
     alarm = Alarm(c8y=live_c8y, type=typename, text=f'{typename} text', source=sample_device.id,
-                  severity=Alarm.Severity.MAJOR)
+                  time='now', severity=Alarm.Severity.MAJOR)
 
     created_alarm = alarm.create()
     try:
@@ -126,19 +126,25 @@ def sample_alarms(factory, sample_device) -> List[Alarm]:
     result = []
     for i in range(1, 6):
         alarm = Alarm(type=f'{typename}_{i}', text=f'{typename} text', source=sample_device.id,
-                      time='2020-12-31T11:33:55Z', severity=Alarm.Severity.WARNING)
+                      time='2020-12-31T11:33:55Z', severity=Alarm.Severity.WARNING, status=Alarm.Status.ACKNOWLEDGED)
         result.append(factory(alarm))
     return result
 
 
-def test_apply_by(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):
-    """Verify that the count function works."""
-    alarm = sample_alarms[0]
+def test_apply_by(live_c8y: CumulocityApi, sample_device: Device):
+    """Verify that the apply_by function works."""
+
+    num_alarms = 5
+    name = RandomNameGenerator.random_name(1)
+    alarms = [Alarm(live_c8y, type=f'{name}_{i}', text=f'{name} text', source=sample_device.id,
+                    time='2021-06-22T11:33:55Z', severity=Alarm.Severity.CRITICAL).create()
+              for i in range(1, num_alarms+1)]
+    alarm = alarms[0]
     model = Alarm(status=Alarm.Status.ACKNOWLEDGED)
 
     filter_kwargs = {'source': alarm.source,
                      'severity': alarm.severity,
-                     'before': '2021-01-01',
+                     'before': '2022-01-01',
                      'after': '2020-12-31'}
 
     # 1) apply model change by query
@@ -146,6 +152,7 @@ def test_apply_by(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):
 
     # -> all matching objects should have been updated
     alarms = live_c8y.alarms.get_all(**filter_kwargs)
+    assert len(alarms) == num_alarms
     assert all(a.status == model.status for a in alarms)
 
 
@@ -155,3 +162,34 @@ def test_count(live_c8y: CumulocityApi, sample_alarms: List[Alarm]):
     count = live_c8y.alarms.count(source=alarm.source, severity=alarm.severity,
                                   before='2021-01-01', after='2020-12-31')
     assert count == len(sample_alarms)
+
+
+def test_filter_by_update_time(live_c8y: CumulocityApi, sample_device, sample_alarms: List[Alarm]):
+    """Verify that filtering by lastUpdatedTime works as expected."""
+
+    alarm = sample_alarms[0]
+
+    # created alarms should all have different update times
+    # -> we use the middle/pivot element for queries
+    updated_datetimes = [a.updated_datetime for a in sample_alarms]
+    updated_datetimes.sort()
+    pivot = updated_datetimes[len(updated_datetimes)//2]
+
+    # Note: We are using additional status/severity so that we don't interfer
+    # with other tests creating alarms for the same device
+    before_alarms = live_c8y.alarms.get_all(source=alarm.source, updated_before=pivot,
+                                            severity=alarm.severity, status=alarm.status)
+    after_alarms = live_c8y.alarms.get_all(source=alarm.source, updated_after=pivot,
+                                           severity=alarm.severity, status=alarm.status)
+
+    # -> selected alarms should match the update times from 'before'
+    # upper boundary, i.e. before/to timestamp is exclusive -> does not include pivot
+    before_datetimes = list(filter(lambda x: x < pivot, updated_datetimes))
+    result_datetimes = [a.updated_datetime for a in before_alarms]
+    assert sorted(result_datetimes) == sorted(before_datetimes)
+
+    # -> selected alarms should match the update times from 'after'
+    # lower boundary, i.e. after/from timestamp is inclusive -> includes pivot
+    after_datetimes = list(filter(lambda x: x >= pivot, updated_datetimes))
+    result_datetimes = [a.updated_datetime for a in after_alarms]
+    assert sorted(result_datetimes) == sorted(after_datetimes)

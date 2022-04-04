@@ -1,9 +1,17 @@
 # Changelog
 
+## Version 1.3
 
-## Work in progress
+### Changed
 
-_None for now_
+* All objects with fragments can now be converted to Pandas Series (Thanks Sam!).
+
+### Added 
+
+* Added support for operations (Thanks Alex!).
+
+* Added support for lastUpdated field in alarms and events.
+
 
 ## Version 1.2
 

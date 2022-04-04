@@ -16,6 +16,7 @@ from c8y_api.model.identity import Identity
 from c8y_api.model.binaries import Binaries
 from c8y_api.model.inventory import Inventory, DeviceInventory, DeviceGroupInventory
 from c8y_api.model.measurements import Measurements
+from c8y_api.model.operations import Operations
 
 
 class CumulocityApi(CumulocityRestApi):
@@ -40,6 +41,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__applications = Applications(self)
         self.__events = Events(self)
         self.__alarms = Alarms(self)
+        self.__operations = Operations(self)
 
     @property
     def measurements(self) -> Measurements:
@@ -105,3 +107,8 @@ class CumulocityApi(CumulocityRestApi):
     def alarms(self) -> Alarms:
         """Provide access to the Alarm API."""
         return self.__alarms
+
+    @property
+    def operations(self) -> Operations:
+        """Provide access to the Operation API."""
+        return self.__operations

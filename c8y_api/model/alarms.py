@@ -45,6 +45,7 @@ class Alarm(ComplexObject):
         '_u_text': 'text',
         # 'source': 'source/id'   - cannot be parsed automatically
         'creation_time': 'creationTime',
+        'updated_time': 'lastUpdated',
         '_u_status': 'status',
         '_u_severity': 'severity',
         'count': 'count',
@@ -75,6 +76,7 @@ class Alarm(ComplexObject):
         self.source = source
         self._u_text = text
         self.creation_time = None
+        self.updated_time = None
         self._u_status = status
         self._u_severity = severity
         self.count = None
@@ -82,7 +84,7 @@ class Alarm(ComplexObject):
         # The time can either be set as string (e.g. when read from JSON) or
         # as a datetime object. It will be converted to string immediately
         # as there is no scenario where a manually created object won't be
-        # written to Cumulocity anyways
+        # written to Cumulocity anyway
         self.time = _DateUtil.ensure_timestring(time)
 
     text = SimpleObject.UpdatableProperty('_u_text')
@@ -105,7 +107,16 @@ class Alarm(ComplexObject):
         Returns:
             Standard Python datetime object for the alarm's creation time.
         """
-        return super()._to_datetime(self.time)
+        return super()._to_datetime(self.creation_time)
+
+    @property
+    def updated_datetime(self) -> datetime:
+        """Convert the alarm's last updated time to a Python datetime object.
+
+        Returns:
+            Standard Python datetime object for the alarm's last updated time.
+        """
+        return super()._to_datetime(self.updated_time)
 
     @property
     def first_occurrence_datetime(self) -> datetime:
@@ -233,6 +244,8 @@ class Alarms(CumulocityResource):
     def select(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
                status: str = None, severity: str = None, resolved: str = None,
                before: str | datetime = None, after: str | datetime = None,
+               created_before: str | datetime = None, created_after: str | datetime = None,
+               updated_before: str | datetime = None, updated_after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Alarm]:
         """Query the database for alarms and iterate over the results.
@@ -255,6 +268,14 @@ class Alarms(CumulocityResource):
                 Only alarms assigned to a time before this date are returned.
             after (str|datetime):  Datetime object or ISO date/time string.
                 Only alarms assigned to a time after this date are returned
+            created_before (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms changed at a time before this date are returned.
+            created_after (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms changed at a time after this date are returned.
+            updated_before (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms changed at a time before this date are returned.
+            updated_after (str|datetime):  Datetime object or ISO date/time string.
+                Only alarms changed at a time after this date are returned.
             min_age (timedelta):  Matches only alarms of at least this age
             max_age (timedelta):  Matches only alarms with at most this age
             reverse (bool):  Invert the order of results, starting with the
@@ -268,13 +289,18 @@ class Alarms(CumulocityResource):
         """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             status=status, severity=severity, resolved=resolved,
-                                            before=before, after=after, min_age=min_age, max_age=max_age,
+                                            before=before, after=after,
+                                            created_before=created_before, created_after=created_after,
+                                            updated_before=updated_before, updated_after=updated_after,
+                                            min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
         return super()._iterate(base_query, limit, Alarm.from_json)
 
     def get_all(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
                 status: str = None, severity: str = None, resolved: str = None,
                 before: str | datetime = None, after: str | datetime = None,
+                created_before: str | datetime = None, created_after: str | datetime = None,
+                updated_before: str | datetime = None, updated_after: str | datetime = None,
                 min_age: timedelta = None, max_age: timedelta = None,
                 reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Alarm]:
         """Query the database for alarms and return the results as list.
@@ -289,7 +315,10 @@ class Alarms(CumulocityResource):
         """
         return list(self.select(type=type, source=source, fragment=fragment,
                                 status=status, severity=severity, resolved=resolved,
-                                before=before, after=after, min_age=min_age, max_age=max_age, reverse=reverse,
+                                before=before, after=after,
+                                created_before=created_before, created_after=created_after,
+                                updated_before=updated_before, updated_after=updated_after,
+                                min_age=min_age, max_age=max_age, reverse=reverse,
                                 limit=limit, page_size=page_size))
 
     def count(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
