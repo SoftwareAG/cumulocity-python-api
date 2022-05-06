@@ -1,10 +1,12 @@
 # Changelog
 
-
 ## Work in progress
 
-_None for now_
+### Changed
 
+* ComplexObject & _DictMapping now both inherit MutableMapping (Thanks Sam!).
+
+* The base API now ignores trailing slashes gracefully.
 
 ## Version 1.3
 
