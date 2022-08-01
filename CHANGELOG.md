@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.3.1
+
+### Changed
+
+* Switched to version 2.4.0 of PyJWT as recommended by https://nvd.nist.gov/vuln/detail/CVE-2022-29217 
+
 ## Version 1.3
 
 ### Changed
