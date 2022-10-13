@@ -20,29 +20,29 @@ from c8y_api.model._util import _DateUtil
 
 class _DictWrapper(MutableMapping):
 
-    def __init__(self, dictionary, on_update=None):
-        self.__dict__['items'] = dictionary
-        self.__dict__['on_update'] = on_update
+    def __init__(self, dictionary: dict, on_update=None):
+        self.__dict__['_property_items'] = dictionary
+        self.__dict__['_property_on_update'] = on_update
 
     def has(self, name):
         """Check whether a key is present in the dictionary."""
-        return name in self.items
+        return name in self.__dict__['_property_items']
 
     def __getitem__(self, name):
-        item = self.items[name]
-        return item if not isinstance(item, dict) else _DictWrapper(item, self.on_update)
+        item = self.__dict__['_property_items'][name]
+        return item if not isinstance(item, dict) else _DictWrapper(item, self.__dict__['_property_on_update'])
 
     def __setitem__(self, name, value):
-        self.items[name] = value
+        self.__dict__['_property_items'][name] = value
 
     def __delitem__(self, _):
         raise NotImplementedError
 
     def __iter__(self):
-        return iter(self.items)
+        return iter(self.__dict__['_property_items'])
 
     def __len__(self):
-        return len(self.items)
+        return len(self.__dict__['_property_items'])
 
     def __getattr__(self, name):
         try:
@@ -53,12 +53,12 @@ class _DictWrapper(MutableMapping):
             ) from None
 
     def __setattr__(self, name, value):
-        if self.on_update:
-            self.on_update()
+        if self.__dict__['_property_on_update']:
+            self.__dict__['_property_on_update']()
         self[name] = value
 
     def __str__(self):
-        return self.__dict__['items'].__str__()
+        return self.__dict__['_property_items'].__str__()
 
 
 class CumulocityObject:

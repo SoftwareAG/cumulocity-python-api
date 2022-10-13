@@ -4,6 +4,9 @@
 
 ### Changed
 
+* Obfuscated internal properties in _DictWrapper which blocked standard dictionary behavior. 
+  Code cleanup.
+
 * ComplexObject & _DictMapping now both inherit MutableMapping (Thanks Sam!).
 
 * The base API now ignores trailing slashes gracefully.

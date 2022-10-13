@@ -102,7 +102,7 @@ def test_updating(sample_object: ManagedObject):
     assert set(sample_object.to_diff_json().keys()) == expected_updates
 
     # 4) updated fragments are recorded
-    # Note: simple fragments can only updated using [] notation
+    # Note: simple fragments can only be updated using [] notation
     sample_object['simple_float'] = 543.21
     sample_object['simple_false'] = False
     sample_object.complex_2.level0.level1 = 'new value'
@@ -113,7 +113,7 @@ def test_updating(sample_object: ManagedObject):
 
 @pytest.fixture(scope='session')
 def object_with_fragments():
-    """Create a object featuring various custom fragments."""
+    """Create an object featuring various custom fragments."""
 
     kwargs = {'simple_string': 'string',
               'simple_int': 123,
@@ -139,6 +139,16 @@ def test_dot_access(object_with_fragments):
     assert mo.complex_1.level0 == kwargs['complex_1']['level0']
     assert mo.complex_2.level0.level1 == kwargs['complex_2']['level0']['level1']
 
+    # testing 1st level (ComplexObject class)
+    with pytest.raises(AttributeError) as e:
+        _ = mo.not_existing
+    assert 'not_existing' in str(e)
+
+    # testing 2nd level (_DictWrapper class)
+    with pytest.raises(AttributeError) as e:
+        _ = mo.complex_1.not_existing
+    assert 'not_existing' in str(e)
+
 
 def test_fragment_presence(object_with_fragments):
     """Verify that fragment presence can be checked."""
@@ -157,8 +167,21 @@ def test_item_access(object_with_fragments):
 
     kwargs, mo = object_with_fragments
 
-    for attr in kwargs.keys():
-        assert mo[attr] is not None
+    assert mo['simple_string'] == kwargs['simple_string']
+    assert mo['simple_int'] == kwargs['simple_int']
+    assert mo['simple_float'] == kwargs['simple_float']
+    assert mo['simple_true'] == kwargs['simple_true']
+    assert mo['simple_false'] == kwargs['simple_false']
+
+    assert mo['complex_1']['level0'] == kwargs['complex_1']['level0']
+    assert mo['complex_2']['level0']['level1'] == kwargs['complex_2']['level0']['level1']
+
+    # testing 1st level (ComplexObject class)
     with pytest.raises(KeyError) as e:
         _ = mo['not_existing']
+    assert 'not_existing' in str(e)
+
+    # testing 2nd level (_DictWrapper class)
+    with pytest.raises(KeyError) as e:
+        _ = mo['complex_1']['not_existing']
     assert 'not_existing' in str(e)
