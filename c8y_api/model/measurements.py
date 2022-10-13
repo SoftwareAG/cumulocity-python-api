@@ -166,9 +166,9 @@ class Measurement(ComplexObject):
             measurement_json['time'] = _DateUtil.to_timestring(_DateUtil.now())
         return measurement_json
 
-    # the __getattr__ function is overwritten to return a wrapper that doesn't signal updates
+    # the __getitem__ function is overwritten to return a wrapper that doesn't signal updates
     # (because Measurements are not updated, can only be created from scratch)
-    def __getattr__(self, item):
+    def __getitem__(self, item):
         return _DictWrapper(self.fragments[item], on_update=None)
 
     @property

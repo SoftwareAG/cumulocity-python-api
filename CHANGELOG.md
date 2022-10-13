@@ -1,10 +1,27 @@
 # Changelog
 
+
+## Work in progress
+
+
+## Version 1.3.2
+
+### Changed
+
+* Obfuscated internal properties in _DictWrapper which blocked standard dictionary behavior. 
+  Code cleanup.
+
+* ComplexObject & _DictMapping now both inherit MutableMapping (Thanks Sam!).
+
+* The base API now ignores trailing slashes gracefully.
+
+
 ## Version 1.3.1
 
 ### Changed
 
 * Switched to version 2.4.0 of PyJWT as recommended by https://nvd.nist.gov/vuln/detail/CVE-2022-29217 
+
 
 ## Version 1.3
 

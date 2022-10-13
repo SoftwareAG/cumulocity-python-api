@@ -48,7 +48,7 @@ class CumulocityRestApi:
             application_key (str):  Application ID to include in requests
                 (for billing/metering purposes).
         """
-        self.base_url = base_url
+        self.base_url = base_url.rstrip('/')
         self.tenant_id = tenant_id
         self.application_key = application_key
 

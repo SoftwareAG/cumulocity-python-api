@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterable, Set
 
+from collections.abc import MutableMapping
 from deprecated import deprecated
 from urllib.parse import urlencode
 
@@ -17,27 +18,47 @@ from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._util import _DateUtil
 
 
-class _DictWrapper(object):
+class _DictWrapper(MutableMapping):
 
-    def __init__(self, dictionary, on_update=None):
-        self.__dict__['items'] = dictionary
-        self.__dict__['on_update'] = on_update
+    def __init__(self, dictionary: dict, on_update=None):
+        self.__dict__['_property_items'] = dictionary
+        self.__dict__['_property_on_update'] = on_update
 
     def has(self, name):
         """Check whether a key is present in the dictionary."""
-        return name in self.items
+        return name in self.__dict__['_property_items']
+
+    def __getitem__(self, name):
+        item = self.__dict__['_property_items'][name]
+        return item if not isinstance(item, dict) else _DictWrapper(item, self.__dict__['_property_on_update'])
+
+    def __setitem__(self, name, value):
+        self.__dict__['_property_items'][name] = value
+
+    def __delitem__(self, _):
+        raise NotImplementedError
+
+    def __iter__(self):
+        return iter(self.__dict__['_property_items'])
+
+    def __len__(self):
+        return len(self.__dict__['_property_items'])
 
     def __getattr__(self, name):
-        item = self.items[name]
-        return item if not isinstance(item, dict) else _DictWrapper(item, self.on_update)
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            ) from None
 
     def __setattr__(self, name, value):
-        if self.on_update:
-            self.on_update()
-        self.items[name] = value
+        if self.__dict__['_property_on_update']:
+            self.__dict__['_property_on_update']()
+        self[name] = value
 
     def __str__(self):
-        return self.__dict__['items'].__str__()
+        return self.__dict__['_property_items'].__str__()
 
 
 class CumulocityObject:
@@ -276,7 +297,7 @@ class SimpleObject(CumulocityObject):
         self.c8y.delete(self._build_object_path())
 
 
-class ComplexObject(SimpleObject, dict):
+class ComplexObject(SimpleObject, MutableMapping):
     """Abstract base class for all complex cumulocity objects
     (that can have custom fragments)."""
 
@@ -337,7 +358,7 @@ class ComplexObject(SimpleObject, dict):
         :param name: Name of the custom fragment
         """
         try:
-            return self.__getitem__(name)
+            return self[name]
         except KeyError:
             raise AttributeError(
                 f"'{type(self).__name__}' object has no attribute '{name}'"
@@ -345,7 +366,7 @@ class ComplexObject(SimpleObject, dict):
 
     def _setattr_(self, name, value):
         if name in self.fragments:
-            self.__setitem__(name, value)
+            self[name] = value
         else:
             object.__setattr__(self, name, value)
 
@@ -411,17 +432,14 @@ class ComplexObject(SimpleObject, dict):
         result.c8y = self.c8y
         return result
 
-    def items(self):
-        """Returns the objects' fragments as dictionary items."""
-        return self.fragments.items()
+    def __delitem__(self, _):
+        raise NotImplementedError
 
-    def keys(self):
-        """Returns the objects' fragment names."""
-        return self.fragments.keys()
+    def __iter__(self):
+        return iter(self.fragments)
 
-    def values(self):
-        """Returns the objects' fragment values."""
-        return self.fragments.values()
+    def __len__(self):
+        return len(self.fragments)
 
 
 class CumulocityResource:
