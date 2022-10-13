@@ -3,6 +3,9 @@
 
 ## Work in progress
 
+
+## Version 1.3.2
+
 ### Changed
 
 * Obfuscated internal properties in _DictWrapper which blocked standard dictionary behavior. 
