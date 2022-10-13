@@ -1,5 +1,6 @@
 # Changelog
 
+
 ## Work in progress
 
 ### Changed
@@ -10,6 +11,14 @@
 * ComplexObject & _DictMapping now both inherit MutableMapping (Thanks Sam!).
 
 * The base API now ignores trailing slashes gracefully.
+
+
+## Version 1.3.1
+
+### Changed
+
+* Switched to version 2.4.0 of PyJWT as recommended by https://nvd.nist.gov/vuln/detail/CVE-2022-29217 
+
 
 ## Version 1.3
 
