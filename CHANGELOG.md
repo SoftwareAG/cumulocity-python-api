@@ -3,6 +3,9 @@
 
 ## Work in progress
 
+* Reverted changes in ComplexObject - a ComplexObject is not a dictionary-like class, it only   
+  supports some dictionary-like access functions. But, for instance, updating a ComplexObject
+  is very different from updating a dictionary. Hence, it no longer inherits MutableMapping.
 
 ## Version 1.3.2
 

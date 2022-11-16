@@ -297,7 +297,7 @@ class SimpleObject(CumulocityObject):
         self.c8y.delete(self._build_object_path())
 
 
-class ComplexObject(SimpleObject, MutableMapping):
+class ComplexObject(SimpleObject):
     """Abstract base class for all complex cumulocity objects
     (that can have custom fragments)."""
 
@@ -431,15 +431,6 @@ class ComplexObject(SimpleObject, MutableMapping):
         result = self.from_json(result_json)
         result.c8y = self.c8y
         return result
-
-    def __delitem__(self, _):
-        raise NotImplementedError
-
-    def __iter__(self):
-        return iter(self.fragments)
-
-    def __len__(self):
-        return len(self.fragments)
 
 
 class CumulocityResource:
