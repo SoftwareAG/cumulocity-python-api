@@ -30,7 +30,8 @@ def simple_object_and_mapping():
     mapping = {
         'string_field': 'db_string',
         'int_field': 'db_int',
-        'boolean_field': 'db_boolean'}
+        'boolean_field': 'db_boolean',
+        'special_field': 'db_special'}
 
     return TestClass(), mapping
 
@@ -47,6 +48,7 @@ def test_from_json_simple(simple_object_and_mapping):
         'db_int': random.randint(100, 200),
         'db_string': RandomNameGenerator.random_name(),
         'db_boolean': True,
+        'db_special': "Special chars: ,._#'`\"?$%7{",
         'to_be_ignored_fragment': {'level': 2}}
 
     parsed_obj = parser.from_json(source_json, obj)
@@ -54,6 +56,7 @@ def test_from_json_simple(simple_object_and_mapping):
     assert parsed_obj.int_field == source_json['db_int']
     assert parsed_obj.string_field == source_json['db_string']
     assert parsed_obj.boolean_field == source_json['db_boolean']
+    assert parsed_obj.special_field == source_json['db_special']
 
 
 def test_from_json_simple_skip(simple_object_and_mapping):
