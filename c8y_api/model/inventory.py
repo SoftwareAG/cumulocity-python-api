@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Generator, List
 
 from c8y_api.model._base import CumulocityResource
+from c8y_api.model._util import _QueryUtil
 from c8y_api.model.managedobjects import ManagedObjectUtil, ManagedObject, Device, DeviceGroup
 
 
@@ -52,10 +53,10 @@ class Inventory(CumulocityResource):
         Returns:
             List of ManagedObject instances
         """
-        return list(self.select(type=type, fragment=fragment, name=name, limit=limit, page_size=page_size))
+        return list(self.select(type=type, fragment=fragment, name=name, owner=owner, limit=limit, page_size=page_size))
 
     def select(self, type: str = None, fragment: str = None, name: str = None, owner: str = None,  # noqa (type)
-               limit: int = None, page_size: int = 1000) -> Generator[ManagedObject]:
+               query: str = None, limit: int = None, page_size: int = 1000) -> Generator[ManagedObject]:
         """ Query the database for managed objects and iterate over the
         results.
 
@@ -70,7 +71,12 @@ class Inventory(CumulocityResource):
             type (str):  Managed object type
             fragment (str):  Name of a present custom/standard fragment
             name (str):  Name of the managed object
+                Note: The Cumulocity REST API does not support filtering for
+                names directly; this is a convenience parameter which will
+                translate all filters into a query string.
             owner (str):  Username of the object owner
+            query (str):  Complex query to execute; all other filters are
+                ignored if such a custom query is provided
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
@@ -79,12 +85,37 @@ class Inventory(CumulocityResource):
             Generator for ManagedObject instances
         """
         return self._select(ManagedObject.from_json, type=type, fragment=fragment, name=name, owner=owner,
-                            limit=limit, page_size=page_size)
+                            query=None, limit=limit, page_size=page_size)
 
-    def _select(self, jsonyfy_func, type: str = None, fragment: str = None, name: str = None,
-                owner: str = None,  limit: int = None, page_size: int = 1000) -> Generator[Any]:
-        base_query = self._build_base_query(type=type, fragment=fragment, owner=owner,
-                                            query=f"name eq '{name}'" if name else None, page_size=page_size)
+    def _select(self, jsonyfy_func, type: str = None, fragment: str = None, name: str = None,  # noqa
+                owner: str = None, query: str = None, limit: int = None, page_size: int = 1000) -> Generator[Any]:
+
+        query_filters = []
+
+        # if there is no custom query, we check whether standard filters need to
+        # be translated into a query
+        if not query and name:
+
+            # A name filter can only be expressed as a query, which then
+            # triggers "query mode" (all filters are translated into a query)
+            query_filters.append(f"name eq '{_QueryUtil.encode_odata_query_value(name)}'")
+
+            if type:
+                query_filters.append(f"type eq '{type}'")
+            if owner:
+                query_filters.append(f"owner eq '{owner}'")
+            if fragment:
+                query_filters.append(f"has({fragment})")
+            if len(query_filters) == 1:
+                query = query_filters[0]
+            else:
+                query = '$filter=(' + ' and '.join(query_filters) + ')'
+
+        if query:
+            base_query = self._build_base_query(query=query, page_size=page_size)
+        else:
+            base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
+
         return super()._iterate(base_query, limit, jsonyfy_func)
 
     def create(self, *objects: ManagedObject):
@@ -166,7 +197,7 @@ class DeviceInventory(Inventory):
         return device
 
     def select(self, type: str = None, name: str = None, owner: str = None,  # noqa (type, args)
-               limit: int = None, page_size: int = 100) -> Generator[Device]:
+               query: str = None, limit: int = None, page_size: int = 100) -> Generator[Device]:
         # pylint: disable=arguments-differ
         """ Query the database for devices and iterate over the results.
 
@@ -180,7 +211,12 @@ class DeviceInventory(Inventory):
         Args:
             type (str):  Device type
             name (str):  Name of the device
+                Note: The Cumulocity REST API does not support filtering for
+                names directly; this is a convenience parameter which will
+                translate all filters into a query string.
             owner (str):  Username of the object owner
+            query (str):  Complex query to execute; all other filters are
+                ignored if such a custom query is provided
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
@@ -189,7 +225,7 @@ class DeviceInventory(Inventory):
             Generator for Device objects
         """
         return self._select(ManagedObject.from_json, type=type, fragment='c8y_IsDevice', name=name, owner=owner,
-                            limit=limit, page_size=page_size)
+                            query=query, limit=limit, page_size=page_size)
 
     def get_all(self, type: str = None, name: str = None, owner: str = None,   # noqa (type, parameters)
                 page_size: int = 100) -> List[Device]:
@@ -244,8 +280,8 @@ class DeviceGroupInventory(Inventory):
         group.c8y = self.c8y
         return group
 
-    def select(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,
-               name: str = None, owner: str = None, page_size: int = 100) -> Generator[DeviceGroup]:
+    def select(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,  # noqa
+               name: str = None, owner: str = None, query: str = None, page_size: int = 100) -> Generator[DeviceGroup]:
         # pylint: disable=arguments-differ, arguments-renamed
         """ Select device groups by various parameters.
 
@@ -263,10 +299,17 @@ class DeviceGroupInventory(Inventory):
                 match device groups only you need to use the fragment filter.
             parent (str): ID of the parent device group
                 Note: this forces the `type` filter to be c8y_DeviceSubGroup
+                Like the `name` parameter, this is a convenience parameter
+                which will translate all filters into a query string.
             fragment (str): Additional fragment present within the objects
-            name (str): Name string of the groups to select; no partial
-                matching/patterns are supported
+            name (str): Name string of the groups to select
+                Note:  he Cumulocity REST API does not support filtering for
+                names directly; this is a convenience parameter which will
+                translate all filters into a query string.
+                No partial matching/patterns are supported
             owner (str): Username of the group owner
+            query (str):  Complex query to execute; all other filters are
+                ignored if such a custom query is provided
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
 
@@ -274,30 +317,37 @@ class DeviceGroupInventory(Inventory):
             Generator of DeviceGroup instances
         """
         query_filters = []
-        if name:
-            query_filters.append(f"name eq '{name}'")
-        if parent:
-            query_filters.append(f"bygroupid({parent})")
-            type = DeviceGroup.CHILD_TYPE
 
-        # if any query was defined, all filters must be put into the query
-        if query_filters:
-            query_filters.append(f"type eq {type}")
-            # all other filters must be set as well
-            if fragment:
-                query_filters.append(f"has({fragment})")
-            if owner:
-                query_filters.append(f"owner eq '{owner}'")
-            query = '$filter=' + ' and '.join(query_filters)
+        # if there is no custom query, we check whether standard filters need to
+        # be translated into a query
+        if not query:
 
+            # Both name and parent filters can only be expressed as a query,
+            # which then triggers "query mode"
+            if name:
+                query_filters.append(f"name eq '{_QueryUtil.encode_odata_query_value(name)}'")
+            if parent:
+                query_filters.append(f"bygroupid({parent})")
+                type = DeviceGroup.CHILD_TYPE  # noqa
+
+            # if any query was defined, all filters must be put into the query
+            if query_filters:
+                if type:
+                    query_filters.append(f"type eq '{type}'")
+                if owner:
+                    query_filters.append(f"owner eq '{owner}'")
+                if fragment:
+                    query_filters.append(f"has({fragment}")
+                query = '$filter=' + ' and '.join(query_filters)
+
+        if query:
             base_query = self._build_base_query(query=query, page_size=page_size)
-        # otherwise we can just build the regular query
         else:
             base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
 
         return super()._iterate(base_query, limit=9999, parse_func=DeviceGroup.from_json)
 
-    def get_all(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,
+    def get_all(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None, # noqa
                 name: str = None, owner: str = None, page_size: int = 100):  # noqa
         # pylint: disable=arguments-differ, arguments-renamed
         """ Select managed objects by various parameters.
@@ -328,9 +378,9 @@ class DeviceGroupInventory(Inventory):
         # adding multiple references at once is not (yet) supported
         # refs = {'references': [InventoryUtil.build_managed_object_reference(id) for id in child_ids]}
         # self.c8y.post(self.build_object_path(root_id) + '/childAssets', json=refs, accept='')
-        for id in child_ids:
+        for child_id in child_ids:
             self.c8y.post(self.build_object_path(root_id) + '/childAssets',
-                          json=ManagedObjectUtil.build_managed_object_reference(id), accept='')
+                          json=ManagedObjectUtil.build_managed_object_reference(child_id), accept='')
 
     def unassign_children(self, root_id, *child_ids):
         """Unlink child groups from this device group.
@@ -339,7 +389,7 @@ class DeviceGroupInventory(Inventory):
             root_id (str|int): ID of the root device group
             child_ids (*str|int): ID of the child device groups
         """
-        refs = {'references': [ManagedObjectUtil.build_managed_object_reference(id) for id in child_ids]}
+        refs = {'references': [ManagedObjectUtil.build_managed_object_reference(i) for i in child_ids]}
         self.c8y.delete(self.build_object_path(root_id) + '/childAssets', json=refs)
 
     def delete(self, *groups: DeviceGroup | str | int):
