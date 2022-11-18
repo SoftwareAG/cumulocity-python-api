@@ -1,8 +1,21 @@
 # Changelog
 
+## Version 1.4
 
-## Work in progress
+* Fixed https://github.com/SoftwareAG/cumulocity-python-api/issues/25
+  The SimpleTenantApp did not include the tenant ID into the username which is not supported 
+  by all Cumulocity instances.
 
+* Adding class _QueryUtil, bundling query encoding related functionality.
+
+* Added tests for special character parsing.
+
+* Fixed handling and documentation of inventory API for querying by name. 
+  Added query parameter for specification of custom queries.
+
+* Reverted changes in ComplexObject - a ComplexObject is not a dictionary-like class, it only   
+  supports some dictionary-like access functions. But, for instance, updating a ComplexObject
+  is very different from updating a dictionary. Hence, it no longer inherits MutableMapping.
 
 ## Version 1.3.2
 

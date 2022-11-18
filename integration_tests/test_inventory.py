@@ -87,6 +87,7 @@ def similar_objects(object_factory) -> List[ManagedObject]:
 
 @pytest.mark.parametrize('key, value_fun', [
     ('type', lambda mo: mo.type),
+    ('name', lambda mo: mo.type + '*'),
     ('fragment', lambda mo: mo.type + '_fragment')
 ])
 def test_get_by_something(live_c8y: CumulocityApi, similar_objects: List[ManagedObject], key, value_fun):

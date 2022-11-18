@@ -39,7 +39,6 @@ sed -e "s/{SAMPLE}/$NAME/g" ./samples/Dockerfile > "$BUILD_DIR/Dockerfile"
 
 docker build -t "$NAME" "$BUILD_DIR"
 docker save -o "$DIST_DIR/image.tar" "$NAME"
-ARCHIVE = 
 zip -j "$DIST_DIR/$IMG_NAME.zip" "$BUILD_DIR/cumulocity.json" "$DIST_DIR/image.tar"
 
 echo ""
