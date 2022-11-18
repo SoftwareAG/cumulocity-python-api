@@ -134,7 +134,7 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
         username = self._get_env('C8Y_USER')
         password = self._get_env('C8Y_PASSWORD')
         super().__init__(log=self._log, cache_size=cache_size, cache_ttl=cache_ttl,
-                         base_url=baseurl, tenant_id=tenant_id, auth=HTTPBasicAuth(username, password),
+                         base_url=baseurl, tenant_id=tenant_id, auth=HTTPBasicAuth(f'{tenant_id}/{username}', password),
                          application_key=application_key)
 
     def _build_user_instance(self, auth) -> CumulocityApi:

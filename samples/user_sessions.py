@@ -5,7 +5,7 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 """
-This sample code demonstates how to obtain Cumulocity user sessions (sessions
+This sample code demonstrates how to obtain Cumulocity user sessions (sessions
 that are run within the context of a named user).
 
 When writing a micro service for Cumulocity you always have two options to

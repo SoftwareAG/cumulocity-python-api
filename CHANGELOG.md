@@ -3,6 +3,10 @@
 
 ## Work in progress
 
+* Fixed https://github.com/SoftwareAG/cumulocity-python-api/issues/25
+  The SimpleTenantApp did not include the tenant ID into the username which is not supported 
+  by all Cumulocity instances.
+
 * Adding class _QueryUtil, bundling query encoding related functionality.
 
 * Added tests for special character parsing.
