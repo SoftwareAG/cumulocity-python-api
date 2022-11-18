@@ -1,5 +1,9 @@
 # Changelog
 
+## Work in progress
+
+_put your new comments here_
+
 ## Version 1.4
 
 * Fixed https://github.com/SoftwareAG/cumulocity-python-api/issues/25
