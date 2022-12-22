@@ -2,7 +2,7 @@
 
 ## Work in progress
 
-_put your new comments here_
+* Added Tenant Options API support.
 
 ## Version 1.4
 
