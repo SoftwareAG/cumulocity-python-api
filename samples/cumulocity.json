@@ -7,8 +7,7 @@
   "isolation": "MULTI_TENANT",
   "requiredRoles": [
     "ROLE_INVENTORY_ADMIN",
-    "ROLE_USER_MANAGEMENT_READ",
-    "ROLE_MEASUREMENT_ADMIN"
+    "ROLE_USER_MANAGEMENT_ADMIN"
   ],
   "livenessProbe": {
     "httpGet": {
