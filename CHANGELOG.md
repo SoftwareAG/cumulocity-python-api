@@ -2,7 +2,9 @@
 
 ## Work in progress
 
-_put your new comments here_
+* Improved Applications API.
+
+* Added microservice utilities for easier testing of provided samples.
 
 ## Version 1.4
 
