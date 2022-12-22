@@ -5,7 +5,6 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 import json
-import os
 import zipfile
 
 from dotenv import load_dotenv
@@ -14,23 +13,6 @@ from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import Application
 
 _DIST_DIR = 'dist'
-
-
-def _load_env(sample_name: str):
-    """Load environment variables from .env files.
-
-    This function will look for two files within the working directory:
-    A general `.env` file and a sample specific .env-{sample_name} file
-    which has higher priority.
-    """
-    # load from .env if present
-    load_dotenv()
-    # check and load sample .env
-    sample_env = f'.env-{sample_name}'
-    if os.path.exists(sample_env):
-        print(f"Found custom .env extension: {sample_env}")
-        with open(sample_env) as f:
-            load_dotenv(stream=f)
 
 
 def format_sample_name(name: str) -> str:
@@ -43,20 +25,19 @@ def format_application_name(name: str) -> str:
     return name.replace('_', '-')
 
 
-def register_microservice(name: str):
+def register_microservice(sample_name: str):
     """ Register a microservice at Cumulocity.
 
     The Cumulocity connection information is taken from environment files
     (.env and .env-SAMPLE-NAME) located in the working directory.
 
     Args:
-        name (str):  The name of the sample to use (file name without
-            .py extension)
+        sample_name (str):  The name of the sample to use (file name
+            without .py extension)
 
     """
-    sample_name = format_sample_name(name)
-    application_name = format_application_name(name)
-    _load_env(sample_name)
+    application_name = format_application_name(sample_name)
+    load_dotenv()
     c8y = SimpleCumulocityApp()
 
     # Verify this application is not registered, yet
@@ -79,21 +60,21 @@ def register_microservice(name: str):
     print(f"Microservice application '{application_name}' created. (ID {app.id})")
 
 
-def unregister_microservice(name: str):
+def unregister_microservice(sample_name: str):
     """ Unregister a microservice from Cumulocity.
 
     The Cumulocity connection information is taken from environment files
     (.env and .env-SAMPLE-NAME) located in the working directory.
 
     Args:
-        name (str):  The name of the sample to use (file name without
-            .py extension)
+        sample_name (str):  The name of the sample to use (file name
+            without .py extension)
 
     Throws:
         LookupError  if a corresponding application cannot be found.
     """
-    application_name = format_application_name(name)
-    _load_env(format_sample_name(name))
+    application_name = format_application_name(sample_name)
+    load_dotenv()
 
     try:
         c8y = SimpleCumulocityApp()
@@ -107,15 +88,15 @@ def unregister_microservice(name: str):
     print(f"Microservice application '{application_name}' (ID {app.id}) deleted.")
 
 
-def get_credentials(name: str) -> (str, str):
+def get_credentials(sample_name: str) -> (str, str):
     """ Get the bootstrap user credentials of a registered microservice.
 
     The Cumulocity connection information is taken from environment files
     (.env and .env-SAMPLE-NAME) located in the working directory.
 
     Args:
-        name (str):  The name of the sample to use (file name without
-            .py extension)
+        sample_name (str):  The name of the sample to use (file name
+            without .py extension)
 
     Returns:
         A pair (username, password) for the credentials.
@@ -123,8 +104,8 @@ def get_credentials(name: str) -> (str, str):
     Throws:
         LookupError  if a corresponding application cannot be found.
     """
-    application_name = format_application_name(name)
-    _load_env(format_sample_name(name))
+    application_name = format_application_name(sample_name)
+    load_dotenv()
 
     try:
         c8y = SimpleCumulocityApp()
