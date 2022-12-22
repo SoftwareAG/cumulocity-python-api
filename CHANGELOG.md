@@ -2,6 +2,10 @@
 
 ## Work in progress
 
+* Improved Applications API.
+
+* Added microservice utilities for easier testing of provided samples.
+
 * Added Tenant Options API support.
 
 ## Version 1.4

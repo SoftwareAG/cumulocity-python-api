@@ -192,7 +192,7 @@ class CumulocityRestApi:
             return r.json()
         return {}
 
-    def post_file(self, resource: str, file: str | BinaryIO, object: dict,
+    def post_file(self, resource: str, file: str | BinaryIO, object: dict = None,
                   accept: str = None, content_type: str = 'application/octet-stream'):
         """Generic HTTP POST wrapper.
 
@@ -217,10 +217,9 @@ class CumulocityRestApi:
         """
 
         def perform_post(open_file):
-            files = {
-                'object': (None, json_lib.dumps(object)),
-                'file': (None, open_file, content_type or 'application/octet-stream')
-            }
+            files = {'file': (None, open_file, content_type or 'application/octet-stream')}
+            if object:
+                files['object'] = (None, json_lib.dumps(object))
             additional_headers = self._prepare_headers(accept=accept)
             return self.session.post(self.base_url + resource, files=files, headers=additional_headers)
 
