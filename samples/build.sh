@@ -1,3 +1,8 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
 
 NAME="$1"
 VERSION="$2"
@@ -34,9 +39,17 @@ cp "./samples/$NAME.py" "$BUILD_DIR"
 cp -r "./c8y_api" "$BUILD_DIR"
 sed -e "s/{VERSION}/$VERSION/g" ./samples/cumulocity.json > "$BUILD_DIR/cumulocity.json"
 sed -e "s/{SAMPLE}/$NAME/g" ./samples/Dockerfile > "$BUILD_DIR/Dockerfile"
+# extend cumulocity.json is defined
+if [[ -r ./samples/cumulocity-$NAME.json ]]; then
+  echo -n "Found custom extension at './samples/cumulocity-$NAME.json'. Applying ..."
+  tmp=`tempfile`
+  jq -s '.[0] + .[1]' "$BUILD_DIR/cumulocity.json" ./samples/cumulocity-$NAME.json > $tmp
+  mv $tmp "$BUILD_DIR/cumulocity.json"
+  echo "  Done."
+fi
 
 # build image
-
+echo "Building image ..."
 docker build -t "$NAME" "$BUILD_DIR"
 docker save -o "$DIST_DIR/image.tar" "$NAME"
 zip -j "$DIST_DIR/$IMG_NAME.zip" "$BUILD_DIR/cumulocity.json" "$DIST_DIR/image.tar"
