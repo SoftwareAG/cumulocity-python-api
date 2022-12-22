@@ -1,6 +1,6 @@
 # Changelog
 
-## Work in progress
+## Version 1.5
 
 * Improved Applications API.
 
