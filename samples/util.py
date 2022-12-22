@@ -29,5 +29,5 @@ def load_dotenv(sample_name: str | None = None):
     sample_env = f'.env-{sample_name}'
     if os.path.exists(sample_env):
         print(f"Found custom .env extension: {sample_env}")
-        with open(sample_env) as f:
+        with open(sample_env, 'r', encoding='UTF-8') as f:
             dotenv.load_dotenv(stream=f)
