@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Generator, List
+from typing import Generator, List, BinaryIO
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import SimpleObject, CumulocityResource
@@ -22,22 +22,93 @@ class Application(SimpleObject):
     See also: https://cumulocity.com/api/#tag/Application-API
     """
     _parser = SimpleObjectParser({
-        'name': 'name',
-        'type': 'type',
-        'availability': 'availability'})
-    _resource = 'application/applications'
+        '_u_name': 'name',
+        '_u_type': 'type',
+        '_u_key': 'key',
+        '_u_availability': 'availability',
+        'owner': 'owner',
+        'manifest': 'manifest',
+        '_u_roles': 'roles',
+        '_u_required_roles': 'requiredRoles',
+        '_u_breadcrumbs': 'breadcrumbs',
+        '__u_content_security_policy': 'contentSecurityPolicy',
+        '_u_dynamic_options_url': 'dynamicOptionsUrl',
+        '__u_global_title': 'globalTitle',
+        '_u_legacy': 'legacy',
+        '_u_rightDrawer': 'rightDrawer',
+        '_u_upgrade': 'upgrade'
+    })
+    _resource = '/application/applications'
+    _accept = 'application/vnd.com.nsn.cumulocity.application+json'
+    _not_updatable = ['owner']
 
     EXTERNAL_TYPE = "EXTERNAL"
     HOSTED_TYPE = "HOSTED"
     MICROSERVICE_TYPE = "MICROSERVICE"
 
-    def __init__(self, c8y: CumulocityRestApi = None, name: str = None, type: str = None, availability: str = None,
-                 owner: str = None):
+    PRIVATE_AVAILABILITY = 'PRIVATE'
+    MARKET_AVAILABILITY = 'MARKET'
+
+    def __init__(self, c8y: CumulocityRestApi = None, name: str = None, key: str = None, type: str = None,
+                 availability: str = None, context_path: str = None, manifest: dict = None,
+                 roles: List[str] = None, required_roles: List[str] = None,
+                 breadcrumbs: bool = None, content_security_policy: str = None,
+                 dynamic_options_url: str = None, global_title: str = None,
+                 legacy: bool = None, right_drawer: bool = None, upgrade: bool = None):
+        """Create a new Application object.
+
+        Args:
+            c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                to be set for direct manipulation (create, delete)
+            name (str):  Name of the application
+            key (str):  Key to identify the application
+            type (str):  Type of the application
+            availability (str):  Application access level for tenants
+            context_path (str):  The path where the application is accessible
+            manifest (dict):  Microservice or web application manifest
+            roles (str):  List of roles provided by the application
+            required_roles (str):  List of roles required by the application
+            breadcrumbs (bool):  Whether the (web) application uses breadcrumbs
+            content_security_policy (str):  The content security policy of the application
+            dynamic_options_url (str):  A URL to a JSON object with dynamic content options
+            global_title (str):  The global title of the application
+            legacy (bool):  Whether the (web) application is of legacy type
+            right_drawer (bool): Whether the (web) application uses the
+                right hand context menu
+            upgrade (bool):  Whether the (web) application uses both Angular and AngularJS
+        """
         super().__init__(c8y=c8y)
-        self.name = name
-        self.type = type
-        self.availability = availability
-        self.owner = owner
+        self._u_name = name
+        self._u_type = type
+        self._u_key = key
+        self.owner = None
+        self._u_availability = availability
+        self._u_contextPath = context_path
+        self.manifest = manifest
+        self._u_roles = roles
+        self._u_required_roles = required_roles
+        self._u_breadcrumbs = breadcrumbs
+        self.__u_content_security_policy = content_security_policy
+        self._u_dynamic_options_url = dynamic_options_url
+        self.__u_global_title = global_title
+        self._u_legacy = legacy
+        self._u_rightDrawer = right_drawer
+        self._u_upgrade = upgrade
+
+    name = SimpleObject.UpdatableProperty('_u_name')
+    type = SimpleObject.UpdatableProperty('_u_type')
+    key = SimpleObject.UpdatableProperty('_u_key')
+    availability = SimpleObject.UpdatableProperty('_u_availability')
+    context_path = SimpleObject.UpdatableProperty('_u_contextPath')
+    roles = SimpleObject.UpdatableProperty('_u_roles')
+    required_roles = SimpleObject.UpdatableProperty('_u_required_roles')
+    breadcrumbs = SimpleObject.UpdatableProperty('_u_breadcrumbs')
+    content_security_policy = SimpleObject.UpdatableProperty('__u_content_security_policy')
+    dynamic_options_url = SimpleObject.UpdatableProperty('_u_dynamic_options_url')
+    global_title = SimpleObject.UpdatableProperty('__u_global_title')
+    legacy = SimpleObject.UpdatableProperty('_u_legacy')
+    right_drawer = SimpleObject.UpdatableProperty('_u_rightDrawer')
+    upgrade = SimpleObject.UpdatableProperty('_u_upgrade')
 
     @classmethod
     def from_json(cls, json: dict) -> Application:
@@ -45,6 +116,30 @@ class Application(SimpleObject):
         obj = super()._from_json(json, Application())
         obj.owner = json['owner']['tenant']['id']
         return obj
+
+    def create(self) -> Application:
+        """Create the Application within the database.
+
+        Returns:
+            A fresh Application object representing what was
+            created within the database (including the ID).
+        """
+        return super()._create()
+
+    def update(self) -> Application:
+        """Update the Application within the database.
+
+        Note: This will only send changed fields to increase performance.
+
+        Returns:
+            A fresh Application object representing what the updated
+            state within the database (including the ID).
+        """
+        return super()._update()
+
+    def delete(self):
+        """Delete the Application within the database."""
+        super()._delete()
 
 
 class Applications(CumulocityResource):
@@ -79,7 +174,7 @@ class Applications(CumulocityResource):
         fetched from the database as long there is a consumer for them.
 
         All parameters are considered to be filters, limiting the result set
-        to objects which meet the filters specification.  Filters can be
+        to objects which meet the filters' specification. Filters can be
         combined (within reason).
 
         Args:
@@ -121,3 +216,14 @@ class Applications(CumulocityResource):
         return list(self.select(name=name, type=type, owner=owner, user=user,
                                 tenant=tenant, subscriber=subscriber, provided_for=provided_for,
                                 limit=limit, page_size=page_size))
+
+    def upload_attachment(self, application_id: str, file: str | BinaryIO):
+        """Upload application binary for a registered application.
+
+        Args:
+            application_id (str):  The Cumulocity object ID of the application
+            file (str|BinaryIO):  File path or file-like object to upload.
+
+         See also: https://cumulocity.com/api/#tag/Application-binaries
+         """
+        self.c8y.post_file(self.build_object_path(application_id) + '/binaries', file=file)
