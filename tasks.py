@@ -14,7 +14,7 @@ import util.microservice_util as ms_util
 def show_version(_):
     """Print the module version.
 
-    This version string is infered from the last Git tag. A tagged HEAD
+    This version string is inferred from the last Git tag. A tagged HEAD
     should resolve to a clean x.y.z version string.
     """
     print(get_version())
@@ -61,7 +61,7 @@ def build_ms(c, sample, version='1.0.0'):
 @task(help={
     'sample': "Which sample to register."
 })
-def register_ms(c, sample):
+def register_ms(_, sample):
     """Register a sample as microservice at Cumulocity."""
     ms_util.register_microservice(ms_util.format_sample_name(sample))
 
@@ -69,7 +69,7 @@ def register_ms(c, sample):
 @task(help={
     'sample': "Which sample to unregister."
 })
-def unregister_ms(c, sample):
+def unregister_ms(_, sample):
     """Unregister a sample microservice from Cumulocity."""
     ms_util.unregister_microservice(ms_util.format_sample_name(sample))
 
@@ -77,21 +77,23 @@ def unregister_ms(c, sample):
 @task(help={
     'sample': "Which sample to register."
 })
-def get_credentials(c, sample):
+def get_credentials(_, sample):
     """Unregister a sample microservice from Cumulocity."""
-    user, password = ms_util.get_credentials(ms_util.format_sample_name(sample))
-    print(f"Username:  {user}\n"
+    tenant, user, password = ms_util.get_credentials(ms_util.format_sample_name(sample))
+    print(f"Tenant:    {tenant}\n"
+          f"Username:  {user}\n"
           f"Password:  {password}")
 
 
 @task(help={
     'sample': "Which sample to create a .env file for."
 })
-def create_env(c, sample):
+def create_env(_, sample):
     """Create a sample specific .env-{sample_name} file using the
     credentials of a corresponding microservice registered at Cumulocity."""
     sample_name = ms_util.format_sample_name(sample)
-    user, password = ms_util.get_credentials(sample_name)
-    with open(f'.env-{sample_name}', 'w') as f:
-        f.write(f"C8Y_USER={user}\n"
-                f"C8Y_PASSWORD={password}\n")
+    tenant, user, password = ms_util.get_credentials(sample_name)
+    with open(f'.env-{sample_name}', 'w', encoding='UTF-8') as f:
+        f.write(f'C8Y_TENANT={tenant}\n'
+                f'C8Y_USER={user}\n'
+                f'C8Y_PASSWORD={password}\n')

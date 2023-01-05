@@ -4,10 +4,9 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from dotenv import load_dotenv
-
 from c8y_api.app import SimpleCumulocityApp
 
+from util import load_dotenv
 
 load_dotenv()
 c8y = SimpleCumulocityApp()
