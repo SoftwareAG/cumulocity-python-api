@@ -8,7 +8,9 @@ import json
 import zipfile
 
 from dotenv import load_dotenv
+from requests.auth import HTTPBasicAuth
 
+from c8y_api import CumulocityApi
 from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import Application
 
@@ -46,8 +48,8 @@ def register_microservice(sample_name: str):
 
     # Read prepared binary .zip, extract manifest and parse
     zip_path = f'{_DIST_DIR}/samples/{sample_name}/{application_name}.zip'
-    zip_file = zipfile.ZipFile(zip_path, 'r')
-    manifest_json = json.loads(zip_file.read('cumulocity.json'))
+    with zipfile.ZipFile(zip_path, 'r') as zip_file:
+        manifest_json = json.loads(zip_file.read('cumulocity.json'))
 
     # Create application stub in Cumulocity
     required_roles = manifest_json['requiredRoles']
@@ -57,7 +59,11 @@ def register_microservice(sample_name: str):
                       required_roles=required_roles)
     app = app.create()
 
-    print(f"Microservice application '{application_name}' created. (ID {app.id})")
+    # Subscribe to newly created microservice
+    subscription_json = {'application': {'self': f'{c8y.base_url}/application/applications/{app.id}'}}
+    c8y.post(f'/tenant/tenants/{c8y.tenant_id}/applications', json=subscription_json)
+
+    print(f"Microservice application '{application_name}' (ID {app.id}) created. Tenant '{c8y.tenant_id}' subscribed.")
 
 
 def unregister_microservice(sample_name: str):
@@ -82,8 +88,8 @@ def unregister_microservice(sample_name: str):
         app = c8y.applications.get_all(name=application_name)[0]
         # delete by ID
         app.delete()
-    except IndexError:
-        raise LookupError(f"Cannot retrieve information for an application named '{application_name}'.")
+    except IndexError as e:
+        raise LookupError(f"Cannot retrieve information for an application named '{application_name}'.") from e
 
     print(f"Microservice application '{application_name}' (ID {app.id}) deleted.")
 
@@ -107,12 +113,22 @@ def get_credentials(sample_name: str) -> (str, str):
     application_name = format_application_name(sample_name)
     load_dotenv()
 
+    c8y = SimpleCumulocityApp()
     try:
-        c8y = SimpleCumulocityApp()
         # read applications by name, will throw IndexError if there is none
         app = c8y.applications.get_all(name=application_name)[0]
-        # read bootstrap user details, parse and print
-        user_json = c8y.get(f'/application/applications/{app.id}/bootstrapUser')
-        return user_json['name'], user_json['password']
-    except IndexError:
-        raise LookupError(f"Cannot retrieve information for an application named '{application_name}'.")
+    except IndexError as e:
+        raise LookupError(f"Cannot retrieve information for an application named '{application_name}'.") from e
+
+    # read bootstrap user details
+    bootstrap_user_json = c8y.get(f'/application/applications/{app.id}/bootstrapUser')
+    # create bootstrap instance
+    bootstrap_c8y = CumulocityApi(base_url=c8y.base_url,
+                                  tenant_id=bootstrap_user_json['tenant'],
+                                  auth=HTTPBasicAuth(bootstrap_user_json['name'], bootstrap_user_json['password']))
+    # read all subscribed tenants, print first
+    users_json = bootstrap_c8y.get('/application/currentApplication/subscriptions')['users']
+    if not users_json:  # empty users element?
+        raise LookupError(f"Cannot retrieve subscribed tenants for application named '{application_name}'.")
+
+    return users_json[0]['tenant'], users_json[0]['name'], users_json[0]['password']

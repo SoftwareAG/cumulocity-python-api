@@ -35,6 +35,7 @@ mkdir -p "$DIST_DIR"
 
 # copy & render sources
 cp ./requirements.txt "$BUILD_DIR"
+cp ./samples/util.py "$BUILD_DIR"
 cp "./samples/$NAME.py" "$BUILD_DIR"
 cp -r "./c8y_api" "$BUILD_DIR"
 sed -e "s/{VERSION}/$VERSION/g" ./samples/cumulocity.json > "$BUILD_DIR/cumulocity.json"

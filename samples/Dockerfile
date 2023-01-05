@@ -1,8 +1,9 @@
-FROM python:3-slim
+FROM python:3.8-slim
 
 RUN apt-get update
 
 COPY requirements.txt /
+COPY util.py /
 COPY {SAMPLE}.py /
 COPY c8y_api /c8y_api
 

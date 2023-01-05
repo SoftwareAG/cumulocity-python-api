@@ -1,0 +1,7 @@
+{
+  "isolation": "PER_TENANT",
+  "requiredRoles": [
+    "ROLE_OPTION_MANAGEMENT_READ",
+    "ROLE_OPTION_MANAGEMENT_ADMIN"
+  ]
+}
