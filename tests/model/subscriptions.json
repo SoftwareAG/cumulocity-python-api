@@ -1,0 +1,61 @@
+{
+  "subscriptions":[
+    {
+      "id": "123456",
+      "source": {
+        "id": "251982",
+        "name": "some name"
+      },
+      "context": "mo",
+      "subscription": "testSubscription",
+      "subscriptionFilter": {
+        "apis": [
+          "measurements",
+          "events"
+        ],
+        "typeFilter": "c8y_Speed"
+      },
+      "fragmentsToCopy": [
+        "c8y_MaxSpeedMeasurement"
+      ]
+    },
+    {
+      "id": "123456",
+      "source": {
+        "id": "251982",
+        "name": "some name"
+      },
+      "context": "tenant",
+      "subscription": "testSubscription",
+      "subscriptionFilter": {
+        "typeFilter": "c8y_Speed"
+      },
+      "fragmentsToCopy": [
+        "c8y_MaxSpeedMeasurement"
+      ]
+    },
+    {
+      "id": "123456",
+      "source": {
+        "id": "251982",
+        "name": "some name"
+      },
+      "context": "mo",
+      "subscription": "testSubscription",
+      "subscriptionFilter": {
+        "apis": [
+          "measurements",
+          "events"
+        ]
+      }
+    },
+    {
+      "id": "123456",
+      "source": {
+        "id": "251982"
+      },
+      "context": "mo",
+      "subscription": "testSubscription"
+    }
+  ]
+}

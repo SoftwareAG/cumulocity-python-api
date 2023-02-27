@@ -1,5 +1,12 @@
 # Changelog
 
+*  Added API support for Notification 2.0 subscriptions and tokens.
+ 
+* Added new package c8y_tk for additional features.
+ 
+* Added synchronous and asynchronous Notification 2.0 websocket listener,
+  Added two (async/sync) Notification 2.0 samples.
+
 ## Version 1.5
 
 * Improved Applications API.

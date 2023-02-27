@@ -296,6 +296,10 @@ class SimpleObject(CumulocityObject):
         self._assert_id()
         self.c8y.delete(self._build_object_path())
 
+    def delete(self):
+        """Delete the object within the database."""
+        self._delete()
+
 
 class ComplexObject(SimpleObject):
     """Abstract base class for all complex cumulocity objects
