@@ -1,5 +1,7 @@
 # Changelog
 
+## Version 1.6
+
 *  Added API support for Notification 2.0 subscriptions and tokens.
  
 * Added new package c8y_tk for additional features.
