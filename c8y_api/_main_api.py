@@ -16,6 +16,7 @@ from c8y_api.model.identity import Identity
 from c8y_api.model.binaries import Binaries
 from c8y_api.model.inventory import Inventory, DeviceInventory, DeviceGroupInventory
 from c8y_api.model.measurements import Measurements
+from c8y_api.model.notification2 import Subscriptions, Tokens
 from c8y_api.model.operations import Operations
 from c8y_api.model.tenant_options import TenantOptions
 
@@ -44,6 +45,8 @@ class CumulocityApi(CumulocityRestApi):
         self.__alarms = Alarms(self)
         self.__operations = Operations(self)
         self.__tenant_options = TenantOptions(self)
+        self.__notification2_subscriptions = Subscriptions(self)
+        self.__notification2_tokens = Tokens(self)
 
     @property
     def measurements(self) -> Measurements:
@@ -119,3 +122,13 @@ class CumulocityApi(CumulocityRestApi):
     def tenant_options(self) -> TenantOptions:
         """Provide access to the Tenant Options API."""
         return self.__tenant_options
+
+    @property
+    def notification2_subscriptions(self) -> Subscriptions:
+        """Provide access to the Notification 2.0 Subscriptions API."""
+        return self.__notification2_subscriptions
+
+    @property
+    def notification2_tokens(self) -> Tokens:
+        """Provide access to the Notification 2.0 Tokens API."""
+        return self.__notification2_tokens

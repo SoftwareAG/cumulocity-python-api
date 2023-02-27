@@ -13,6 +13,7 @@ from c8y_api.model.identity import *
 from c8y_api.model.inventory import *
 from c8y_api.model.managedobjects import *
 from c8y_api.model.measurements import *
+from c8y_api.model.notification2 import *
 from c8y_api.model.operations import *
 
 __all__ = ['administration', 'inventory', 'measurements', 'events',
@@ -24,4 +25,5 @@ __all__ = ['administration', 'inventory', 'measurements', 'events',
            'Identity', 'ExternalId', 'Binary', 'Binaries',
            'Measurement', 'Measurements', 'Value', 'Count', 'Grams', 'Kilograms', 'Kelvin', 'Celsius',
            'Event', 'Events', 'Alarm', 'Alarms',
+           'Subscription', 'Subscriptions', 'Tokens',
            'Meters', 'Centimeters', 'Liters', 'CubicMeters']
