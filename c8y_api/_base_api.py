@@ -357,7 +357,8 @@ class CumulocityRestApi:
         and the username resolved from the payload.
         """
         if isinstance(auth, HTTPBasicAuth):
-            return auth.username
+            # the username may contain the tenant ID (<tenant ID>/<username>)
+            return auth.username.split('/')[-1]
         if isinstance(auth, HTTPBearerAuth):
             return JWT(auth.token).username
         raise ValueError(f"Unexpected AuthBase instance: {auth.__class__}. Unable to resolve username.")
