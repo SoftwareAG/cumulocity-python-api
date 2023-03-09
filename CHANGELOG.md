@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.6.1
+
+*  Adding `c8y_tk` namespace to distribution.
+ 
 ## Version 1.6
 
 *  Added API support for Notification 2.0 subscriptions and tokens.
