@@ -1,0 +1,65 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+
+import time
+
+from c8y_api import CumulocityApi
+from c8y_api.model import BulkOperation, DeviceGroup, Operation
+
+from tests import RandomNameGenerator
+
+
+def test_CRUD(live_c8y: CumulocityApi, sample_device):
+    """Verify that basic creation, lookup and update of Operations works as expected."""
+
+    # (1) Create a device group for the sample device
+    group:DeviceGroup = DeviceGroup(live_c8y,
+                                    root=True,
+                                    name=sample_device.name + '_Group').create()
+    group.add_child_asset(sample_device)
+
+
+    # (2) create bulk operation
+    bulk:BulkOperation = BulkOperation(live_c8y,
+                          group_id=group.id,
+                          start_time='now',
+                          creation_ramp=1,
+                          operation_prototype={
+                              'description': f"Update firmware for device group '{group.name}'.",
+                              'c8y_FirmWare': {
+                                  'version': '1.0.0'
+                              }}
+                          ).create()
+
+    # wait for the bulk operation to be processed
+    time.sleep(5)
+
+    # (3) initially the status should be EXECUTING/COMPLETED as all
+    #     child operations should have been created but not completed
+    bulk = live_c8y.bulk_operations.get(bulk.id)
+    assert bulk.general_status == BulkOperation.GeneralStatus.EXECUTING
+    assert bulk.status == BulkOperation.Status.COMPLETED
+    assert bulk.progress.all == 1
+    assert bulk.progress.pending == 1
+
+    # (4) find child operations
+    op = live_c8y.operations.get_all(bulk_id=bulk.id)[0]
+    assert op.status == Operation.Status.PENDING
+
+    # (5) kill child operations
+    op.status = Operation.Status.FAILED
+    op.update()
+
+    # (5) bulk operation should now be in PENDING state
+    bulk = live_c8y.bulk_operations.get(bulk.id)
+    assert bulk.general_status in [BulkOperation.GeneralStatus.COMPLETED_WITH_FAILURES,
+                                   BulkOperation.GeneralStatus.FAILED]
+    assert bulk.progress.all == 1
+    assert bulk.progress.failed == 1
+
+    # (6) cleanup
+    #     The bulk operation cannot be deleted physically
+    group.delete()
