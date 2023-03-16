@@ -9,8 +9,6 @@ import time
 from c8y_api import CumulocityApi
 from c8y_api.model import BulkOperation, DeviceGroup, Operation
 
-from tests import RandomNameGenerator
-
 
 def test_CRUD(live_c8y: CumulocityApi, sample_device):
     """Verify that basic creation, lookup and update of Operations works as expected."""
