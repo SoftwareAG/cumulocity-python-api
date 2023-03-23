@@ -19,6 +19,7 @@ from c8y_api.model.measurements import Measurements
 from c8y_api.model.notification2 import Subscriptions, Tokens
 from c8y_api.model.operations import Operations, BulkOperations
 from c8y_api.model.tenant_options import TenantOptions
+from c8y_api.model.audit import AuditRecords
 
 
 class CumulocityApi(CumulocityRestApi):
@@ -48,6 +49,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__tenant_options = TenantOptions(self)
         self.__notification2_subscriptions = Subscriptions(self)
         self.__notification2_tokens = Tokens(self)
+        self.__audit_records = AuditRecords(self)
 
     @property
     def measurements(self) -> Measurements:
@@ -138,3 +140,8 @@ class CumulocityApi(CumulocityRestApi):
     def notification2_tokens(self) -> Tokens:
         """Provide access to the Notification 2.0 Tokens API."""
         return self.__notification2_tokens
+
+    @property
+    def audit_records(self) -> AuditRecords:
+        """Provide access to the Audit API."""
+        return self.__audit_records
