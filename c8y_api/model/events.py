@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Generator, List
+from typing import Generator, List, BinaryIO
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import CumulocityResource, SimpleObject, ComplexObject
@@ -28,7 +28,7 @@ class Event(ComplexObject):
     """
 
     _resource = '/event/events'
-    # _accept can remain default
+    _accept = 'application/vnd.com.nsn.cumulocity.event+json'
     _parser = ComplexObjectParser({
         'type': 'type',
         'time': 'time',
@@ -37,8 +37,8 @@ class Event(ComplexObject):
         'updated_time': 'lastUpdated',
         }, ['source'])
 
-    def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,
-                 source: str = None, text: str = None, **kwargs):  # noqa (type)
+    def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,  # noqa (type)
+                 source: str = None, text: str = None, **kwargs):
         """Create a new Event object.
 
         Args:
@@ -90,6 +90,9 @@ class Event(ComplexObject):
             Standard Python datetime object for the alarm's last updated time.
         """
         return super()._to_datetime(self.updated_time)
+
+    def _build_attachment_path(self) -> str:
+        return super()._build_object_path() + '/binaries'
 
     @classmethod
     def from_json(cls, json: dict) -> Event:
@@ -146,6 +149,69 @@ class Event(ComplexObject):
         """
         return super()._apply_to(other_id)
 
+    def has_attachment(self) -> bool:
+        """Check whether the event has a binary attachment.
+
+        Event objects that have an attachment feature a `c8y_IsBinary`
+        fragment. This function checks the presence of that fragment.
+
+        Note: This does not query the database. Hence, the information might
+        be outdated if a binary was attached _after_ the event object was
+        last read from the database.
+
+        Returns:
+            True if the event object has an attachment, False otherwise.
+        """
+        return 'c8y_IsBinary' in self
+
+    def download_attachment(self) -> bytes:
+        """Read the binary attachment.
+
+        Returns:
+            The event's binary attachment as bytes.
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        return self.c8y.get_file(self._build_attachment_path())
+
+    def create_attachment(self, file: str|BinaryIO, content_type: str = None) -> dict:
+        """Create the binary attachment.
+
+        Args:
+            file (str|BinaryIO): File-like object or a file path
+            content_type (str):  Content type of the file sent
+                (default is application/octet-stream)
+
+        Returns:
+            Attachment details as JSON object (dict).
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        return self.c8y.post_file(self._build_attachment_path(), file,
+                                  accept='application/json', content_type=content_type)
+
+    def update_attachment(self, file: str|BinaryIO, content_type: str = None) -> dict:
+        """Update the binary attachment.
+
+        Args:
+            file (str|BinaryIO): File-like object or a file path
+            content_type (str):  Content type of the file sent
+                (default is application/octet-stream)
+
+        Returns:
+            Attachment details as JSON object (dict).
+        """
+        super()._assert_c8y()
+        super()._assert_id()
+        return self.c8y.put_file(self._build_attachment_path(), file,
+                                 accept='application/json', content_type=content_type)
+
+    def delete_attachment(self):
+        """Remove the binary attachment."""
+        super()._assert_c8y()
+        super()._assert_id()
+        self.c8y.delete(self._build_attachment_path())
+
 
 class Events(CumulocityResource):
     """Provides access to the Events API.
@@ -158,6 +224,17 @@ class Events(CumulocityResource):
 
     def __init__(self, c8y):
         super().__init__(c8y, '/event/events')
+
+    def build_attachment_path(self, event_id: str) -> str:
+        """Build the attachment path of a specific event.
+
+        Args:
+            event_id (int|str):  Database ID of the event
+
+        Returns:
+            The relative path to the event attachment within Cumulocity.
+        """
+        return super().build_object_path(event_id) + '/binaries'
 
     def get(self, event_id: str) -> Event:  # noqa (id)
         """Retrieve a specific object from the database.
@@ -184,7 +261,7 @@ class Events(CumulocityResource):
         fetched from the database as long there is a consumer for them.
 
         All parameters are considered to be filters, limiting the result set
-        to objects which meet the filters specification.  Filters can be
+        to objects which meet the filter's specification.  Filters can be
         combined (within reason).
 
         Args:
@@ -286,7 +363,7 @@ class Events(CumulocityResource):
         """Query the database and delete matching events.
 
         All parameters are considered to be filters, limiting the result set
-        to objects which meet the filters specification.  Filters can be
+        to objects which meet the filter's specification.  Filters can be
         combined (within reason).
 
         Args:
@@ -306,3 +383,52 @@ class Events(CumulocityResource):
         # remove &page_number= from the end
         query = base_query[:base_query.rindex('&')]
         self.c8y.delete(query)
+
+    def create_attachment(self, event_id: str, file: str|BinaryIO, content_type: str = None) -> dict:
+        """Add an event's binary attachment.
+
+        Args:
+            event_id (str):  The database ID of the event
+            file (str|BinaryIO): File-like object or a file path
+            content_type (str):  Content type of the file sent
+                (default is application/octet-stream)
+
+        Returns:
+            Attachment details as JSON object (dict).
+        """
+        return self.c8y.post_file(self.build_attachment_path(event_id), file,
+                                  accept='application/json', content_type=content_type)
+
+    def update_attachment(self, event_id: str, file: str|BinaryIO, content_type: str = None) -> dict:
+        """Update an event's binary attachment.
+
+        Args:
+            event_id (str):  The database ID of the event
+            file (str|BinaryIO): File-like object or a file path
+            content_type (str):  Content type of the file sent
+                (default is application/octet-stream)
+
+        Returns:
+            Attachment details as JSON object (dict).
+        """
+        return self.c8y.put_file(self.build_attachment_path(event_id), file,
+                                 accept='application/json', content_type=content_type)
+
+    def download_attachment(self, event_id: str) -> bytes:
+        """Read an event's binary attachment.
+
+        Args:
+            event_id (str):  The database ID of the event
+
+        Returns:
+            The event's binary attachment as bytes.
+        """
+        return self.c8y.get_file(self.build_attachment_path(event_id))
+
+    def delete_attachment(self, event_id: str):
+        """Remove an event's binary attachment.
+
+        Args:
+            event_id (str):  The database ID of the event
+        """
+        self.c8y.delete(self.build_attachment_path(event_id))

@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+import logging
+import os
+import tempfile
 from logging import Logger
 from typing import List
 
@@ -156,3 +159,84 @@ def test_filter_by_update_time(live_c8y: CumulocityApi, sample_device, sample_ev
     after_datetimes = list(filter(lambda x: x >= pivot, updated_datetimes))
     result_datetimes = [a.updated_datetime for a in after_events]
     assert sorted(result_datetimes) == sorted(after_datetimes)
+
+
+def test_CRUD_attachments(live_c8y: CumulocityApi, sample_device: Device, sample_events: List[Event]):  # noqa (case)
+    """Verify that creating, reading, updating and deleting of an
+    event attachment works as expected."""
+
+    logging.basicConfig(level=logging.INFO)
+
+    event = sample_events[0]
+    random_text_1 = bytes(RandomNameGenerator.random_name(num=50, sep=','), 'utf-8')
+    random_text_2 = bytes(RandomNameGenerator.random_name(num=50, sep=','), 'utf-8')
+
+    # add a binary attachment via filename
+    with tempfile.NamedTemporaryFile(delete=False) as file:
+        file.write(random_text_1)
+        file.close()
+        event.create_attachment(file=file.name, content_type='text/plain')
+        os.unlink(file.name)
+
+    # update event object
+    event = live_c8y.events.get(event.id)
+
+    # verify that attachment is recognized
+    assert event.has_attachment()
+
+    # download and check the binary attachment
+    attachment_bytes = event.download_attachment()
+    assert attachment_bytes == random_text_1
+
+    # update the attachment
+    with tempfile.NamedTemporaryFile() as file:
+        file.write(random_text_2)
+        file.seek(0)  # reset fp position
+        event.update_attachment(file=file)
+
+    # download and check the updated attachment
+    attachment_bytes = event.download_attachment()
+    assert attachment_bytes == random_text_2
+
+    # remove the attachment
+    event.delete_attachment()
+    event = live_c8y.events.get(event.id)
+    assert not event.has_attachment()
+
+
+def test_CRUD_attachments_2(live_c8y: CumulocityApi, sample_device: Device, sample_events: List[Event]):  # noqa (case)
+    """Verify that creating, reading, updating and deleting of an
+    event attachment works as expected."""
+
+    event = sample_events[0]
+    random_text_1 = bytes(RandomNameGenerator.random_name(num=50, sep=','), 'utf-8')
+    random_text_2 = bytes(RandomNameGenerator.random_name(num=50, sep=','), 'utf-8')
+
+    # add a binary attachment via filename
+    with tempfile.NamedTemporaryFile(delete=False) as file:
+        file.write(random_text_1)
+        file.close()
+        live_c8y.events.create_attachment(event.id, file=file.name, content_type='text/plain')
+        os.unlink(file.name)
+
+    # update event object
+    event = live_c8y.events.get(event.id)
+
+    # download and check the binary attachment
+    attachment_bytes = live_c8y.events.download_attachment(event.id)
+    assert attachment_bytes == random_text_1
+
+    # update the attachment
+    with tempfile.NamedTemporaryFile() as file:
+        file.write(random_text_2)
+        file.seek(0)  # reset fp position
+        live_c8y.events.update_attachment(event.id, file=file)
+
+    # download and check the updated attachment
+    attachment_bytes = live_c8y.events.download_attachment(event.id)
+    assert attachment_bytes == random_text_2
+
+    # remove the attachment
+    live_c8y.events.delete_attachment(event.id)
+    event = live_c8y.events.get(event.id)
+    assert not event.has_attachment()

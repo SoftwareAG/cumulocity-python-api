@@ -17,7 +17,7 @@ from c8y_api.model.binaries import Binaries
 from c8y_api.model.inventory import Inventory, DeviceInventory, DeviceGroupInventory
 from c8y_api.model.measurements import Measurements
 from c8y_api.model.notification2 import Subscriptions, Tokens
-from c8y_api.model.operations import Operations
+from c8y_api.model.operations import Operations, BulkOperations
 from c8y_api.model.tenant_options import TenantOptions
 from c8y_api.model.audit import AuditRecords
 
@@ -45,6 +45,7 @@ class CumulocityApi(CumulocityRestApi):
         self.__events = Events(self)
         self.__alarms = Alarms(self)
         self.__operations = Operations(self)
+        self.__bulk_operations = BulkOperations(self)
         self.__tenant_options = TenantOptions(self)
         self.__notification2_subscriptions = Subscriptions(self)
         self.__notification2_tokens = Tokens(self)
@@ -119,6 +120,11 @@ class CumulocityApi(CumulocityRestApi):
     def operations(self) -> Operations:
         """Provide access to the Operation API."""
         return self.__operations
+
+    @property
+    def bulk_operations(self) -> BulkOperations:
+        """Provide access to the BulkOperation API."""
+        return self.__bulk_operations
 
     @property
     def tenant_options(self) -> TenantOptions:

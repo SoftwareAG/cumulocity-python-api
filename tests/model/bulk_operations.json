@@ -1,0 +1,60 @@
+{
+  "bulkOperations": [
+    {
+      "creationRamp": 5,
+      "generalStatus": "EXECUTING_WITH_ERROR",
+      "groupId": "65309972",
+      "id": 1,
+      "note": "Some description",
+      "operationPrototype": {
+        "c8y_Firmware": {
+          "name": "MyFirmware",
+          "url": "http://test:test@example.com",
+          "version": "1.0.0"
+        },
+        "description": "Update firmware to: MyFirmware (version: 1.0.0)."
+      },
+      "progress": {
+        "all": 11,
+        "executing": 0,
+        "failed": 1,
+        "pending": 10,
+        "successful": 0
+      },
+      "self": "https://t12345.cumulocity.com/devicecontrol/bulkoperations/1",
+      "startDate": "2023-03-09T16:44:00.000Z",
+      "status": "COMPLETED"
+    },
+    {
+      "creationRamp": 5,
+      "generalStatus": "EXECUTING_WITH_ERROR",
+      "failedParentId": "1",
+      "id": 1,
+      "note": "Some description",
+      "operationPrototype": {
+        "c8y_Firmware": {
+          "name": "MyFirmware",
+          "url": "http://test:test@example.com",
+          "version": "1.0.0"
+        },
+        "description": "Update firmware to: MyFirmware (version: 1.0.0)."
+      },
+      "progress": {
+        "all": 11,
+        "executing": 0,
+        "failed": 1,
+        "pending": 10,
+        "successful": 0
+      },
+      "self": "https://t12345.cumulocity.com/devicecontrol/bulkoperations/1",
+      "startDate": "2023-03-09T16:44:00.000Z",
+      "status": "COMPLETED"
+    }
+  ],
+  "next": "https://t12345.cumulocity.com/devicecontrol/bulkoperations?pageSize=5&currentPage=2",
+  "self": "https://t12345.cumulocity.com/devicecontrol/bulkoperations?pageSize=5&currentPage=1",
+  "statistics": {
+    "currentPage": 1,
+    "pageSize": 5
+  }
+}
