@@ -11,7 +11,7 @@ import time
 
 from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import ManagedObject, Subscription
-from c8y_tk.notification2.listener import Listener
+from c8y_tk.notification2 import Listener
 
 from tests import RandomNameGenerator
 from util import load_dotenv
