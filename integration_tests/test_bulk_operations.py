@@ -10,7 +10,7 @@ from c8y_api import CumulocityApi
 from c8y_api.model import BulkOperation, DeviceGroup, Operation
 
 
-def test_CRUD(live_c8y: CumulocityApi, sample_device):
+def test_CRU(live_c8y: CumulocityApi, sample_device):  # noqa
     """Verify that basic creation, lookup and update of Operations works as expected."""
 
     # (1) Create a device group for the sample device
