@@ -7,6 +7,7 @@
 from c8y_api.model.administration import *
 from c8y_api.model.applications import *
 from c8y_api.model.alarms import *
+from c8y_api.model.audit import *
 from c8y_api.model.binaries import *
 from c8y_api.model.events import *
 from c8y_api.model.identity import *
@@ -20,6 +21,7 @@ __all__ = ['administration', 'inventory', 'measurements', 'events',
            'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
            'Permission', 'ReadPermission', 'WritePermission', 'AnyPermission',
            'Application',
+           'AuditRecord', 'AuditRecords',
            'ManagedObject', 'Device', 'DeviceGroup', 'Fragment', 'NamedObject',
            'Inventory', 'DeviceInventory', 'DeviceGroupInventory',
            'Identity', 'ExternalId', 'Binary', 'Binaries',

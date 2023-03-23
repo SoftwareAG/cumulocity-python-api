@@ -1,0 +1,56 @@
+{
+  "auditRecords": [
+    {
+      "activity": "Alarm created",
+      "application": "apama-ctrl-1c-4g",
+      "com_cumulocity_model_event_AuditSourceDevice": {
+        "id": "18924"
+      },
+      "creationTime": "2020-11-19T10:37:06.737Z",
+      "id": "20496939",
+      "self": "https://t12345.cumulocity.com/audit/auditRecords/20496939",
+      "severity": "CRITICAL",
+      "source": {
+        "id": "20496938",
+        "self": "https://t12345.cumulocity.com/inventory/managedObjects/20496938"
+      },
+      "text": "Device name: 'Motor #1', alarm text: 'Production Failure'",
+      "time": "1970-01-01T00:00:00.000Z",
+      "type": "Alarm",
+      "user": "service_apama-ctrl-1c-4g"
+    },
+    {
+      "activity": "Alarm updated",
+      "application": "devicemanagement",
+      "changes": [
+        {
+          "attribute": "status",
+          "newValue": "CLEARED",
+          "previousValue": "ACTIVE",
+          "type": "com.cumulocity.model.event.CumulocityAlarmStatuses"
+        }
+      ],
+      "com_cumulocity_model_event_AuditSourceDevice": {
+        "id": "18924"
+      },
+      "creationTime": "2020-11-19T10:37:05.797Z",
+      "id": "20496863",
+      "self": "https://t12345.cumulocity.com/audit/auditRecords/20496863",
+      "severity": "CRITICAL",
+      "source": {
+        "id": "20496059",
+        "self": "https://t12345.cumulocity.com/inventory/managedObjects/20496059"
+      },
+      "text": "Device name: 'Motor #1', alarm text: 'Production Failure'",
+      "time": "1970-01-01T00:00:00.000Z",
+      "type": "Alarm",
+      "user": "someone@softwareag.com"
+    }
+  ],
+  "next": "https://t12345.cumulocity.com/audit/auditRecords?application=apama-ctrl-1c-4g&pageSize=10&currentPage=2",
+  "self": "https://t12345.cumulocity.com/audit/auditRecords?application=apama-ctrl-1c-4g&pageSize=10&currentPage=1",
+  "statistics": {
+    "currentPage": 1,
+    "pageSize": 10
+  }
+}
