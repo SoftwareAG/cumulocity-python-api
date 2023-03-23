@@ -1,5 +1,7 @@
 # Changelog
 
+## Version 1.7
+
 * Adding support for the Audit API.
 
 * Added support for event attachment handling.
