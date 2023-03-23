@@ -43,7 +43,7 @@ class CumulocityRestApi:
             tenant_id (str):  The ID of the tenant to connect to
             username (str):  Username
             password (str):  User password
-            tfa_token (str):  Currently valid two factor authorization token
+            tfa_token (str):  Currently valid two-factor authorization token
             auth (AuthBase):  Authentication details
             application_key (str):  Application ID to include in requests
                 (for billing/metering purposes).
@@ -83,7 +83,7 @@ class CumulocityRestApi:
         Args:
             method (str):  One of 'GET', 'POST', 'PUT', 'DELETE'
             resource (str):  Path to the HTTP resource
-            json (dict):  JSON body (nested dict) to send witht he request
+            json (dict):  JSON body (nested dict) to send with the request
             additional_headers (dict):  Additional non-standard headers to
                 include in the request
 
@@ -106,7 +106,7 @@ class CumulocityRestApi:
             resource (str): Resource path
             params (dict): Additional request parameters
             accept (str|None): Custom Accept header to use (default is
-                application/json). Specify '' to sent no Accept header.
+                application/json). Specify '' to send no Accept header.
             ordered (bool): Whether the result JSON needs to be ordered
                 (default is False)
 
@@ -166,7 +166,7 @@ class CumulocityRestApi:
             resource (str): Resource path
             json (dict): JSON body (nested dict)
             accept (str|None): Custom Accept header to use (default is
-                application/json). Specify '' to sent no Accept header.
+                application/json). Specify '' to send no Accept header.
             content_type (str|None): Custom Content-Type header to use
                 (default is application/json)
 
@@ -192,8 +192,8 @@ class CumulocityRestApi:
             return r.json()
         return {}
 
-    def post_file(self, resource: str, file: str | BinaryIO, object: dict = None,
-                  accept: str = None, content_type: str = 'application/octet-stream'):
+    def post_file(self, resource: str, file: str | BinaryIO, object: dict = None,  # noqa (object)
+                  accept: str = None, content_type: str = None):
         """Generic HTTP POST wrapper.
 
         Used for posting binary data, i.e. creating binary objects in Cumulocity.
@@ -203,7 +203,7 @@ class CumulocityRestApi:
             file (str|BinaryIO):  File-like object or a file path
             object (dict):  File metadata, stored within Cumulocity
             accept (str|None): Custom Accept header to use (default is
-                application/json). Specify '' to sent no Accept header.
+                application/json). Specify '' to send no Accept header.
             content_type (str): Content type of the file sent
                 (default is application/octet-stream)
 
@@ -247,7 +247,7 @@ class CumulocityRestApi:
             json (dict): JSON body (nested dict)
             params (dict): Additional request parameters
             accept (str|None): Custom Accept header to use (default is
-                application/json). Specify '' to sent no Accept header.
+                application/json). Specify '' to send no Accept header.
             content_type (str|None): Custom Content-Type header to use
                 (default is application/json)
 
@@ -274,7 +274,7 @@ class CumulocityRestApi:
         return {}
 
     def put_file(self, resource: str, file: str | BinaryIO,
-                 accept: str = None, content_type: str = 'application/octet-stream'):
+                 accept: str = None, content_type: str = None):
         """Generic HTTP PUT wrapper.
 
         Used for put'ing binary data, i.e. updating binaries in Cumulocity.
@@ -283,7 +283,7 @@ class CumulocityRestApi:
             resource (str): Resource path
             file (str|BinaryIO):  File-like object or a file path
             accept (str|None): Custom Accept header to use (default is
-                application/json). Specify '' to sent no Accept header.
+                application/json). Specify '' to send no Accept header.
             content_type (str): Content type of the file sent
                 (default is application/octet-stream)
 
@@ -357,7 +357,8 @@ class CumulocityRestApi:
         and the username resolved from the payload.
         """
         if isinstance(auth, HTTPBasicAuth):
-            return auth.username
+            # the username may contain the tenant ID (<tenant ID>/<username>)
+            return auth.username.split('/')[-1]
         if isinstance(auth, HTTPBearerAuth):
             return JWT(auth.token).username
         raise ValueError(f"Unexpected AuthBase instance: {auth.__class__}. Unable to resolve username.")

@@ -1,5 +1,7 @@
 # Changelog
 
+* Added support for event attachment handling.
+
 * Adding support for bulk operations.
 
 ## Version 1.6.1
@@ -8,7 +10,7 @@
  
 ## Version 1.6
 
-*  Added API support for Notification 2.0 subscriptions and tokens.
+* Added API support for Notification 2.0 subscriptions and tokens.
  
 * Added new package c8y_tk for additional features.
  
