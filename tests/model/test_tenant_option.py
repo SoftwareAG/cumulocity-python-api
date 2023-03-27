@@ -87,7 +87,7 @@ def test_create(sample_json: dict, sample_option: TenantOption):
     assert sample_option.to_json.call_count == 1
     # 2) the given resource path should be correct
     resource = isolate_last_call_arg(c8y.post, 'resource', 0)
-    assert resource == f'tenant/options'
+    assert resource == f'/tenant/options'
     # 3) the given payload should match what to_json returned
     payload = isolate_last_call_arg(c8y.post, 'json', 1)
     assert set(payload.keys()) == {'expected'}
@@ -122,7 +122,7 @@ def test_update(sample_json: dict, sample_option: TenantOption):
     assert only_updated
     # 2) the given resource path should be correct
     resource = isolate_last_call_arg(c8y.put, 'resource', 0)
-    assert resource == f'tenant/options/{sample_option.category}/{sample_option.key}'
+    assert resource == f'/tenant/options/{sample_option.category}/{sample_option.key}'
     # 3) the given payload should match what to_json returned
     payload = isolate_last_call_arg(c8y.put, 'json', 1)
     assert set(payload.keys()) == {'expected'}

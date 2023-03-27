@@ -85,7 +85,7 @@ def test_create():
     assert subscription.to_json.call_count == 1
     # 2) the given resource path should be correct
     resource = isolate_last_call_arg(c8y.post, 'resource', 0)
-    assert resource == f'notification2/subscriptions'
+    assert resource == f'/notification2/subscriptions'
     # 3) the given payload should match what to_json returned
     payload = isolate_last_call_arg(c8y.post, 'json', 1)
     assert set(payload.keys()) == {'expected'}
@@ -106,5 +106,5 @@ def test_delete():
     assert c8y.delete.call_count == 1
     # 2) the given resource path should be correct
     resource = isolate_last_call_arg(c8y.delete, 'resource', 0)
-    assert resource == f'notification2/subscriptions/{subscription.id}'
+    assert resource == f'/notification2/subscriptions/{subscription.id}'
 
