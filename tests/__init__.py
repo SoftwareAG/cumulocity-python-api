@@ -4,4 +4,4 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-from tests.utils import RandomNameGenerator
+from testing_util import RandomNameGenerator

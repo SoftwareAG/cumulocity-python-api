@@ -9,11 +9,10 @@
 import asyncio
 
 from c8y_api.app import SimpleCumulocityApp
-from c8y_api.model import ManagedObject
+from c8y_api.model import ManagedObject, Subscription
 from c8y_tk.notification2 import AsyncListener
-from model.notification2 import Subscription
 
-from tests import RandomNameGenerator
+from testing_util import RandomNameGenerator
 from util import load_dotenv
 
 
