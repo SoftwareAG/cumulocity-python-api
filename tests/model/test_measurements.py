@@ -53,7 +53,7 @@ def sample_series():
 
 def test_collect_single_series_single_value(sample_series: Series):
     """Test collecting a single value (min or max) from a single series."""
-    for s in sample_series.specs():
+    for s in sample_series.specs:
         values = sample_series.collect(series=s.series, value='min')
         # -> None values should be filtered out
         assert all(values)
@@ -66,7 +66,7 @@ def test_collect_single_series_single_value(sample_series: Series):
 def test_collect_single_series_single_value_with_timestamp(sample_series: Series):
     """Test collecting a single value (min or max) with timestamps from a
     single series."""
-    for s in sample_series.specs():
+    for s in sample_series.specs:
         values = sample_series.collect(series=s.series, value='min', timestamps=True)
         # -> None values should be filtered out
         assert all(values)
@@ -82,7 +82,7 @@ def test_collect_single_series_single_value_with_timestamp(sample_series: Series
 
 def test_collect_single_series(sample_series: Series):
     """Test collecting all values (min and max) from a single series."""
-    for s in sample_series.specs():
+    for s in sample_series.specs:
         values = sample_series.collect(series=s.series)
         # -> None values should be filtered out
         assert all(values)
@@ -106,7 +106,7 @@ def test_collect_single_series_with_timestamp(sample_series: Series):
     There are no None values, they are filtered out when looking at just
     one series.
     """
-    for s in sample_series.specs():
+    for s in sample_series.specs:
         values = sample_series.collect(series=s.series, timestamps='datetime')
         # -> None values should be filtered out
         assert all(values)
@@ -132,7 +132,7 @@ def test_collect_multiple_series_single_value(sample_series: Series):
     As we are collecting values from multiple series, there might be None
     values (whenever a series has a value at a specific timestamp or not).
     """
-    series_names = [spec.series for spec in sample_series.specs()]
+    series_names = [spec.series for spec in sample_series.specs]
     values = sample_series.collect(series=series_names, value='min')
     # -> each value should be an n-tuple (one for each series)
     assert all(isinstance(v, tuple) for v in values)
@@ -161,7 +161,7 @@ def test_collect_multiple_series_single_value_with_timestamp(sample_series: Seri
     As we are collecting values from multiple series, there might be None
     values (whenever a series has a value at a specific timestamp or not).
     """
-    series_names = [spec.series for spec in sample_series.specs()]
+    series_names = [spec.series for spec in sample_series.specs]
     values = sample_series.collect(series=series_names, value='min', timestamps=True)
     # -> each value should be an n-tuple (one for each series + timestamp)
     assert all(isinstance(v, tuple) for v in values)
@@ -191,7 +191,7 @@ def test_collect_multiple_series(sample_series: Series):
     As we are collecting values from multiple series, there might be None
     values (whenever a series has a value at a specific timestamp or not).
     """
-    series_names = [spec.series for spec in sample_series.specs()]
+    series_names = [spec.series for spec in sample_series.specs]
     values = sample_series.collect(series=series_names)
     # -> each value should be an n-tuple (one for each series)
     assert all(isinstance(v, tuple) for v in values)
@@ -218,7 +218,7 @@ def test_collect_multiple_series_with_timestamp(sample_series: Series):
     As we are collecting values from multiple series, there might be None
     values (whenever a series has a value at a specific timestamp or not).
     """
-    series_names = [spec.series for spec in sample_series.specs()]
+    series_names = [spec.series for spec in sample_series.specs]
     values = sample_series.collect(series=series_names, timestamps='datetime')
 
     # -> each value should be an n-tuple (one for each series plus timestamp)

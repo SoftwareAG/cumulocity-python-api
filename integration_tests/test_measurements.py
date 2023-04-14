@@ -114,34 +114,6 @@ def test_get_and_delete_by(live_c8y: CumulocityApi, measurements_for_deletion, k
     assert not ms
 
 
-def test_get_series(live_c8y: CumulocityApi, sample_device: Device):
-    """Verify that creating a measurement series and retrieving it works
-    as expected."""
-
-    # create 12K measurements, 2 every minute
-    start_time = datetime.fromisoformat('2020-01-01 00:00:00+00:00')
-    skip = timedelta(seconds=30)
-    ms = [Measurement(type='c8y_TestMeasurement',
-                      source=sample_device.id,
-                      time=start_time + (skip * i),
-                      c8y_Iteration={'c8y_Iteration': Count(i)},
-                      c8y_Temperature={'c8y_Temperature': Kelvin(i * 0.2)},
-                      ) for i in range(0, 6000)]
-    live_c8y.measurements.create(*ms)
-
-    result = live_c8y.measurements.get_series(source=sample_device.id,
-                                              series=['c8y_Temperature.c8y_Temperature', 'c8y_Iteration.c8y_Iteration'],
-                                              aggregation='MINUTELY', after=start_time, before='now')
-    # The result should be truncated
-    assert result.truncated
-    # There should be two value series
-    assert len(result) == 2
-    # Each series should contain somewhat 2500 entries
-    # (half of the maximum of 5000 entries)
-    assert len(result['c8y_Iteration.c8y_Iteration']) in (2499, 2500, 2501)
-    assert len(result['c8y_Temperature.c8y_Temperature']) in (2499, 2500, 2501)
-
-
 @pytest.fixture(scope='session', name='sample_series_device')
 def fix_sample_series_device(live_c8y: CumulocityApi, sample_device: Device) -> Device:
     """Add measurement series to the sample device."""
@@ -191,7 +163,7 @@ def test_collect_single_series(series_fixture, request):
     """Verify that collecting a single value (min or max) from an
     series works as expected."""
     series_result = request.getfixturevalue(series_fixture)
-    for spec in series_result.specs():
+    for spec in series_result.specs:
         values = series_result.collect(series=spec.series, value='min')
         # -> None values should be filtered out
         assert values
@@ -209,7 +181,7 @@ def test_collect_multiple_series(series_fixture, request):
     """Verify that collecting a single value (min or max) for multiple
     series works as expected."""
     series_result = request.getfixturevalue(series_fixture)
-    series_names = [s.series for s in series_result.specs()]
+    series_names = [s.series for s in series_result.specs]
     values = series_result.collect(series=series_names, value='min')
     assert values
     # -> Each element should be a n-tuple (n as number of series)

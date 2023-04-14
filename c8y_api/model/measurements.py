@@ -225,15 +225,16 @@ class Series(dict):
             """Return the complete series name."""
             return f'{self.type}.{self.name}'
 
+    @property
     def truncated(self):
         """Whether the result was truncated
         (i.e. the query returned more that 5000 values)."""
         return self['truncated']
 
+    @property
     def specs(self) -> Sequence[SeriesSpec]:
         """Return specifications for all enclosed series."""
         return [self.SeriesSpec(type=i['type'], name=i['name'], unit=i['unit']) for i in self['series']]
-
 
     def collect(self, series: str | Sequence[str] = None, value: str = None,
                 timestamps: bool | str = None) -> List | List[tuple]:
@@ -259,7 +260,7 @@ class Series(dict):
 
         def indexes_by_name():
             """Mapping series names to indexes in value groups."""
-            return {f'{s[1].type}.{s[1].name}': s[0] for s in enumerate(self.specs())}
+            return {f'{s[1].type}.{s[1].name}': s[0] for s in enumerate(self.specs)}
 
         def parse_timestamp(t):
             """Parse timestamps."""
@@ -271,7 +272,7 @@ class Series(dict):
 
         # use all series if no series provided
         if not series:
-            series = [s.series for s in self.specs()]
+            series = [s.series for s in self.specs]
 
         # single series
         if isinstance(series, str):
@@ -497,7 +498,8 @@ class Measurements(CumulocityResource):
         # The 'series' parameter has to be added manually; because it
         # may be a list and because 'series' is by default converted to
         # the 'valueFragmentSeries' parameter
-        params['series'] = series
+        if series:
+            params['series'] = series
         # Build the URL, ensuring that the 'series' parameter is properly
         # expanded in case it is a list.
         url = self.resource + '/series?' + urlencode(params, doseq=True)
