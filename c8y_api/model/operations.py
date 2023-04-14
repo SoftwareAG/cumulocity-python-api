@@ -345,6 +345,7 @@ class BulkOperation(ComplexObject):
 
     @property
     def operation_prototype(self) -> _DictWrapper:
+        # pylint: disable=missing-function-docstring
         return self.operationPrototype
 
     @operation_prototype.setter

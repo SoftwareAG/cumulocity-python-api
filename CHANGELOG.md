@@ -1,5 +1,7 @@
 # Changelog
 
+* Adding support for measurement series queries.
+
 ## Version 1.7
 
 * Adding support for the Audit API.
