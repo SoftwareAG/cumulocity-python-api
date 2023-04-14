@@ -6,7 +6,10 @@
 
 from __future__ import annotations
 
-from typing import Type, List, Generator
+import dataclasses
+import datetime
+from typing import Type, List, Generator, Sequence
+from urllib.parse import urlencode
 
 from c8y_api._base_api import CumulocityRestApi
 
@@ -98,7 +101,7 @@ class Measurement(ComplexObject):
     # _accept
     # _not_updatable
 
-    def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):
+    def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):  # noqa (type)
         """ Create a new Measurement object.
 
         Params:
@@ -199,6 +202,149 @@ class Measurement(ComplexObject):
         self._delete()
 
 
+class Series(dict):
+    """ A wrapper for a series result.
+
+    See also: `Measurements.get_series` function
+
+    This class wraps the raw JSON result but can also be used to read result specs
+    and collect result values conveniently.
+
+    See also: https://cumulocity.com/api/core/#operation/getMeasurementSeriesResource
+    """
+
+    @dataclasses.dataclass
+    class SeriesSpec:
+        """Series specifications."""
+        unit: str
+        type: str
+        name: str
+
+        @property
+        def series(self):
+            """Return the complete series name."""
+            return f'{self.type}.{self.name}'
+
+    def truncated(self):
+        """Whether the result was truncated
+        (i.e. the query returned more that 5000 values)."""
+        return self['truncated']
+
+    def specs(self) -> Sequence[SeriesSpec]:
+        """Return specifications for all enclosed series."""
+        return [self.SeriesSpec(type=i['type'], name=i['name'], unit=i['unit']) for i in self['series']]
+
+
+    def collect(self, series: str | Sequence[str] = None, value: str = None,
+                timestamps: bool | str = None) -> List | List[tuple]:
+        """Collect series results.
+
+        Params:
+            series (str|Sequence[str]):  Which series' values to collect. If
+                multiple series are collected each element in the result will
+                be a tuple. If omitted, all available series are collected.
+            value (str):  Which value (min/max) to collect. If omitted, both
+                values will be collected, grouped as 2-tuples.
+            timestamp (bool|str):  Whether each element in the result list will
+                be prepended with the corresponding timestamp. If True, the
+                timestamp string will be included; Use 'datetime' or 'epoch' to
+                parse the timestamp string.
+
+        Returns:
+            A simple list or list of tuples (potentially nested) depending on the
+            parameter combination.
+        """
+        # we want explicit else's to make the logic easier to understand
+        # pylint: disable=no-else-return, too-many-return-statements, too-many-branches
+
+        def indexes_by_name():
+            """Mapping series names to indexes in value groups."""
+            return {f'{s[1].type}.{s[1].name}': s[0] for s in enumerate(self.specs())}
+
+        def parse_timestamp(t):
+            """Parse timestamps."""
+            if timestamps == 'datetime':
+                return datetime.datetime.fromisoformat(t)
+            if timestamps == 'epoch':
+                return datetime.datetime.fromisoformat(t).timestamp()
+            return t
+
+        # use all series if no series provided
+        if not series:
+            series = [s.series for s in self.specs()]
+
+        # single series
+        if isinstance(series, str):
+            # which index to pull from values?
+            i = indexes_by_name()[series]
+
+            # single value
+            if value:
+                if not timestamps:
+                    # iterate over all values, select value group at specific
+                    # index v[i] and extract specific value [value]. The value
+                    # group may be undefined (None), hence filter for value v[i]
+                    return [v[i][value] for v in self['values'].values() if v[i]]
+                else:
+                    # like above, but include timestamps
+                    return [(parse_timestamp(k), v[i][value]) for k, v in self['values'].items() if v[i]]
+
+            # all values
+            else:
+                if not timestamps:
+                    # iterate over all values, select value group at specific
+                    # index v[i] and extract both values (min, max). The value
+                    # group may be undefined (None), hence filter for value v[i]
+                    return [(v[i]['min'], v[i]['max']) for v in self['values'].values() if v[i]]
+                else:
+                    # like above, but include timestamps
+                    return [(parse_timestamp(k), v[i]['min'], v[i]['max']) for k, v in self['values'].items() if v[i]]
+
+        # multiple series
+        if isinstance(series, Sequence):
+            ii = [indexes_by_name()[s] for s in series]
+
+            # single value
+            if value:
+                if not timestamps:
+                    # iterate over all values, collect specified value groups
+                    # at their index v[i] and extract specific value [value].
+                    # The value group may be undefined (None) which will result
+                    # in a None value in the tuple as well.
+                    return [
+                        # collect values of all indexes (None of not defined)
+                        tuple(v[i][value] if v[i] else None for i in ii)
+                        for v in self['values'].values()
+                    ]
+                else:
+                    # like above, but prepend with timestamps
+                    return [
+                        (parse_timestamp(k), *(v[i][value] if v[i] else None for i in ii))
+                        for k, v in self['values'].items()
+                    ]
+
+            # all values
+            else:
+                if not timestamps:
+                    # iterate over all values, collect specified value groups
+                    # at their index v[i] and extract specific value [value].
+                    # The value group may be undefined (None) which will result
+                    # in a None value in the tuple as well.
+                    return [
+                        # collect values of all indexes (None of not defined)
+                        tuple((v[i]['min'], v[i]['max']) if v[i] else None for i in ii)
+                        for v in self['values'].values()
+                    ]
+                else:
+                    # like above, but prepend with timestamps
+                    return [
+                        (parse_timestamp(k), *((v[i]['min'], v[i]['max']) if v[i] else None for i in ii))
+                        for k, v in self['values'].items()
+                    ]
+
+        raise ValueError("Invalid combination of arguments")
+
+
 class Measurements(CumulocityResource):
     """ A wrapper for the standard Measurements API.
 
@@ -207,6 +353,12 @@ class Measurements(CumulocityResource):
 
     See also: https://cumulocity.com/guides/reference/measurements/#measurement
     """
+
+    class AggregationType:
+        """Series aggregation types."""
+        DAILY = 'DAILY'
+        HOURLY = 'HOURLY'
+        MINUTELY = 'MINUTELY'
 
     def __init__(self, c8y: CumulocityRestApi):
         super().__init__(c8y, 'measurement/measurements')
@@ -311,6 +463,46 @@ class Measurements(CumulocityResource):
         m = Measurement.from_json(self._get_page(base_query, "1")[0])
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
+
+    def get_series(self, source: str = None, aggregation: str = None, series: str | Sequence[str] = None,
+                   before=None, after=None, min_age=None, max_age=None, reverse=False) -> Series:
+        """Query the database for a list of series and their values.
+
+        Params:
+            source (str):  Database ID of a source device
+            aggregation (str):  Aggregation type
+            series (str|Sequence[str]):  Series' to query
+            before (datetime|str):  Datetime object or ISO date/time string.
+                Only measurements assigned to a time before this date are
+                included.
+            after (datetime|str):  Datetime object or ISO date/time string.
+                Only measurements assigned to a time after this date are
+                included.
+            min_age (timedelta):  Timedelta object. Only measurements of
+                at least this age are included.
+            max_age (timedelta):  Timedelta object. Only measurements with
+                at most this age are included.
+            reverse (bool):  Invert the order of results, starting with the
+                most recent one.
+
+        Returns:
+            A Series object which wraps the raw JSON result but can also be
+            used to conveniently collect the series' values.
+
+        See also: https://cumulocity.com/api/core/#operation/getMeasurementSeriesResource
+        """
+        params = self._prepare_query_params(source=source, aggregationType=aggregation,
+                                            before=before, after=after, min_age=min_age, max_age=max_age,
+                                            reverse=reverse)
+        # The 'series' parameter has to be added manually; because it
+        # may be a list and because 'series' is by default converted to
+        # the 'valueFragmentSeries' parameter
+        params['series'] = series
+        # Build the URL, ensuring that the 'series' parameter is properly
+        # expanded in case it is a list.
+        url = self.resource + '/series?' + urlencode(params, doseq=True)
+        series_json = self.c8y.get(url)
+        return Series(series_json)
 
     def delete_by(self, type=None, source=None,  # noqa (type)
                 fragment=None, value=None, series=None,

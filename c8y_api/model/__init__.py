@@ -26,7 +26,7 @@ __all__ = ['administration', 'inventory', 'measurements', 'events',
            'ManagedObject', 'Device', 'DeviceGroup', 'Fragment', 'NamedObject',
            'Inventory', 'DeviceInventory', 'DeviceGroupInventory',
            'Identity', 'ExternalId', 'Binary', 'Binaries',
-           'Measurement', 'Measurements', 'Value', 'Count', 'Grams', 'Kilograms', 'Kelvin', 'Celsius',
+           'Measurement', 'Measurements', 'Series', 'Value', 'Count', 'Grams', 'Kilograms', 'Kelvin', 'Celsius',
            'Event', 'Events', 'Alarm', 'Alarms',
            'Subscription', 'Subscriptions', 'Tokens',
            'Meters', 'Centimeters', 'Liters', 'CubicMeters']

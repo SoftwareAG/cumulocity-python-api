@@ -4,8 +4,6 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-# pylint: disable=redefined-outer-name
-
 from datetime import datetime, timedelta
 from dateutil import tz
 import logging
@@ -15,7 +13,7 @@ from typing import List
 import pytest
 
 from c8y_api import CumulocityApi
-from c8y_api.model import Device, Measurement, Count
+from c8y_api.model import Device, Measurement, Measurements, Series, Count, Kelvin
 
 from tests import RandomNameGenerator
 
@@ -25,8 +23,8 @@ def get_ids(ms: List[Measurement]) -> List[str]:
     return [m.id for m in ms]
 
 
-@pytest.fixture(scope='session')
-def measurement_factory(live_c8y: CumulocityApi):
+@pytest.fixture(scope='session', name='measurement_factory')
+def fix_measurement_factory(live_c8y: CumulocityApi):
     """Provide a factory function to create measurements that are cleaned
     up after the session if needed."""
 
@@ -66,8 +64,8 @@ def measurement_factory(live_c8y: CumulocityApi):
         d.delete()
 
 
-@pytest.fixture(scope='function')
-def measurements_for_deletion(measurement_factory):
+@pytest.fixture(scope='function', name='measurements_for_deletion')
+def fix_measurements_for_deletion(measurement_factory):
     """Provide measurements that can be deleted."""
     return measurement_factory(10, auto_delete=False)
 
@@ -114,3 +112,113 @@ def test_get_and_delete_by(live_c8y: CumulocityApi, measurements_for_deletion, k
     # -> verify that they are all gone
     ms = live_c8y.measurements.get_all(**kwargs)
     assert not ms
+
+
+def test_get_series(live_c8y: CumulocityApi, sample_device: Device):
+    """Verify that creating a measurement series and retrieving it works
+    as expected."""
+
+    # create 12K measurements, 2 every minute
+    start_time = datetime.fromisoformat('2020-01-01 00:00:00+00:00')
+    skip = timedelta(seconds=30)
+    ms = [Measurement(type='c8y_TestMeasurement',
+                      source=sample_device.id,
+                      time=start_time + (skip * i),
+                      c8y_Iteration={'c8y_Iteration': Count(i)},
+                      c8y_Temperature={'c8y_Temperature': Kelvin(i * 0.2)},
+                      ) for i in range(0, 6000)]
+    live_c8y.measurements.create(*ms)
+
+    result = live_c8y.measurements.get_series(source=sample_device.id,
+                                              series=['c8y_Temperature.c8y_Temperature', 'c8y_Iteration.c8y_Iteration'],
+                                              aggregation='MINUTELY', after=start_time, before='now')
+    # The result should be truncated
+    assert result.truncated
+    # There should be two value series
+    assert len(result) == 2
+    # Each series should contain somewhat 2500 entries
+    # (half of the maximum of 5000 entries)
+    assert len(result['c8y_Iteration.c8y_Iteration']) in (2499, 2500, 2501)
+    assert len(result['c8y_Temperature.c8y_Temperature']) in (2499, 2500, 2501)
+
+
+@pytest.fixture(scope='session', name='sample_series_device')
+def fix_sample_series_device(live_c8y: CumulocityApi, sample_device: Device) -> Device:
+    """Add measurement series to the sample device."""
+    # create 12K measurements, 2 every minute
+    start_time = datetime.fromisoformat('2020-01-01 00:00:00+00:00')
+    ms_iter = [Measurement(type='c8y_TestMeasurement',
+                      source=sample_device.id,
+                      time=start_time + (i * timedelta(seconds=30)),
+                      c8y_Iteration={'c8y_Counter': Count(i)},
+                      ) for i in range(0, 5000)]
+    ms_temps = [Measurement(type='c8y_TestMeasurement',
+                      source=sample_device.id,
+                      time=start_time + (i * timedelta(seconds=100)),
+                      c8y_Temperature={'c8y_AverageTemperature': Kelvin(i * 0.2)},
+                      ) for i in range(0, 1000)]
+    live_c8y.measurements.create(*ms_iter)
+    live_c8y.measurements.create(*ms_temps)
+
+    sample_device['c8y_SupportedSeries'] = ['c8y_Temperature.c8y_AverageTemperature',
+                                            'c8y_Iteration.c8y_Counter']
+    return sample_device.update()
+
+
+@pytest.fixture(scope='session')
+def unaggregated_series_result(live_c8y: CumulocityApi, sample_series_device: Device) -> Series:
+    """Provide an unaggregated series result."""
+    start_time = datetime.fromisoformat('2020-01-01 00:00:00+00:00')
+    return live_c8y.measurements.get_series(source=sample_series_device.id,
+                                            series=sample_series_device.c8y_SupportedSeries,
+                                            after=start_time, before='now')
+
+
+@pytest.fixture(scope='session')
+def aggregated_series_result(live_c8y: CumulocityApi, sample_series_device: Device) -> Series:
+    """Provide an aggregated series result."""
+    start_time = datetime.fromisoformat('2020-01-01 00:00:00+00:00')
+    return live_c8y.measurements.get_series(source=sample_series_device.id,
+                                            series=sample_series_device.c8y_SupportedSeries,
+                                            aggregation=Measurements.AggregationType.HOURLY,
+                                            after=start_time, before='now')
+
+
+@pytest.mark.parametrize('series_fixture', [
+    'unaggregated_series_result',
+    'aggregated_series_result'])
+def test_collect_single_series(series_fixture, request):
+    """Verify that collecting a single value (min or max) from an
+    series works as expected."""
+    series_result = request.getfixturevalue(series_fixture)
+    for spec in series_result.specs():
+        values = series_result.collect(series=spec.series, value='min')
+        # -> None values should be filtered out
+        assert values
+        assert all(v is not None for v in values)
+        # -> Values should all have the same type
+        # pylint: disable=unidiomatic-typecheck
+        assert all(type(a) == type(b) for a, b in zip(values, values[1:]))
+        # -> Values should be increasing continuously
+        assert all(a<b for a,b in zip(values, values[1:]))
+
+@pytest.mark.parametrize('series_fixture', [
+    'unaggregated_series_result',
+    'aggregated_series_result'])
+def test_collect_multiple_series(series_fixture, request):
+    """Verify that collecting a single value (min or max) for multiple
+    series works as expected."""
+    series_result = request.getfixturevalue(series_fixture)
+    series_names = [s.series for s in series_result.specs()]
+    values = series_result.collect(series=series_names, value='min')
+    assert values
+    # -> Each element should be a n-tuple (n as number of series)
+    assert all(isinstance(v, tuple) for v in values)
+    assert all(len(v) == len(series_names) for v in values)
+    # -> Each value within the n-tuple belongs to one series
+    #    There will be None values (when a series does not define a value
+    #    at that timestamp). Subsequent values will have the same type
+    assert any(any(e is None for e in v) for v in values)
+    for i in range(0, len(series_names)):
+        t = type(values[0][i])
+        assert all(isinstance(v[i], t) for v in values if v[i])
