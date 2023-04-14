@@ -1,5 +1,7 @@
 # Changelog
 
+## Version 1.8
+
 * Adding support for measurement series queries.
 
 ## Version 1.7
