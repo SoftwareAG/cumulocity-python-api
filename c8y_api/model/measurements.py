@@ -285,10 +285,10 @@ class Series(dict):
                     # iterate over all values, select value group at specific
                     # index v[i] and extract specific value [value]. The value
                     # group may be undefined (None), hence filter for value v[i]
-                    return [v[i][value] for v in self['values'].values() if v[i]]
+                    return [v[i][value] for v in self['values'].values() if (len(v) > i and v[i])]
                 else:
                     # like above, but include timestamps
-                    return [(parse_timestamp(k), v[i][value]) for k, v in self['values'].items() if v[i]]
+                    return [(parse_timestamp(k), v[i][value]) for k, v in self['values'].items() if (len(v) > i and v[i])]
 
             # all values
             else:
@@ -296,10 +296,10 @@ class Series(dict):
                     # iterate over all values, select value group at specific
                     # index v[i] and extract both values (min, max). The value
                     # group may be undefined (None), hence filter for value v[i]
-                    return [(v[i]['min'], v[i]['max']) for v in self['values'].values() if v[i]]
+                    return [(v[i]['min'], v[i]['max']) for v in self['values'].values() if (len(v) > i and v[i])]
                 else:
                     # like above, but include timestamps
-                    return [(parse_timestamp(k), v[i]['min'], v[i]['max']) for k, v in self['values'].items() if v[i]]
+                    return [(parse_timestamp(k), v[i]['min'], v[i]['max']) for k, v in self['values'].items() if (len(v) > i and v[i])]
 
         # multiple series
         if isinstance(series, Sequence):
@@ -314,13 +314,13 @@ class Series(dict):
                     # in a None value in the tuple as well.
                     return [
                         # collect values of all indexes (None of not defined)
-                        tuple(v[i][value] if v[i] else None for i in ii)
+                        tuple(v[i][value] if (len(v) > i and v[i]) else None for i in ii)
                         for v in self['values'].values()
                     ]
                 else:
                     # like above, but prepend with timestamps
                     return [
-                        (parse_timestamp(k), *(v[i][value] if v[i] else None for i in ii))
+                        (parse_timestamp(k), *(v[i][value] if (len(v) > i and v[i]) else None for i in ii))
                         for k, v in self['values'].items()
                     ]
 
@@ -333,13 +333,13 @@ class Series(dict):
                     # in a None value in the tuple as well.
                     return [
                         # collect values of all indexes (None of not defined)
-                        tuple((v[i]['min'], v[i]['max']) if v[i] else None for i in ii)
+                        tuple((v[i]['min'], v[i]['max']) if (len(v) > i and v[i]) else None for i in ii)
                         for v in self['values'].values()
                     ]
                 else:
                     # like above, but prepend with timestamps
                     return [
-                        (parse_timestamp(k), *((v[i]['min'], v[i]['max']) if v[i] else None for i in ii))
+                        (parse_timestamp(k), *((v[i]['min'], v[i]['max']) if (len(v) > i and v[i]) else None for i in ii))
                         for k, v in self['values'].items()
                     ]
 
