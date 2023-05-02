@@ -11,6 +11,6 @@ pylint==2.15.10
 PyJWT==2.6.0
 cachetools==5.2.1
 inputimeout==1.0.4
-flask==2.2.2
+flask==2.3.2
 websockets==10.4
 pandas==2.0.0
