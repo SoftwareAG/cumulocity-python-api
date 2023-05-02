@@ -42,20 +42,21 @@ def build(c):
 
 @task(help={
     'sample': "Which sample to build.",
+    'name': "Microservice name. Defaults to sample name.",
     "version": "Microservice version. Defaults to '1.0.0'.",
 })
-def build_ms(c, sample, version='1.0.0'):
+def build_ms(c, sample, name=None, version='1.0.0'):
     """Build a Cumulocity microservice binary for upload.
 
     This will build a ready to deploy Cumulocity microservice from a sample
     file within the `samples` folder. Any sample Python script can be used
     (if it implements microservice logic).
 
-    Use the file name without .py extension as name. The build microservice
-    will use a similar name, following Cumulocity naming guidelines.
+    By default, uses the file name without .py extension as name. The built
+    microservice will use a similar name, following Cumulocity guidelines.
     """
     sample_name = ms_util.format_sample_name(sample)
-    c.run(f'samples/build.sh {sample_name} {version}')
+    c.run(f'samples/build.sh {sample_name} {version} {name if name else ""}')
 
 
 @task(help={

@@ -6,7 +6,10 @@
 
 NAME="$1"
 VERSION="$2"
-IMG_NAME=`echo "$NAME" | tr '[:upper:]' '[:lower:]' | tr '[:punct:]' '-'`
+IMG_NAME="$3"
+if ! [[ $IMG_NAME ]]; then
+  IMG_NAME=`echo "$NAME" | tr '[:upper:]' '[:lower:]' | tr '[:punct:]' '-'`
+fi
 BUILD_DIR="./build/samples/$NAME"
 DIST_DIR="./dist/samples/$NAME"
 TARGET="$DIST_DIR/$IMG_NAME.zip"
@@ -45,7 +48,7 @@ sed -e "s/{SAMPLE}/$NAME/g" ./samples/Dockerfile > "$BUILD_DIR/Dockerfile"
 # extend cumulocity.json is defined
 if [[ -r ./samples/cumulocity-$NAME.json ]]; then
   echo -n "Found custom extension at './samples/cumulocity-$NAME.json'. Applying ..."
-  tmp=`tempfile`
+  tmp=`mktemp`
   jq -s '.[0] + .[1]' "$BUILD_DIR/cumulocity.json" ./samples/cumulocity-$NAME.json > $tmp
   mv $tmp "$BUILD_DIR/cumulocity.json"
   echo "  Done."
