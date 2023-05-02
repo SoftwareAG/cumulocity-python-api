@@ -1,5 +1,18 @@
 # Changelog
 
+## Version 1.8.1
+
+* Bumped flask from 2.2.2 to 2.3.2 (vulnerability)
+
+  Bumped python-dateutil from 2.8.1 to 2.8.2 (pandas requirement)
+
+* Added `is_tls` property to `CumulocityRestApi` class;
+
+  fixed secure protocol handling for Notification2 websocket connections.
+
+* Microservice build support improvements.
+
+
 ## Version 1.8
 
 * Adding support for measurement series queries.
