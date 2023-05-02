@@ -258,9 +258,10 @@ class Tokens(CumulocityResource):
             token (str):  Subscriber access token
 
         Returns:
-             A websocket (wss://) URL to access the subscriber channel.
+             A websocket (ws(s)://) URL to access the subscriber channel.
         """
-        return f'wss://{self.host}/notification2/consumer/?token={token}'
+        protocol = 'wss' if self.c8y.is_tls else 'ws'
+        return f'{protocol}://{self.host}/notification2/consumer/?token={token}'
 
     def _build_token_definition(self, subscription: str, expires: int, subscriber: str = None):
         return {
