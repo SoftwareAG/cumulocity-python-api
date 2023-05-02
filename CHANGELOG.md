@@ -1,6 +1,7 @@
 # Changelog
 
-## Version 1.8.1
+
+## Version 1.8.2
 
 * Bumped flask from 2.2.2 to 2.3.2 (vulnerability)
 
@@ -11,6 +12,11 @@
   fixed secure protocol handling for Notification2 websocket connections.
 
 * Microservice build support improvements.
+
+
+## Version 1.8.1
+
+* Fixed series value collection for incomplete series.
 
 
 ## Version 1.8
