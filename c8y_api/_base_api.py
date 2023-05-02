@@ -52,6 +52,7 @@ class CumulocityRestApi:
         self.base_url = base_url.rstrip('/')
         self.tenant_id = tenant_id
         self.application_key = application_key
+        self.is_tls = self.base_url.startswith('https')
 
         if auth:
             self.auth = auth
