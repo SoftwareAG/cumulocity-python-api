@@ -1,5 +1,10 @@
 # Changelog
 
+* Added support for the Current Application API (current application settings, current application subscriptions).
+
+* Added test fixture (`app_factory`)to `conftest.py` to register (and automatically unregister) a dedicated
+  microservice application for advanced integration testing. 
+
 * Making websocket ping interval explicit and updating it to 60 seconds by default.
 
 ## Version 1.8.2
