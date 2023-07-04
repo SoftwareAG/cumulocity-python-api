@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Generator, List, BinaryIO
 
 from c8y_api._base_api import CumulocityRestApi
@@ -49,7 +50,7 @@ class Application(SimpleObject):
     PRIVATE_AVAILABILITY = 'PRIVATE'
     MARKET_AVAILABILITY = 'MARKET'
 
-    def __init__(self, c8y: CumulocityRestApi = None, name: str = None, key: str = None, type: str = None,
+    def __init__(self, c8y: CumulocityRestApi = None, name: str = None, key: str = None, type: str = None,  # noqa
                  availability: str = None, context_path: str = None, manifest: dict = None,
                  roles: List[str] = None, required_roles: List[str] = None,
                  breadcrumbs: bool = None, content_security_policy: str = None,
@@ -142,6 +143,84 @@ class Application(SimpleObject):
         super()._delete()
 
 
+class ApplicationSetting(object):
+    """Represent current application settings within in Cumulocity.
+
+    Instances of this class are returned by functions of the `Applications`
+    API. Use this class to create new or update objects.
+
+    See also: https://cumulocity.com/api/core/#tag/Current-application
+    """
+
+    @dataclass
+    class ValueSchema(object):
+        """Defines a setting's value's schema."""
+        type: str
+
+    # Note: this class is not derived from SimpleObject, unlike many others
+    # within the model package. This is because it simply does not need any
+    # of SimpleObject's features.
+
+    def __init__(self, key: str = None, default_value: str = None, value_schema: ValueSchema = None,
+                 editable: bool = None, inherited: bool = None):
+        """ Create an ApplicationSetting instance.
+
+        Args:
+            key (str):  The setting's key
+            default_value (str):  The setting's default value
+            value_schema (ValueSchema):  The setting's value schema
+            editable (bool):  Whether the setting can be edited
+            inherited (bool):  Whether the setting is inherited
+        """
+        self.key = key
+        self.default_value = default_value
+        self.value_schema = value_schema
+        self.editable = editable
+        self.inherited = inherited
+
+    @classmethod
+    def from_json(cls, json) -> ApplicationSetting:
+        """Create a ApplicationSetting instance from Cumulocity JSON format."""
+        return ApplicationSetting(key=json['key'],
+                                  default_value=json['defaultValue'],
+                                  value_schema=ApplicationSetting.ValueSchema(type=json['valueSchema']['type']),
+                                  editable=bool(json['editable']),
+                                  inherited=bool(json['inheritFromOwner']))
+
+
+class ApplicationSubscription(object):
+    """Represent current application subscriptions within in Cumulocity.
+
+    Instances of this class are returned by functions of the `Applications`
+    API. Use this class to create new or update objects.
+
+    See also: https://cumulocity.com/api/core/#tag/Current-application
+    """
+
+    # Note: this class is not derived from SimpleObject, unlike many others
+    # within the model package. This is because it simply does not need any
+    # of SimpleObject's features.
+
+    def __init__(self, tenant_id: str = None, username: str = None, password: str = None):
+        """ Create an ApplicationSubscription instance.
+
+        Args:
+            tenant_id (str):  Subscription's tenant ID
+            username (str):  Subscription's username for authentication
+            password (str):  Subscription's password for authentication
+        """
+        self.tenant_id = tenant_id
+        self.username = username
+        self.password = password
+
+    @classmethod
+    def from_json(cls, json) -> ApplicationSubscription:
+        """Create a ApplicationSubscription instance from Cumulocity JSON format."""
+        return ApplicationSubscription(tenant_id=json['tenant'],
+                                       username=json['name'],
+                                       password=json['password'])
+
+
 class Applications(CumulocityResource):
     """Provides access to the Application API.
 
@@ -164,6 +243,38 @@ class Applications(CumulocityResource):
             An Application instance representing the object in the database.
         """
         return Application.from_json(self._get_object(application_id))
+
+    def get_current(self) -> Application:
+        """Retrieve the current application.
+
+        Note: Requires boostrap permissions.
+
+        Returns:
+            An Application instance.
+        """
+        return Application.from_json((self.c8y.get('/application/currentApplication')))
+
+    def get_current_settings(self) -> List[ApplicationSetting]:
+        """Query the database for the current application's settings.
+
+        Note: Requires boostrap permissions.
+
+        Returns:
+            List of ApplicationSetting instances.
+        """
+        result = self.c8y.get('/application/currentApplication/settings')
+        return [ApplicationSetting.from_json(x) for x in result]
+
+    def get_current_subscriptions(self) -> List[ApplicationSubscription]:
+        """Query the database for subscriptions of the current application.
+
+        Note: Requires boostrap permissions.
+
+        Returns:
+            List of ApplicationSubscription instances.
+        """
+        result = self.c8y.get('/application/currentApplication/subscriptions')
+        return [ApplicationSubscription.from_json(x) for x in result['users']]
 
     def select(self, name: str = None, type: str = None, owner: str = None, user: str = None,
                tenant: str = None, subscriber: str = None, provided_for: str = None,
