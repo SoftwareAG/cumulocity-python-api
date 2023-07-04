@@ -34,3 +34,37 @@ def test_selects(live_c8y: CumulocityApi, param, param_func):
     kwargs = {param: param_func(live_c8y)}
     apps = live_c8y.applications.get_all(**kwargs)
     assert apps
+
+
+@pytest.fixture(name='bootstrap_api', scope='module')
+def fix_bootstrap_api(app_factory):
+    """Provide a CumulocityApi instance with bootstrap permissions."""
+    app_name = 'inttest-applications'
+    required_roles = ['ROLE_OPTION_MANAGEMENT_READ', 'ROLE_OPTION_MANAGEMENT_ADMIN']
+    return app_factory(app_name, required_roles)
+
+
+def test_get_current(bootstrap_api):
+    """Verify that the current application can be read using
+    a bootstrap instance."""
+    app = bootstrap_api.applications.get_current()
+    # the format of the username is "boostrapuser_<appname>"
+    bootstrap_app_name = bootstrap_api.username.split('_', 1)[1]
+    assert app.name == bootstrap_app_name
+
+
+def test_get_current_settings(bootstrap_api):
+    """Verify that the current application's setings can be read using
+    a bootstrap instance."""
+    settings = bootstrap_api.applications.get_current_settings()
+    for s in settings:
+        print(s)
+    assert settings
+
+
+def test_get_current_subscriptions(live_c8y, bootstrap_api):
+    """Verify that the current application's subscriptions can be read using
+    a bootstrap instance."""
+    subscriptions = bootstrap_api.applications.get_current_subscriptions()
+    assert len(subscriptions) == 1
+    assert subscriptions[0].tenant_id == live_c8y.tenant_id
