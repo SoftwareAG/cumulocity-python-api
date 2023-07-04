@@ -49,6 +49,8 @@ class AsyncListener(object):
     """
 
     _log = logging.getLogger(__name__ + '.AsyncListener')
+    ping_interval = 60
+    ping_timeout = 20
 
     class Message(_Message):
         """Represents a Notification 2.0 message.
@@ -87,7 +89,9 @@ class AsyncListener(object):
                 self._current_uri = self.c8y.notification2_tokens.build_websocket_uri(token)
                 self._log.debug("New Notification 2.0 token requested for subscription '{}'.", self.subscription_name)
             try:
-                self._connection = await ws.connect(self._current_uri)
+                self._connection = await ws.connect(self._current_uri,
+                                                    ping_interval=AsyncListener.ping_interval,
+                                                    ping_timeout=AsyncListener.ping_timeout)
                 self._log.info("Websocket connection established for subscription: {}", self.subscription_name)
             except ws.ConnectionClosed as e:
                 self._log.info("Cannot open websocket connection. Closed: {}", e)

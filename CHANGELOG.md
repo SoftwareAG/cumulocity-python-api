@@ -1,5 +1,6 @@
 # Changelog
 
+* Making websocket ping interval explicit and updating it to 60 seconds by default.
 
 ## Version 1.8.2
 
