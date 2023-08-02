@@ -19,6 +19,21 @@ from c8y_api.model._base import _DictWrapper
 from c8y_api.model._util import _DateUtil
 
 
+class Units(object):
+    """Predefined, common units."""
+    Grams = 'g'
+    Kilograms = 'kg'
+    Kelvin = 'K'
+    Celsius = '°C'
+    Fahrenheit = '°F'
+    Meters = 'm'
+    Centimeters = 'cm'
+    Millimeters = 'mm'
+    Liters = 'l'
+    CubicMeters = 'm3'
+    Count = '#'
+
+
 class Value(dict):
     """Generic datapoint."""
     def __init__(self, value, unit):
@@ -28,61 +43,61 @@ class Value(dict):
 class Grams(Value):
     """Weight datapoint (Grams)."""
     def __init__(self, value):
-        super().__init__(value, 'g')
+        super().__init__(value, Units.Grams)
 
 
 class Kilograms(Value):
     """Weight datapoint (Kilograms)."""
     def __init__(self, value):
-        super().__init__(value, 'kg')
+        super().__init__(value, Units.Kilograms)
 
 
 class Kelvin(Value):
     """Temperature datapoint (Kelvin)."""
     def __init__(self, value):
-        super().__init__(value, '°K')
+        super().__init__(value, Units.Kelvin)
 
 
 class Celsius(Value):
     """Temperature datapoint (Celsius)."""
     def __init__(self, value):
-        super().__init__(value, '°C')
+        super().__init__(value, Units.Celsius)
 
 
 class Meters(Value):
     """Length datapoint (Meters)."""
     def __init__(self, value):
-        super().__init__(value, 'm')
+        super().__init__(value, Units.Meters)
 
 
 class Centimeters(Value):
     """Length datapoint (Centimeters)."""
     def __init__(self, value):
-        super().__init__(value, 'cm')
+        super().__init__(value, Units.Centimeters)
 
 
 class Millimeters(Value):
     """Length datapoint (Millimeters)."""
     def __init__(self, value):
-        super().__init__(value, 'mm')
+        super().__init__(value, Units.Millimeters)
 
 
 class Liters(Value):
     """Volume datapoint (Liters)."""
     def __init__(self, value):
-        super().__init__(value, 'l')
+        super().__init__(value, Units.Liters)
 
 
 class CubicMeters(Value):
     """Volume datapoint (Cubic Meters)."""
     def __init__(self, value):
-        super().__init__(value, 'm3')
+        super().__init__(value, Units.CubicMeters)
 
 
 class Count(Value):
     """Discrete number datapoint (number/count)."""
     def __init__(self, value):
-        super().__init__(value, '#')
+        super().__init__(value, Units.Count)
 
 
 class Measurement(ComplexObject):

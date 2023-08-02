@@ -1,5 +1,7 @@
 # Changelog
 
+* Added `Units` class to support explicit modelling of measurement fragments.
+
 * Added support for the Current Application API (current application settings, current application subscriptions).
 
 * Added test fixture (`app_factory`)to `conftest.py` to register (and automatically unregister) a dedicated
