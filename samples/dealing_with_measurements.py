@@ -16,7 +16,7 @@ from inputimeout import inputimeout, TimeoutOccurred
 import pandas as pd
 
 from c8y_api.app import SimpleCumulocityApp
-from c8y_api.model import Device, Measurement, Measurements, Value, Count
+from c8y_api.model import Device, Measurement, Measurements, Count
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -40,12 +40,18 @@ time_gap = timedelta(seconds=20)
 def create_DataMeasurement(seed):
     a = math.sin(seed + random() * 0.2)
     b = math.cos(seed + random() * 0.2)
+    # the measurement's values are provided as custom fragments,
+    # (here: cx_Data). The JSON structure must be like illustrated below
     return Measurement(type='cx_DataMeasurement', source=new_device.id,
                        time=start_datetime + seed * time_gap,
-                       cx_Data={'cx_valueA': Value(a, 'as'),
-                                'cx_valueB': Value(b, 'bs')})
+                       cx_Data={'A': {'value': a, 'unit': 'as'},
+                                'B': {'value': b, 'unit': 'bs'}})
 
 def create_CounterMeasurement(seed):
+    # The measurement's values are provided as custom fragments,
+    # (here: c8y_Counter). There are helper classes available to build
+    # the required JSON structure (here Count but there are others like
+    # Meters, Liters, Kilograms).
     return Measurement(type='cx_CounterMeasurement', source=new_device.id,
                        time=start_datetime + seed * time_gap,
                        c8y_Counter={'iteration': Count(seed)})
@@ -61,8 +67,8 @@ c8y.measurements.create(*ms)
 # Querying measurements directly
 # a) by series
 data_measurements = c8y.measurements.get_all(source=new_device.id, after=start_datetime, type='cx_DataMeasurement')
-a_values = [m.cx_Data.cx_valueA.value for m in data_measurements]
-b_values = [m.cx_Data.cx_valueB.value for m in data_measurements]
+a_values = [m.cx_Data.A.value for m in data_measurements]
+b_values = [m.cx_Data.B.value for m in data_measurements]
 assert len(a_values) == len(b_values)
 # b) by type, including timestamps
 counter_measurements = c8y.measurements.get_all(source=new_device.id, after=start_datetime, series='iteration')
@@ -73,7 +79,7 @@ df[['time', 'count']] = i_values
 print(df.head())
 
 # Querying series
-series_result = c8y.measurements.get_series(source=new_device.id,
+series_result = c8y.measurements.get_series(source=new_device.id, series=['cx_Data.A', 'cx_Data.B'],
                                             aggregation=Measurements.AggregationType.MINUTELY,
                                             after=start_datetime, before='now')
 data = series_result.collect(value='min', timestamps='datetime')
