@@ -271,7 +271,7 @@ class Series(dict):
             parameter combination.
         """
         # we want explicit else's to make the logic easier to understand
-        # pylint: disable=no-else-return, too-many-return-statements, too-many-branches
+        # pylint: disable=no-else-return, too-many-return-statements, too-many-branches, line-too-long
 
         def indexes_by_name():
             """Mapping series names to indexes in value groups."""
