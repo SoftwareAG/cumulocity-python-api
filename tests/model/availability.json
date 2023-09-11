@@ -1,0 +1,8 @@
+{
+  "connectionStatus": "DISCONNECTED",
+  "dataStatus": "AVAILABLE",
+  "deviceId": "12345",
+  "externalId": "esn12345",
+  "interval": "50 minutes",
+  "lastMessage": "2020-01-31T11:22:33.456Z"
+}

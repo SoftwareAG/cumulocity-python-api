@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from c8y_api._base_api import CumulocityRestApi
+from c8y_api.model.administration import User, Users
 from c8y_api.model._base import _DictWrapper, SimpleObject, ComplexObject
 from c8y_api.model._parser import ComplexObjectParser
-from c8y_api.model.administration import User, Users
+from c8y_api.model._util import _DateUtil
 
 
 class NamedObject(object):
@@ -116,6 +118,45 @@ class Fragment(object):
         return self
 
 
+class Availability(object):
+
+    class ConnectionStatus:
+        CONNECTED = 'CONNECTED'
+        DISCONNECTED = 'DISCONNECTED'
+
+    class DataStatus:
+        AVAILABLE = 'AVAILABLE'
+        UNAVAILABLE = 'UNAVAILABLE'
+
+    def __init__(self):
+        self.connection_status = None
+        self.data_status = None
+        self.device_id = None
+        self.external_id = None
+        self.interval = None
+        self.last_message = None
+
+    @property
+    def last_message_date(self) -> datetime:
+        """Return the last message date as Python datetime object."""
+        return _DateUtil.to_datetime(self.last_message)
+
+    @property
+    def interval_minutes(self) -> int:
+        """Return the required updated interval in minutes as integer."""
+        return int(self.interval.split(' ', 1)[0])
+
+    @classmethod
+    def from_json(cls, object_json: dict):
+        obj = Availability()
+        obj.device_id = object_json['deviceId']
+        obj.external_id = object_json['externalId']
+        obj.connection_status = object_json['connectionStatus']
+        obj.data_status = object_json['dataStatus']
+        obj.interval = object_json['interval']
+        obj.last_message = object_json['lastMessage']
+        return obj
+
 class ManagedObjectUtil:
     """Utility functions to work with the Inventory API."""
 
@@ -184,6 +225,16 @@ class ManagedObject(ComplexObject):
          'update_time': 'lastUpdated'},
         ['childDevices', 'childAssets', 'childAdditions',
          'deviceParents', 'assetParents', 'additionParents'])
+
+    class Resource:
+        AVAILABILITY = 'availability'
+        SUPPORTED_MEASUREMENTS = 'supportedMeasurements'
+        SUPPORTED_SERIES = 'supportedSeries'
+
+    class Fragment:
+        SUPPORTED_MEASUREMENTS = 'c8y_SupportedMeasurements'
+        SUPPORTED_SERIES = 'c8y_SupportedSeries'
+
 
     def __init__(self, c8y: CumulocityRestApi = None,
                  type: str = None, name: str = None, owner: str = None, **kwargs):  # noqa
@@ -431,6 +482,39 @@ class ManagedObject(ComplexObject):
         self._assert_id()
         child_id = child.id if hasattr(child, 'id') else child
         self.c8y.delete(self._build_object_path() + path + '/' + child_id)
+
+    def get_latest_availability(self) -> Availability:
+        """Retrieve the latest availability information of this object.
+
+        Return:
+            DeviceAvailability object
+        """
+        self._assert_c8y()
+        self._assert_id()
+        result_json = self.c8y.get(self._build_object_path() + '/' + ManagedObject.Resource.AVAILABILITY)
+        return Availability.from_json(result_json)
+
+    def get_supported_measurements(self) -> datetime | str:
+        """Retrieve all supported measurement names of this managed object.
+
+        Return:
+            List of measurement fragment names.
+        """
+        self._assert_c8y()
+        self._assert_id()
+        result_json = self.c8y.get(self._build_object_path() + '/' + self.Resource.SUPPORTED_MEASUREMENTS)
+        return result_json[ManagedObject.Fragment.SUPPORTED_MEASUREMENTS]
+
+    def get_supported_series(self) -> datetime | str:
+        """Retrieve all supported measurement series names of this managed object.
+
+        Return:
+            List of measurement series names.
+        """
+        self._assert_c8y()
+        self._assert_id()
+        result_json = self.c8y.get(self._build_object_path() + '/' + self.Resource.SUPPORTED_SERIES)
+        return result_json[ManagedObject.Fragment.SUPPORTED_SERIES]
 
 
 class Device(ManagedObject):
