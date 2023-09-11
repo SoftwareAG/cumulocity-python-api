@@ -6,6 +6,7 @@
 
 # pylint: disable=redefined-outer-name
 
+import time
 from typing import List
 
 import pytest
@@ -104,9 +105,18 @@ def test_get_availability(live_c8y: CumulocityApi, sample_device: Device):
     sample_device.update()
     # create an event to trigger update
     live_c8y.events.create(Event(type='c8y_TestEvent', time='now', source=sample_device.id, text='Event!'))
-    # verify availability intormation is defined
-    date = live_c8y.inventory.get_latest_availability(sample_device.id).last_message_date
-    assert date
+    # verify availability information is defined
+    # -> the information is updated asynchronously, hence this may be delayed
+    availability = None
+    for i in range(1, 5):
+        time.sleep(pow(2, i))
+        try:
+            availability = live_c8y.inventory.get_latest_availability(sample_device.id)
+            assert availability.last_message_date
+            break
+        except KeyError:
+            print("Availability not yet available (pun intended). Retrying ...")
+    assert availability
 
 @pytest.fixture
 def object_with_measurements(live_c8y: CumulocityApi, mutable_object: ManagedObject) -> ManagedObject:
