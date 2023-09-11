@@ -1,6 +1,8 @@
 # Changelog
 
-* Added support for inventory endpoints /availability, /supportedMeasurements and /supportedSeries.
+## Version 1.9.0
+
+* Added support for inventory endpoints `/availability`, `/supportedMeasurements` and `/supportedSeries`.
 
 * Added `Units` class to support explicit modelling of measurement fragments.
 
