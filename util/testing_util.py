@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import os
 import random
 import re
 
@@ -26,8 +27,9 @@ class RandomNameGenerator:
     """Provides randomly generated names using a public service."""
 
     wordlist_path = 'wordlist.txt'
-    read_webcontent('https://raw.githubusercontent.com/mike-hearn/useapassphrase/master/js/wordlist.js',
-                    wordlist_path)
+    wordlist_url = 'https://raw.githubusercontent.com/mike-hearn/useapassphrase/master/js/wordlist.js'
+    if not os.path.exists(wordlist_path):
+        read_webcontent(wordlist_url, wordlist_path)
     with open(wordlist_path, 'rt', encoding='utf-8') as file:
         file.readline()  # skip first line
         lines = file.readlines()

@@ -1,5 +1,7 @@
 # Changelog
 
+* Added support for inventory endpoints /availability, /supportedMeasurements and /supportedSeries.
+
 * Added `Units` class to support explicit modelling of measurement fragments.
 
 * Added support for the Current Application API (current application settings, current application subscriptions).

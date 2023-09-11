@@ -7,11 +7,12 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Generator, List
 
 from c8y_api.model._base import CumulocityResource
-from c8y_api.model._util import _QueryUtil
-from c8y_api.model.managedobjects import ManagedObjectUtil, ManagedObject, Device, DeviceGroup
+from c8y_api.model._util import _DateUtil, _QueryUtil
+from c8y_api.model.managedobjects import ManagedObjectUtil, ManagedObject, Device, Availability, DeviceGroup
 
 
 class Inventory(CumulocityResource):
@@ -152,6 +153,43 @@ class Inventory(CumulocityResource):
         """
         super()._apply_to(ManagedObject.to_full_json, object_model, *object_ids)
 
+    def get_latest_availability(self, mo_id) -> Availability:
+        """Retrieve the latest availability information of a managed object.
+
+        Args:
+            mo_id (str):  Device (managed object) ID
+
+        Return:
+            DeviceAvailability object
+        """
+        result_json = self.c8y.get(self.build_object_path(mo_id) + '/' + ManagedObject.Resource.AVAILABILITY)
+        return Availability.from_json(result_json)
+
+    def get_supported_measurements(self, mo_id) -> [str]:
+        """Retrieve all supported measurements names of a specific managed
+        object.
+
+        Args:
+            mo_id (str):  Managed object ID
+
+        Return:
+            List of measurement fragment names.
+        """
+        result_json = self.c8y.get(self.build_object_path(mo_id) + '/' + ManagedObject.Resource.SUPPORTED_MEASUREMENTS)
+        return result_json[ManagedObject.Fragment.SUPPORTED_MEASUREMENTS]
+
+    def get_supported_series(self, mo_id) -> [str]:
+        """Retrieve all supported measurement series names of a specific
+        managed object.
+
+        Args:
+            mo_id (str):  Managed object ID
+
+        Return:
+            List of series names.
+        """
+        result_json = self.c8y.get(self.build_object_path(mo_id) + '/' + ManagedObject.Resource.SUPPORTED_SERIES)
+        return result_json[ManagedObject.Fragment.SUPPORTED_SERIES]
 
 class DeviceInventory(Inventory):
     """Provides access to the Device Inventory API.

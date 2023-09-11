@@ -3,7 +3,7 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
-
+import datetime
 # pylint: disable=redefined-outer-name
 
 import json
@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from c8y_api.model import ManagedObject
+from c8y_api.model import Availability, ManagedObject
 
 
 def test_parsing():
@@ -38,6 +38,21 @@ def test_parsing():
     assert test_fragment.float == test_json['float']
     assert test_fragment.true == test_json['true']
     assert test_fragment.false == test_json['false']
+
+
+def test_parsing_availability():
+    """Verify that parsing of an Availability object works as expected."""
+    path = os.path.dirname(__file__) + '/availability.json'
+    with open(path, encoding='utf-8', mode='rt') as f:
+        availability_json = json.load(f)
+    availability = Availability.from_json(availability_json)
+
+    assert availability.connection_status == Availability.ConnectionStatus.DISCONNECTED
+    assert availability.data_status == Availability.DataStatus.AVAILABLE
+    assert availability.interval_minutes == 50
+    assert availability.device_id == '12345'
+    assert availability.external_id == 'esn12345'
+    assert availability.last_message_date == datetime.datetime.fromisoformat('2020-01-31 11:22:33.456+00:00')
 
 
 @pytest.fixture(scope='function')
