@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from typing import Callable
+from urllib.parse import urlparse
 
 import paho.mqtt.client as mqtt
 
@@ -51,7 +52,7 @@ class Listener:
         self.mqtt_client.on_subscribe = on_subscribe
         self.mqtt_client.on_log = on_log
         self.mqtt_client.username_pw_set(self.c8y.auth.username, self.c8y.auth.password)
-        self.mqtt_client.connect(self.c8y.base_url, 2883, 60)
+        self.mqtt_client.connect(urlparse(self.c8y.base_url).netloc, 2883, 60)
         for topic in self.subscribers:
             self.mqtt_client.subscribe(topic)
         self.mqtt_client.loop_forever()
