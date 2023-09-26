@@ -32,6 +32,7 @@ class Units(object):
     Liters = 'l'
     CubicMeters = 'm3'
     Count = '#'
+    Percent = '%'
 
 
 class Value(dict):
@@ -98,6 +99,11 @@ class Count(Value):
     """Discrete number datapoint (number/count)."""
     def __init__(self, value):
         super().__init__(value, Units.Count)
+
+class Percentage(Value):
+    """Percent value datapoint."""
+    def __init__(self, value):
+        super().__init__(value, Units.Percent)
 
 
 class Measurement(ComplexObject):
