@@ -36,9 +36,9 @@ requests_log.propagate = True
 
 # initialize cumulocity
 c8yapp = MultiTenantCumulocityApp()
-print("CumulocityApp initialized.")
+logging.info("CumulocityApp initialized.")
 c8y_bootstrap = c8yapp.bootstrap_instance
-print(f"Bootstrap: {c8y_bootstrap.base_url}, Tenant: {c8y_bootstrap.tenant_id}, User:{c8y_bootstrap.username}")
+logging.info(f"Bootstrap: {c8y_bootstrap.base_url}, Tenant: {c8y_bootstrap.tenant_id}, User:{c8y_bootstrap.username}")
 
 
 # setup Flask
@@ -55,10 +55,10 @@ def health():
 def tenant_info():
     """Return subscribed tenant's ID, username and devices it has access to."""
     # The subscribed tenant's credentials (to access Cumulocity and to access
-    # the micro service) are part of the inbound request's headers. This is
+    # the microservice) are part of the inbound request's headers. This is
     # resolved automatically when using the get_tenant_instance function.
     c8y = c8yapp.get_tenant_instance(headers=request.headers)
-    print(f"Obtained tenant instance: tenant: {c8y.tenant_id}, user: {c8y.username}, pass: {c8y.auth.password}")
+    logging.info(f"Obtained tenant instance: tenant: {c8y.tenant_id}, user: {c8y.username}, pass: {c8y.auth.password}")
     # If the tenant ID is known (e.g. from URL) it can be given directly
     # like this:
     # c8y = c8yapp.get_tenant_instance(tenant_id='t12345')
@@ -76,11 +76,11 @@ def tenant_info():
 @webapp.route("/user")
 def user_info():
     """Return user's tenant, username and devices they have access to."""
-    # The user's credentials (to access Cumulocity and to access the micro
-    # service) are part of the inbound request's headers. This is resolved
-    # automatically when using the get_user_instance function.
+    # The user's credentials (to access Cumulocity and to access the
+    # microservice) are part of the inbound request's headers. This is
+    # resolved automatically when using the get_user_instance function.
     c8y = c8yapp.get_user_instance(request.headers)
-    print(f"Obtained user instance: tenant: {c8y.tenant_id}, user: {c8y.username}")
+    logging.info(f"Obtained user instance: tenant: {c8y.tenant_id}, user: {c8y.username}")
     devices_json = [{'name': d.name,
                      'id': d.id,
                      'type': d.type} for d in c8y.device_inventory.get_all()]
