@@ -39,6 +39,10 @@ def build(c):
     """
     c.run('python -m build')
 
+def build_docs(c):
+    """Build the module documentation."""
+    c.run('sphinx-build ')
+
 
 @task(help={
     'sample': "Which sample to build.",

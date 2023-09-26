@@ -1,0 +1,10 @@
+{
+  "isolation": "PER_TENANT",
+  "requiredRoles": [
+    "ROLE_MQTT_CONNECT_ADMIN",
+    "ROLE_INVENTORY_READ",
+    "ROLE_INVENTORY_ADMIN",
+    "ROLE_MEASUREMENT_READ",
+    "ROLE_MEASUREMENT_ADMIN"
+  ]
+}
