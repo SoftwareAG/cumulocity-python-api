@@ -198,6 +198,19 @@ class Identity(object):
         """
         return self._inventory.get(self.get_id(external_id, external_type))
 
+    def get_all(self, object_id:str) -> [ExternalId]:
+        """ Read all external ID for a managed object.
+
+        Args:
+            object_id (str):  Valid database ID of a managed object
+                within Cumulocity
+
+        Returns:
+            A list of ExternalID instances (can be empty)
+        """
+        external_ids = self.c8y.get(f'/identity/globalIds/{object_id}/externalIds')
+        return [ExternalId.from_json(i) for i in external_ids['externalIds']]
+
     def _get_raw(self, external_id, external_type):
         return self.c8y.get(self._build_object_path(external_id, external_type))
 
