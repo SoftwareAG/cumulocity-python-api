@@ -21,7 +21,7 @@ class Listener:
         self.mqtt_client = mqtt.Client(f'mqttconnect_{c8y.username}')
         self.subscribers = {}
 
-    def register(self, topic: str, callback: Callable[[bytes], None]):
+    def register(self, topic: str, callback: Callable[[str, bytes], None]):
         self.subscribers[topic] = callback
         self.mqtt_client.subscribe(topic)
 
@@ -32,7 +32,7 @@ class Listener:
 
         def on_message(mqttc, obj, msg):
             print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-            self.subscribers[msg.topic](msg.payload)
+            self.subscribers[msg.topic](msg.topic, msg.payload)
 
         def on_connect(mqttc, obj, flags, rc):
             print("rc: " + str(rc))
