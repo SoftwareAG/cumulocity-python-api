@@ -45,6 +45,15 @@ def test_CRUD(live_c8y: CumulocityApi):  # noqa (case)
         assert user.username in str(e)
 
 
+def test_get_current(live_c8y: CumulocityApi):
+    """Verify that the current user can be read."""
+    current1 = live_c8y.users.get(live_c8y.username)
+    current2 = live_c8y.users.get_current()
+    assert current1.username == current2.username
+    assert current1.id == current2.id
+    assert current1.first_name == current2.first_name
+
+
 @pytest.fixture(scope='function')
 def user_factory(live_c8y: CumulocityApi):
     """Provides a user factory function which removes the created users after

@@ -773,14 +773,27 @@ class Users(CumulocityResource):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
         self.__groups = GlobalRoles(c8y)
 
-    def get(self, username):
+    def get(self, username: str):
         """Retrieve a specific user.
 
-        :param username The ID of the user (usually the mail address)
-        :rtype User
+        Args:
+            username(str):  The ID of the user (usually the mail address)
+
+        Returns:
+            User instance
         """
         user = User.from_json(self._get_object(username))
         user.c8y = self.c8y  # inject c8y connection into instance
+        return user
+
+    def get_current(self):
+        """Retrieve current user.
+
+        Returns:
+            User instance
+        """
+        user = User.from_json(self.c8y.get('user/currentUser'))
+        user.c8y = self.c8y
         return user
 
     def select(self, username=None, groups=None, page_size=5):
