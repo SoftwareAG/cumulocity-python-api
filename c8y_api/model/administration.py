@@ -374,15 +374,7 @@ class UserUtil:
         return {'managedObject': int(object_id), 'roles': [{'id': int(rid)} for rid in role_ids]}
 
 
-class User(SimpleObject):
-    """Represents an User object within Cumulocity.
-
-    Notes:
-      - Only a limited set of properties are actually updatable. Others must
-        be set explicitely using the corresponding API (for example: global roles, permissions,
-        owner, etc.)
-    """
-
+class _BaseUser(SimpleObject):
     _parser = SimpleObjectParser({
             'username': 'userName',
             'password_strength': 'passwordStrength',
@@ -392,6 +384,71 @@ class User(SimpleObject):
             '_u_enabled': 'enabled',
             '_u_display_name': 'displayName',
             '_u_password': 'password',
+            '_u_first_name': 'firstName',
+            '_u_last_name': 'lastName',
+            '_u_tfa_enabled': 'twoFactorAuthenticationEnabled',
+            '_u_require_password_reset': 'shouldResetPassword',
+            '_password_reset_mail': 'sendPasswordResetEmail',
+            '_last_password_change': 'lastPasswordChange'})
+    _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
+
+    def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
+                 password=None, first_name=None, last_name=None, phone=None,
+                 tfa_enabled=None, require_password_reset=None):
+        super().__init__(c8y)
+        self.username = username
+        self.password_strength = None
+        self.owner = None
+        self.delegated_by = None
+        self._u_email = email
+        self._u_enabled = enabled
+        self._u_display_name = display_name
+        self._u_password = password
+        self._u_phone = phone
+        self._u_first_name = first_name
+        self._u_last_name = last_name
+        self._u_tfa_enabled = tfa_enabled or False
+        self._u_require_password_reset = require_password_reset
+        self._password_reset_mail = not self._u_password
+        self._last_password_change = None
+
+    display_name = SimpleObject.UpdatableProperty('_u_display_name')
+    email = SimpleObject.UpdatableProperty('_u_email')
+    phone = SimpleObject.UpdatableProperty('_u_phone')
+    first_name = SimpleObject.UpdatableProperty('_u_first_name')
+    last_name = SimpleObject.UpdatableProperty('_u_last_name')
+    enabled = SimpleObject.UpdatableProperty('_u_enabled')
+    tfa_enabled = SimpleObject.UpdatableProperty('_u_tfa_enabled')
+    require_password_reset = SimpleObject.UpdatableProperty('_u_require_password_reset')
+
+    @property
+    def last_password_change(self) -> datetime:
+        """Get the last password change time."""
+        # hint: could be cached, but it is rarely accessed multiple times
+        return self._last_password_change
+
+    @property
+    def last_password_change_datetime(self) -> datetime:
+        """Get the last password change time."""
+        # hint: could be cached, but it is rarely accessed multiple times
+        return _DateUtil.to_datetime(self._last_password_change)
+
+
+class User(_BaseUser):
+    """Represents a User object within Cumulocity.
+
+    Notes:
+      - Only a limited set of properties are actually updatable. Others must
+        be set explicitly using the corresponding API (for example: global
+        roles, permissions, owner, etc.)
+    """
+
+    _parser = SimpleObjectParser(_BaseUser._parser._obj_to_json + {
+            'password_strength': 'passwordStrength',
+            'owner': 'owner',
+            'delegated_by': 'delegatedBy',
+            '_u_enabled': 'enabled',
+            '_u_display_name': 'displayName',
             '_u_first_name': 'firstName',
             '_u_last_name': 'lastName',
             '_u_tfa_enabled': 'twoFactorAuthenticationEnabled',
@@ -418,47 +475,18 @@ class User(SimpleObject):
         :param last_name:
         :param phone:
         """
-        super().__init__(c8y)
-        self.username = username
-        self.password_strength = None
-        self.owner = None
-        self.delegated_by = None
-        self._u_email = email
-        self._u_enabled = enabled
-        self._u_display_name = display_name
-        self._u_password = password
-        self._u_phone = phone
-        self._u_first_name = first_name
-        self._u_last_name = last_name
-        self._u_tfa_enabled = tfa_enabled or False
-        self._u_require_password_reset = require_password_reset
-        self._password_reset_mail = not self._u_password
-        self._last_password_change = None
+        super().__init__(c8y,
+                         username=username, email=email, enabled=enabled,
+                         display_name=display_name, password=password,
+                         first_name=first_name, last_name=last_name,
+                         tfa_enabled=tfa_enabled,
+                         require_password_reset=require_password_reset)
         self.global_role_ids = set()
         self.permission_ids = set()
         self.application_ids = set()
+        # self.effective_permission_ids = set()
         # self.custom_properties = WithUpdatableFragments()
 
-    display_name = SimpleObject.UpdatableProperty('_u_display_name')
-    email = SimpleObject.UpdatableProperty('_u_email')
-    phone = SimpleObject.UpdatableProperty('_u_phone')
-    first_name = SimpleObject.UpdatableProperty('_u_first_name')
-    last_name = SimpleObject.UpdatableProperty('_u_last_name')
-    enabled = SimpleObject.UpdatableProperty('_u_enabled')
-    tfa_enabled = SimpleObject.UpdatableProperty('_u_tfa_enabled')
-    require_password_reset = SimpleObject.UpdatableProperty('_u_require_password_reset')
-
-    @property
-    def last_password_change(self) -> datetime:
-        """Get the last password change time."""
-        # hint: could be cached, but it is rarely accessed multiple times
-        return self._last_password_change
-
-    @property
-    def last_password_change_datetime(self) -> datetime:
-        """Get the last password change time."""
-        # hint: could be cached, but it is rarely accessed multiple times
-        return _DateUtil.to_datetime(self._last_password_change)
 
     @classmethod
     def from_json(cls, json: dict) -> User:
@@ -792,7 +820,7 @@ class Users(CumulocityResource):
         Returns:
             User instance
         """
-        user = User.from_json(self.c8y.get('user/currentUser'))
+        user = User.from_json(self.c8y.get('/user/currentUser'))
         user.c8y = self.c8y
         return user
 

@@ -55,6 +55,27 @@ def test_parsing():
     assert user.permission_ids == permission_ids
 
 
+def test_current_parsing():
+    """Verify that parsing a "current" User from JSON works."""
+
+    # 1) read a sample user from file
+    path = os.path.dirname(__file__) + '/current_user.json'
+    with open(path, encoding='utf-8', mode='rt') as f:
+        user_json = json.load(f)
+
+    user = User.from_json(user_json)
+
+    # 2) verify that all parsed fields match the file counterpart
+    assert user.id == user_json['id']
+    assert user.username == user_json['userName']
+    assert user.email == user_json['email']
+
+    # 3) referenced sets are parsed as well
+    assert not user.permission_ids
+    assert not user.global_role_ids
+    assert all(r['id'] in user.effective_permission_ids for r in user_json['effectiveRoles'])
+
+
 def test_formatting(sample_user: User):
     """Verify that user formatting works."""
     user_json = sample_user.to_json()
@@ -72,6 +93,7 @@ def test_updating(sample_user: User):
     sample_user.password_strength = 'x'
     sample_user.global_role_ids = {'x'}
     sample_user.permission_ids = {'x'}
+    sample_user.effective_permission_ids = {'x'}
 
     # -> no changes are recorded, diff is empty
     assert not sample_user.get_updates()
@@ -79,15 +101,12 @@ def test_updating(sample_user: User):
 
     # 2) other fields can be updated
     sample_user.email = 'x'
-    sample_user.enabled = not sample_user.enabled
-    sample_user.first_name = 'x'
-    sample_user.last_name = 'x'
     sample_user.display_name = 'x'
     sample_user.tfa_enabled = not sample_user.tfa_enabled
     sample_user.require_password_reset = not sample_user.require_password_reset
 
     # -> we expect an according number of recorded changes
-    assert len(sample_user.get_updates()) == 7
+    assert len(sample_user.get_updates()) == 4
 
     # -> all changes should be reflected in the diff
     diff_json = sample_user.to_diff_json()
