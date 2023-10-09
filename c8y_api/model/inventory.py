@@ -123,15 +123,15 @@ class Inventory(CumulocityResource):
         """Create managed objects within the database.
 
         Args:
-            objects (*ManagedObject): collection of ManagedObject instances
+           *objects (ManagedObject): collection of ManagedObject instances
         """
         super()._create(ManagedObject.to_json, *objects)
 
     def update(self, *objects: ManagedObject):
-        """ Write changes to the database.
+        """Write changes to the database.
 
         Args:
-            objects (*ManagedObject): collection of ManagedObject instances
+           *objects (ManagedObject): collection of ManagedObject instances
 
         See also function ManagedObject.update which parses the result.
         """
@@ -148,7 +148,7 @@ class Inventory(CumulocityResource):
         Args:
             object_model (ManagedObject): ManagedObject instance holding
                 the change structure (e.g. a specific fragment)
-            object_ids (*str): a collection of ID of already existing
+           *object_ids (str): a collection of ID of already existing
                 managed objects within the database
         """
         super()._apply_to(ManagedObject.to_full_json, object_model, *object_ids)
@@ -290,7 +290,7 @@ class DeviceInventory(Inventory):
         user from database.
 
         Args:
-            devices (*Device): Device objects within the database specified
+           *devices (Device): Device objects within the database specified
                 (with defined ID).
         """
         for d in devices:
@@ -411,7 +411,7 @@ class DeviceGroupInventory(Inventory):
 
         Args:
             root_id (str|int): ID of the root device group
-            child_ids (*str|int): ID of the child device groups
+           *child_ids (str|int): ID of the child device groups
         """
         # adding multiple references at once is not (yet) supported
         # refs = {'references': [InventoryUtil.build_managed_object_reference(id) for id in child_ids]}
@@ -425,7 +425,7 @@ class DeviceGroupInventory(Inventory):
 
         Args:
             root_id (str|int): ID of the root device group
-            child_ids (*str|int): ID of the child device groups
+           *child_ids (str|int): ID of the child device groups
         """
         refs = {'references': [ManagedObjectUtil.build_managed_object_reference(i) for i in child_ids]}
         self.c8y.delete(self.build_object_path(root_id) + '/childAssets', json=refs)

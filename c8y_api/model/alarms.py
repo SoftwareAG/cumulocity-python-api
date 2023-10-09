@@ -354,7 +354,7 @@ class Alarms(CumulocityResource):
         """Create alarm objects within the database.
 
         Args:
-            alarms (*Alarm): Collection of Alarm instances
+            *alarms (Alarm): Collection of Alarm instances
         """
         super()._create(Alarm.to_full_json, *alarms)
 
@@ -362,7 +362,7 @@ class Alarms(CumulocityResource):
         """Write changes to the database.
 
         Args:
-            alarms (*Alarm): Collection of Alarm instances
+            *alarms (Alarm): Collection of Alarm instances
         """
         super()._update(Alarm.to_diff_json, *alarms)
 
@@ -371,7 +371,7 @@ class Alarms(CumulocityResource):
 
         Args:
             alarm (Alarm): Object serving as model for the update
-            alarm_ids (*str): A collection of database IDS of alarms
+            *alarm_ids (str): A collection of database IDS of alarms
         """
         super()._apply_to(Alarm.to_full_json, alarm, *alarm_ids)
 
@@ -411,7 +411,7 @@ class Alarms(CumulocityResource):
         operation to function.
 
         Args:
-            alarms (*Alarm): Collection of Alarm instances.
+            *alarms (Alarm): Collection of Alarm instances.
         """
         for a in alarms:
             a.delete()
