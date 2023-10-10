@@ -18,7 +18,8 @@ from c8y_api.model.notification2 import *
 from c8y_api.model.operations import *
 
 __all__ = ['administration', 'inventory', 'measurements', 'events',
-           'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
+           'User', 'CurrentUser', 'Users',
+           'GlobalRole', 'InventoryRole', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
            'Permission', 'ReadPermission', 'WritePermission', 'AnyPermission',
            'Application',
            'AuditRecord', 'AuditRecords',

@@ -6,7 +6,11 @@
 
 # pylint: disable=redefined-outer-name
 
+import datetime as dt
+import time
+
 import pytest
+import pyotp
 
 from c8y_api import CumulocityApi
 from c8y_api.model import User
@@ -55,6 +59,67 @@ def test_get_current(live_c8y: CumulocityApi):
 
     assert all(i in current2.effective_permission_ids for i in current1.permission_ids)
 
+
+def test_current_update(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
+    """Verify that updating the current user works as expected."""
+    current_user = user_c8y.users.get_current()
+
+    current_user.first_name = "New"
+    current_user = current_user.update()
+    assert current_user.first_name == "New"
+
+    # when the password is changed, the user_c8y needs to change
+    new_password1 = '1Pass-Ruby!Workforce'
+    live_c8y.users.set_password(current_user.username, new_password1)
+    with pytest.raises(ValueError) as e:
+        current_user.update()
+    assert '401' in str(e)
+    user_c8y.auth.password = new_password1
+    current_user = user_c8y.users.get_current()
+
+    # the current user password can be updated using the old password
+    new_password2 = '2Pass-Ruby!Workforce'
+    current_user.update_password(new_password1, new_password2)
+    user_c8y.auth.password = new_password2
+    current_user = user_c8y.users.get_current()
+    assert dt.datetime.now(dt.timezone.utc) - current_user.last_password_change_datetime < dt.timedelta(seconds=10)
+
+
+@pytest.mark.skip("This needs an TOTP enabled tenant")
+def test_current_totp(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
+    """Verify that the TOTP settings can be updated for the current user."""
+    current_user = user_c8y.users.get_current()
+
+    # a new user without TFA won't have the TOTP activity set up
+    with pytest.raises(KeyError):
+        current_user.get_totp_activity()
+
+    # the auxiliary function should intercept the KeyError
+    assert not current_user.get_totp_enabled()
+
+    # generating a secret won't enable TOTP
+    secret, url = current_user.generate_totp_secret()
+    assert not current_user.get_totp_activity().is_active
+
+    # explicitly enabling the feature using different methods
+    current_user.set_totp_enabled(True)
+    assert current_user.get_totp_activity().is_active
+
+    # generate and verify TOTP codes
+    totp = pyotp.TOTP(secret)
+    code = totp.now()
+    current_user.verify_tfa(code)
+
+    time.sleep(30)
+    with pytest.raises(ValueError) as ex:
+        current_user.verify_tfa(code)
+    assert '403' in str(ex)
+
+    # TODO: revoke TOTP
+    # current_user.set_totp_activity(CurrentUser.TotpActivity(False))
+    # assert not current_user.get_totp_activity().is_active
+
+
 @pytest.fixture(scope='function')
 def user_factory(live_c8y: CumulocityApi):
     """Provides a user factory function which removes the created users after
@@ -73,6 +138,17 @@ def user_factory(live_c8y: CumulocityApi):
 
     for u in created_users:
         u.delete()
+
+
+@pytest.fixture(scope='function')
+def user_c8y(live_c8y: CumulocityApi, user_factory):
+    new_user = user_factory()
+    password = f'1Pass-{new_user.username}'
+    new_user.assign_global_role('1')
+    new_user.update_password(password)
+
+    return CumulocityApi(base_url=live_c8y.base_url, tenant_id=live_c8y.tenant_id,
+                         username=new_user.username, password=password)
 
 
 def test_set_password(live_c8y: CumulocityApi, user_factory):
