@@ -119,6 +119,7 @@ class Fragment(object):
 
 
 class Availability(object):
+    """Device availability information."""
 
     class ConnectionStatus:
         CONNECTED = 'CONNECTED'
