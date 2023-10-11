@@ -31,7 +31,7 @@ def fix_measurement_factory(live_c8y: CumulocityApi):
     created_devices = []
     created_measurements = []
 
-    def factory_fun(n: int, auto_delete=True):
+    def factory_fun(n: int, auto_delete=True) -> List[Measurement]:
         typename = RandomNameGenerator.random_name(2)
         fragment = f'{typename}_metric'
         series = f'{typename}_series'
@@ -68,6 +68,23 @@ def fix_measurement_factory(live_c8y: CumulocityApi):
 def fix_measurements_for_deletion(measurement_factory):
     """Provide measurements that can be deleted."""
     return measurement_factory(10, auto_delete=False)
+
+
+def test_select(live_c8y: CumulocityApi, measurement_factory):
+    """Verify that selection works as expected."""
+    # create a couple of measurements
+    created_ms = measurement_factory(1000)
+    created_ids = [m.id for m in created_ms]
+    device_id = created_ms[0].source
+
+    # select all measurements using different page sizes
+    selected_ids_1 = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=5000)]
+    selected_ids_2 = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=100)]
+
+    # -> all created measurements should be in the selection
+    assert set(created_ids) == set(selected_ids_1)
+    # -> the page size should not affect the selection result
+    assert selected_ids_1 == selected_ids_2
 
 
 @pytest.mark.parametrize('key, key_lambda', [
