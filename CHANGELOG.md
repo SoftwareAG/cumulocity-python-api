@@ -1,5 +1,12 @@
 # Changelog
 
+
+## Version 1.9.1
+
+* Minor improvements and fixes.
+* Added possibility to pull a specific result page to all `select` and `get_all` functions.
+
+
 ## Version 1.9.0
 
 * Added support for inventory endpoints `/availability`, `/supportedMeasurements` and `/supportedSeries`.
@@ -12,6 +19,7 @@
   microservice application for advanced integration testing. 
 
 * Making websocket ping interval explicit and updating it to 60 seconds by default.
+
 
 ## Version 1.8.2
 
