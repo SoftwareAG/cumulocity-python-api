@@ -39,7 +39,7 @@ def test_selects(live_c8y: CumulocityApi, param, param_func):
 @pytest.fixture(name='bootstrap_api', scope='module')
 def fix_bootstrap_api(app_factory):
     """Provide a CumulocityApi instance with bootstrap permissions."""
-    app_name = 'inttest-applications'
+    app_name = 'inttest-application'
     required_roles = ['ROLE_OPTION_MANAGEMENT_READ', 'ROLE_OPTION_MANAGEMENT_ADMIN']
     return app_factory(app_name, required_roles)
 
@@ -53,13 +53,10 @@ def test_get_current(bootstrap_api):
     assert app.name == bootstrap_app_name
 
 
-def test_get_current_settings(bootstrap_api):
-    """Verify that the current application's setings can be read using
+def test_get_current_settings(live_c8y, bootstrap_api):
+    """Verify that the current application's settings can be read using
     a bootstrap instance."""
-    settings = bootstrap_api.applications.get_current_settings()
-    for s in settings:
-        print(s)
-    assert settings
+    assert bootstrap_api.applications.get_current_settings() is not None
 
 
 def test_get_current_subscriptions(live_c8y, bootstrap_api):
