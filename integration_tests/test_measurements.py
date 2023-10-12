@@ -29,9 +29,8 @@ def fix_measurement_factory(live_c8y: CumulocityApi):
     up after the session if needed."""
 
     created_devices = []
-    created_measurements = []
 
-    def factory_fun(n: int, auto_delete=True) -> List[Measurement]:
+    def factory_fun(n: int) -> List[Measurement]:
         typename = RandomNameGenerator.random_name(2)
         fragment = f'{typename}_metric'
         series = f'{typename}_series'
@@ -51,35 +50,27 @@ def fix_measurement_factory(live_c8y: CumulocityApi):
             m = m.create()
             logging.info('Created measurement #{}: {}', m.id, m.to_json())
             ms.append(m)
-        if auto_delete:
-            created_measurements.extend(ms)
         return ms
 
     yield factory_fun
 
-    for cm in created_measurements:
-        cm.delete()
-
     for d in created_devices:
-        d.delete()
-
-
-@pytest.fixture(scope='function', name='measurements_for_deletion')
-def fix_measurements_for_deletion(measurement_factory):
-    """Provide measurements that can be deleted."""
-    return measurement_factory(10, auto_delete=False)
+        try:
+            d.delete()
+        except KeyError:
+            logging.warning(f"Device #{d.id} already deleted.")
 
 
 def test_select(live_c8y: CumulocityApi, measurement_factory):
     """Verify that selection works as expected."""
     # create a couple of measurements
-    created_ms = measurement_factory(1000)
+    created_ms = measurement_factory(100)
     created_ids = [m.id for m in created_ms]
     device_id = created_ms[0].source
 
     # select all measurements using different page sizes
-    selected_ids_1 = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=5000)]
-    selected_ids_2 = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=100)]
+    selected_ids_1 = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=1000)]
+    selected_ids_2 = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=10)]
 
     # -> all created measurements should be in the selection
     assert set(created_ids) == set(selected_ids_1)
@@ -87,15 +78,51 @@ def test_select(live_c8y: CumulocityApi, measurement_factory):
     assert selected_ids_1 == selected_ids_2
 
 
+def test_single_page_select(live_c8y: CumulocityApi, measurement_factory):
+    """Verify that selection works as expected."""
+    # create a couple of measurements
+    created_ms = measurement_factory(50)
+    created_ids = [m.id for m in created_ms]
+    device_id = created_ms[0].source
+
+    # select all measurements using different page sizes
+    selected_ids = [m.id for m in live_c8y.measurements.select(source=device_id, page_size=10, page_number=2)]
+
+    # -> all created measurements should be in the selection
+    assert len(selected_ids) == 10
+    assert all(i in set(created_ids) for i in selected_ids)
+
+
+def clone_measurement(m:Measurement, key) -> Measurement:
+    m2 = Measurement(m.c8y, type=m.type, source=m.source, time=m.time)
+    if key == 'type':
+        m2.type = m2.type + '2'
+    for fragment, series in m.fragments.items():
+        for name, value in series.items():
+            if key == 'fragment' or key == 'value':
+                fragment = fragment + '2'
+            if key == 'series':
+                name = name + '2'
+            m2[fragment] = {name: value}
+    return m2.create()
+
+
 @pytest.mark.parametrize('key, key_lambda', [
     ('type', lambda m: m.type),
     ('source', lambda m: m.source),
-    ('fragment', lambda m: f'{m.type}_metric'),
+    ('series', lambda m: f'{m.type}_series'),
     ('value', lambda m: f'{m.type}_metric'),
-    ('series', lambda m: f'{m.type}_series')])
-def test_get_and_delete_by(live_c8y: CumulocityApi, measurements_for_deletion, key, key_lambda):
+])
+def test_select_by(live_c8y: CumulocityApi, measurement_factory, key, key_lambda):
     """Verify that get and delete by type works as expected."""
+    measurements_for_deletion = measurement_factory(10)
     kwargs = {key: key_lambda(measurements_for_deletion[0])}
+
+    # add some 'similar' measurements to verify the query doesn't affect
+    # these; doesn't make sense for 'source', there already are many
+    if key != 'source':
+        for m in measurements_for_deletion:
+            clone_measurement(m, key)
 
     # 1_ get_all
     ms = live_c8y.measurements.get_all(**kwargs)
@@ -122,13 +149,33 @@ def test_get_and_delete_by(live_c8y: CumulocityApi, measurements_for_deletion, k
     # -> hence, the 3rd should just be right
     assert last.datetime == datetimes[-4]
 
-    # 3_ delete_by
+
+@pytest.mark.parametrize('key, key_lambda', [
+    ('type', lambda m: m.type),
+    ('source', lambda m: m.source),
+    ('fragment', lambda m: f'{m.type}_metric'),
+])
+def test_delete_by(live_c8y: CumulocityApi, measurement_factory, key, key_lambda):
+    """Verify that get and delete by type works as expected."""
+    measurements_for_deletion = measurement_factory(10)
+    kwargs = {key: key_lambda(measurements_for_deletion[0])}
+
+    # 0 add some 'similar' measurements
+    additional_measurements = []
+    if key != 'source':
+        additional_measurements = [clone_measurement(m, key) for m in measurements_for_deletion]
+
+    # delete_by kwargs
     live_c8y.measurements.delete_by(**kwargs)
     # -> wait a bit to avoid caching issues
     time.sleep(5)
     # -> verify that they are all gone
     ms = live_c8y.measurements.get_all(**kwargs)
     assert not ms
+
+    # delete additional measurements if there are any
+    # this also ensures that they haven't been deleted beforehand
+    live_c8y.measurements.delete(*additional_measurements)
 
 
 @pytest.fixture(scope='session', name='sample_series_device')
@@ -177,7 +224,7 @@ def aggregated_series_result(live_c8y: CumulocityApi, sample_series_device: Devi
     'unaggregated_series_result',
     'aggregated_series_result'])
 def test_collect_single_series(series_fixture, request):
-    """Verify that collecting a single value (min or max) from an
+    """Verify that collecting a single value (min or max) from a
     series works as expected."""
     series_result = request.getfixturevalue(series_fixture)
     for spec in series_result.specs:
@@ -191,6 +238,7 @@ def test_collect_single_series(series_fixture, request):
         # -> Values should be increasing continuously
         assert all(a<b for a,b in zip(values, values[1:]))
 
+
 @pytest.mark.parametrize('series_fixture', [
     'unaggregated_series_result',
     'aggregated_series_result'])
@@ -201,7 +249,7 @@ def test_collect_multiple_series(series_fixture, request):
     series_names = [s.series for s in series_result.specs]
     values = series_result.collect(series=series_names, value='min')
     assert values
-    # -> Each element should be a n-tuple (n as number of series)
+    # -> Each element should be an n-tuple (n as number of series)
     assert all(isinstance(v, tuple) for v in values)
     assert all(len(v) == len(series_names) for v in values)
     # -> Each value within the n-tuple belongs to one series
