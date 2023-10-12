@@ -150,7 +150,8 @@ class AuditRecords(CumulocityResource):
     def select(self, type: str = None, source: str = None, application: str = None, user: str = None, # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[AuditRecord]:
+               reverse: bool = False, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[AuditRecord]:
         """Query the database for audit records and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -176,6 +177,8 @@ class AuditRecords(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for AuditRecord objects
@@ -184,12 +187,13 @@ class AuditRecords(CumulocityResource):
                                             before=before, after=after,
                                             min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, AuditRecord.from_json)
+        return super()._iterate(base_query, page_number, limit, AuditRecord.from_json)
 
     def get_all(self, type: str = None, source: str = None, application: str = None, user: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[AuditRecord]:
+               reverse: bool = False, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[AuditRecord]:
         """Query the database for audit records and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -203,7 +207,7 @@ class AuditRecords(CumulocityResource):
         return list(self.select(type=type, source=source, application=application, user=user,
                                 before=before, after=after,
                                 min_age=min_age, max_age=max_age,
-                                reverse=reverse, limit=limit, page_size=page_size))
+                                reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
     def create(self, *records: AuditRecord):
         """Create audit record objects within the database.

@@ -278,7 +278,7 @@ class Applications(CumulocityResource):
 
     def select(self, name: str = None, type: str = None, owner: str = None, user: str = None,
                tenant: str = None, subscriber: str = None, provided_for: str = None,
-               limit: int = None, page_size: int = 100) -> Generator[Application]:
+               limit: int = None, page_size: int = 100, page_number: int = None) -> Generator[Application]:
         """Query the database for applications and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -302,6 +302,8 @@ class Applications(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             A Generator for Application objects.
@@ -309,11 +311,11 @@ class Applications(CumulocityResource):
         base_query = self._build_base_query(name=name, type=type, owner=owner, tenant=tenant,
                                             user=user, subscriber=subscriber, providedFor=provided_for,
                                             page_size=page_size)
-        return super()._iterate(base_query, limit, Application.from_json)
+        return super()._iterate(base_query, page_number, limit, Application.from_json)
 
     def get_all(self, name: str = None, type: str = None, owner: str = None, user: str = None,
                 tenant: str = None, subscriber: str = None, provided_for: str = None,
-                limit: int = None, page_size: int = 100) -> List[Application]:
+                limit: int = None, page_size: int = 100, page_number: int = None) -> List[Application]:
         """Query the database for applications and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -326,7 +328,7 @@ class Applications(CumulocityResource):
         """
         return list(self.select(name=name, type=type, owner=owner, user=user,
                                 tenant=tenant, subscriber=subscriber, provided_for=provided_for,
-                                limit=limit, page_size=page_size))
+                                limit=limit, page_size=page_size, page_number=page_number))
 
     def upload_attachment(self, application_id: str, file: str | BinaryIO):
         """Upload application binary for a registered application.

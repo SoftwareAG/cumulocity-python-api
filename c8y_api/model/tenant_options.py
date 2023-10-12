@@ -134,7 +134,8 @@ class TenantOptions(CumulocityResource):
         """
         return f'{self.resource}/{category}/{key}'
 
-    def select(self, category: str = None, limit: int = None, page_size: int = 1000) -> Generator[TenantOption]:
+    def select(self, category: str = None, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[TenantOption]:
         """ Query the database for tenant options and iterate over the
         results.
 
@@ -150,14 +151,17 @@ class TenantOptions(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for TenantObject instances
         """
         base_query = self._build_base_query(category=category, page_size=page_size)
-        return super()._iterate(base_query, limit, TenantOption.from_json)
+        return super()._iterate(base_query, page_number, limit, TenantOption.from_json)
 
-    def get_all(self, category: str = None, limit: int = None, page_size: int = 1000) -> List[TenantOption]:
+    def get_all(self, category: str = None, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[TenantOption]:
         """ Query the database for tenant options and return the results
         as list.
 
@@ -167,7 +171,7 @@ class TenantOptions(CumulocityResource):
         Returns:
             List of TenantObject instances
         """
-        return list(self.select(category=category, limit=limit, page_size=page_size))
+        return list(self.select(category=category, limit=limit, page_size=page_size, page_number=page_number))
 
     def get_all_mapped(self, category: str = None) -> dict[str, str]:
         """ Query the database for tenant options and return the results

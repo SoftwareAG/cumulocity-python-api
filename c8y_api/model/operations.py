@@ -157,7 +157,8 @@ class Operations(CumulocityResource):
                bulk_id: str = None, fragment: str = None,
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Operation]:
+               reverse: bool = False, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[Operation]:
         """ Query the database for operations and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -189,6 +190,8 @@ class Operations(CumulocityResource):
             page_size (int):  Define the number of operations which are
                 read (and parsed in one chunk). This is a performance
                 related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator[Operation]: Iterable of matching Operation objects
@@ -197,13 +200,14 @@ class Operations(CumulocityResource):
                                             fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, Operation.from_json)
+        return super()._iterate(base_query, page_number, limit, Operation.from_json)
 
     def get_all(self, agent_id: str = None, device_id: str = None, status: str = None,
                 bulk_id: str = None, fragment: str = None,
                 before: str | datetime = None, after: str | datetime = None,
                 min_age: timedelta = None, max_age: timedelta = None,
-                reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Operation]:
+                reverse: bool = False, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[Operation]:
         """ Query the database for operations and return the results
         as list.
 
@@ -215,7 +219,7 @@ class Operations(CumulocityResource):
         """
         return list(self.select(agent_id=agent_id, device_id=device_id, status=status, bulk_id=bulk_id,
                                 fragment=fragment, before=before, after=after, min_age=min_age, max_age=max_age,
-                                reverse=reverse, limit=limit, page_size=page_size))
+                                reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
     def get_last(self, agent_id: str = None, device_id: str = None, status: str = None,
                  bulk_id: str = None, fragment: str = None,
@@ -423,7 +427,7 @@ class BulkOperations(CumulocityResource):
         operation.c8y = self.c8y  # inject c8y connection into instance
         return operation
 
-    def select(self, limit: int = None, page_size: int = 1000) -> Generator[BulkOperation]:
+    def select(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[BulkOperation]:
         """ Query the database for operations and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -438,14 +442,16 @@ class BulkOperations(CumulocityResource):
             page_size (int):  Define the number of operations which are
                 read (and parsed in one chunk). This is a performance
                 related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator[BulkOperation]: Iterable of matching BulkOperation objects
         """
         base_query = self._build_base_query(page_size=page_size)
-        return super()._iterate(base_query, limit, BulkOperation.from_json)
+        return super()._iterate(base_query, page_number, limit, BulkOperation.from_json)
 
-    def get_all(self, limit: int = None, page_size: int = 1000) -> List[BulkOperation]:
+    def get_all(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> List[BulkOperation]:
         """ Query the database for bulk operations and return the results
         as list.
 
@@ -455,4 +461,4 @@ class BulkOperations(CumulocityResource):
         Returns:
             List of matching BulkOperation objects
         """
-        return list(self.select(limit=limit, page_size=page_size))
+        return list(self.select(limit=limit, page_size=page_size, page_number=page_number))

@@ -404,7 +404,7 @@ class Measurements(CumulocityResource):
     def select(self, type=None, source=None,  # noqa (type)
                fragment=None, value=None, series=None,
                before=None, after=None, min_age=None, max_age=None, reverse=False,
-               limit=None, page_size=1000) -> Generator[Measurement]:
+               limit=None, page_size: int = 1000, page_number: int = None) -> Generator[Measurement]:
         """ Query the database for measurements and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -436,6 +436,8 @@ class Measurements(CumulocityResource):
             page_size (int):  Define the number of measurements which are
                 read (and parsed in one chunk). This is a performance
                 related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator[Measurement]: Iterable of matching Measurement objects
@@ -444,12 +446,12 @@ class Measurements(CumulocityResource):
                                             valueFragmentType=value, valueFragmentSeries=series,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, Measurement.from_json)
+        return super()._iterate(base_query, page_number, limit, Measurement.from_json)
 
     def get_all(self, type=None, source=None,  # noqa (type)
                 fragment=None,  value=None, series=None,
                 before=None, after=None, min_age=None, max_age=None, reverse=False,
-                limit=None, page_size=1000) -> List[Measurement]:
+                limit=None, page_size=1000, page_number: int = None) -> List[Measurement]:
         """ Query the database for measurements and return the results
         as list.
 
@@ -462,7 +464,7 @@ class Measurements(CumulocityResource):
         return list(self.select(type=type, source=source,
                                 fragment=fragment, value=value, series=series,
                                 before=before, after=after, min_age=min_age, max_age=max_age,
-                                reverse=reverse, limit=limit, page_size=page_size))
+                                reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
     def get_last(self, type=None, source=None, fragment=None, value=None, series=None,  # noqa (type)
                  before=None, min_age=None) -> Measurement:

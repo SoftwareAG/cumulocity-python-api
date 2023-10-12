@@ -57,7 +57,8 @@ class Inventory(CumulocityResource):
         return list(self.select(type=type, fragment=fragment, name=name, owner=owner, limit=limit, page_size=page_size))
 
     def select(self, type: str = None, fragment: str = None, name: str = None, owner: str = None,  # noqa (type)
-               query: str = None, limit: int = None, page_size: int = 1000) -> Generator[ManagedObject]:
+               query: str = None, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[ManagedObject]:
         """ Query the database for managed objects and iterate over the
         results.
 
@@ -81,15 +82,18 @@ class Inventory(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for ManagedObject instances
         """
         return self._select(ManagedObject.from_json, type=type, fragment=fragment, name=name, owner=owner,
-                            query=None, limit=limit, page_size=page_size)
+                            query=None, limit=limit, page_size=page_size, page_number=page_number)
 
     def _select(self, jsonyfy_func, type: str = None, fragment: str = None, name: str = None,  # noqa
-                owner: str = None, query: str = None, limit: int = None, page_size: int = 1000) -> Generator[Any]:
+                owner: str = None, query: str = None, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> Generator[Any]:
 
         query_filters = []
 
@@ -117,7 +121,7 @@ class Inventory(CumulocityResource):
         else:
             base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
 
-        return super()._iterate(base_query, limit, jsonyfy_func)
+        return super()._iterate(base_query, page_number, limit, jsonyfy_func)
 
     def create(self, *objects: ManagedObject):
         """Create managed objects within the database.
@@ -235,7 +239,8 @@ class DeviceInventory(Inventory):
         return device
 
     def select(self, type: str = None, name: str = None, owner: str = None,  # noqa (type, args)
-               query: str = None, limit: int = None, page_size: int = 100) -> Generator[Device]:
+               query: str = None, limit: int = None,
+               page_size: int = 100, page_number: int = None) -> Generator[Device]:
         # pylint: disable=arguments-differ
         """ Query the database for devices and iterate over the results.
 
@@ -258,15 +263,17 @@ class DeviceInventory(Inventory):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for Device objects
         """
         return self._select(ManagedObject.from_json, type=type, fragment='c8y_IsDevice', name=name, owner=owner,
-                            query=query, limit=limit, page_size=page_size)
+                            query=query, limit=limit, page_size=page_size, page_number=page_number)
 
     def get_all(self, type: str = None, name: str = None, owner: str = None,   # noqa (type, parameters)
-                page_size: int = 100) -> List[Device]:
+                page_size: int = 100, page_number: int = None) -> List[Device]:
         # pylint: disable=arguments-differ
         """ Query the database for devices and return the results as list.
 
@@ -276,7 +283,7 @@ class DeviceInventory(Inventory):
         Returns:
             List of Device objects
         """
-        return list(self.select(type=type, name=name, owner=owner, page_size=page_size))
+        return list(self.select(type=type, name=name, owner=owner, page_size=page_size, page_number=page_number))
 
     def delete(self, *devices: Device):
         """ Delete one or more devices and the corresponding within the database.
@@ -319,7 +326,8 @@ class DeviceGroupInventory(Inventory):
         return group
 
     def select(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,  # noqa
-               name: str = None, owner: str = None, query: str = None, page_size: int = 100) -> Generator[DeviceGroup]:
+               name: str = None, owner: str = None, query: str = None,
+               page_size: int = 100, page_number: int = None) -> Generator[DeviceGroup]:
         # pylint: disable=arguments-differ, arguments-renamed
         """ Select device groups by various parameters.
 
@@ -350,6 +358,8 @@ class DeviceGroupInventory(Inventory):
                 ignored if such a custom query is provided
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator of DeviceGroup instances
@@ -383,10 +393,10 @@ class DeviceGroupInventory(Inventory):
         else:
             base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
 
-        return super()._iterate(base_query, limit=9999, parse_func=DeviceGroup.from_json)
+        return super()._iterate(base_query, page_number, limit=9999, parse_func=DeviceGroup.from_json)
 
     def get_all(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None, # noqa
-                name: str = None, owner: str = None, page_size: int = 100):  # noqa
+                name: str = None, owner: str = None, page_size: int = 100, page_number: int = None):  # noqa
         # pylint: disable=arguments-differ, arguments-renamed
         """ Select managed objects by various parameters.
 
@@ -396,7 +406,8 @@ class DeviceGroupInventory(Inventory):
         Returns:
             List of DeviceGroup instances
         """
-        return list(self.select(type=type, parent=parent, fragment=fragment, name=name, page_size=page_size))
+        return list(self.select(type=type, parent=parent, fragment=fragment, name=name,
+                                page_size=page_size, page_number=page_number))
 
     def create(self, *groups):
         """Batch create a collection of groups and entire group trees.

@@ -681,7 +681,7 @@ class InventoryRoles(CumulocityResource):
         role.c8y = self.c8y  # inject c8y connection into instance
         return role
 
-    def select(self, limit: int = None, page_size: int = 1000) -> Generator[InventoryRole]:
+    def select(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[InventoryRole]:
         """Get all defined inventory roles.
 
         This function is implemented in a lazy fashion - results will only be
@@ -693,14 +693,16 @@ class InventoryRoles(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects read (and parsed
                 in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for InventoryRole objects
         """
         base_query = self._build_base_query(page_size=page_size)
-        return super()._iterate(base_query, limit, InventoryRole.from_json)
+        return super()._iterate(base_query, page_number, limit, InventoryRole.from_json)
 
-    def get_all(self, limit: int = None, page_size: int = 1000) -> List[InventoryRole]:
+    def get_all(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> List[InventoryRole]:
         """Get all defined inventory roles.
 
         This function is a greedy version of the `select` function. All
@@ -711,7 +713,7 @@ class InventoryRoles(CumulocityResource):
         Returns:
             List of InventoryRole objects
         """
-        return list(self.select(limit=limit, page_size=page_size))
+        return list(self.select(limit=limit, page_size=page_size, page_number=page_number))
 
     def select_assignments(self, username: str) -> Generator[InventoryRoleAssignment]:
         """Get all inventory role assignments of a user.

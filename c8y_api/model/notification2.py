@@ -148,7 +148,7 @@ class Subscriptions(CumulocityResource):
         return subscription
 
     def select(self, context: str = None, source: str = None,
-               limit: int = None, page_size: int = 1000) -> Generator[Subscription]:
+               limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[Subscription]:
         """ Query the database for subscriptions and iterate over the
         results.
 
@@ -165,15 +165,17 @@ class Subscriptions(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for Subscription instances
         """
         base_query = self._build_base_query(context=context, source=source, page_size=page_size)
-        return super()._iterate(base_query, limit, Subscription.from_json)
+        return super()._iterate(base_query, page_number, limit, Subscription.from_json)
 
     def get_all(self, context: str = None, source: str = None,
-                limit: int = None, page_size: int = 1000) -> List[Subscription]:
+                limit: int = None, page_size: int = 1000, page_number: int = None) -> List[Subscription]:
         """ Query the database for subscriptions and return the results
         as list.
 
@@ -183,7 +185,8 @@ class Subscriptions(CumulocityResource):
         Returns:
             List of Subscription instances.
         """
-        return list(self.select(context=context, source=source, limit=limit, page_size=page_size))
+        return list(self.select(context=context, source=source, limit=limit,
+                                page_size=page_size, page_number=page_number))
 
     def create(self, *subscriptions: Subscription) -> None:
         """ Create subscriptions within the database.

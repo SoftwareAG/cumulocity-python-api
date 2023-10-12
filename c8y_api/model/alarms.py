@@ -247,7 +247,8 @@ class Alarms(CumulocityResource):
                created_before: str | datetime = None, created_after: str | datetime = None,
                updated_before: str | datetime = None, updated_after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Alarm]:
+               reverse: bool = False, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[Alarm]:
         """Query the database for alarms and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -283,6 +284,8 @@ class Alarms(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of alarms which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator of Alarm objects
@@ -294,7 +297,7 @@ class Alarms(CumulocityResource):
                                             updated_before=updated_before, updated_after=updated_after,
                                             min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, Alarm.from_json)
+        return super()._iterate(base_query, page_number, limit, Alarm.from_json)
 
     def get_all(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
                 status: str = None, severity: str = None, resolved: str = None,
@@ -302,7 +305,8 @@ class Alarms(CumulocityResource):
                 created_before: str | datetime = None, created_after: str | datetime = None,
                 updated_before: str | datetime = None, updated_after: str | datetime = None,
                 min_age: timedelta = None, max_age: timedelta = None,
-                reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Alarm]:
+                reverse: bool = False, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[Alarm]:
         """Query the database for alarms and return the results as list.
 
         This function is a greedy version of the select function. All
@@ -319,7 +323,7 @@ class Alarms(CumulocityResource):
                                 created_before=created_before, created_after=created_after,
                                 updated_before=updated_before, updated_after=updated_after,
                                 min_age=min_age, max_age=max_age, reverse=reverse,
-                                limit=limit, page_size=page_size))
+                                limit=limit, page_size=page_size, page_number=page_number))
 
     def count(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
                 status: str = None, severity: str = None, resolved: str = None,
