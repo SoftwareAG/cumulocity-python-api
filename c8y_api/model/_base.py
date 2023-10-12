@@ -333,7 +333,7 @@ class ComplexObject(SimpleObject):
 
     def __getitem__(self, name):
         """ Get the value of a custom fragment.
-
+i
         Depending on the definition the value can be a scalar or a
         complex structure (modelled as nested dictionary).
 
@@ -461,13 +461,14 @@ class CumulocityResource:
 
     @staticmethod
     def _prepare_query_params(type=None, name=None, fragment=None, source=None,  # noqa (type)
-                              series=None, owner=None,
+                              value=None, series=None, owner=None,
                               device_id=None, agent_id=None, bulk_id=None,
                               before=None, after=None,
                               created_before=None, created_after=None,
                               updated_before=None, updated_after=None,
                               min_age=None, max_age=None,
-                              reverse=None, page_size=None, **kwargs):
+                              reverse=None, page_size=None, page_number=None,
+                              **kwargs):
         # min_age/max_age should be timedelta objects that can be used for
         # alternative calculation of the before/after parameters
         if min_age:
@@ -492,6 +493,7 @@ class CumulocityResource:
 
         params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
                                     'source': source, 'fragmentType': fragment,
+                                    'valueFragmentType': value,
                                     'valueFragmentSeries': series,
                                     'deviceId': device_id, 'agentId': agent_id,
                                     'bulkOperationId': bulk_id,
@@ -510,27 +512,33 @@ class CumulocityResource:
     def _get_object(self, object_id):
         return self.c8y.get(self.build_object_path(object_id))
 
-    def _get_page(self, base_query, page_number):
+    def _get_page(self, base_query: str, page_number: int):
         result_json = self.c8y.get(base_query + str(page_number))
         return result_json[self.object_name]
 
-    def _iterate(self, base_query, limit, parse_func):
-        page_number = 1
-        num_results = 1
+    def _iterate(self, base_query: str, page_number: int | None, limit: int, parse_func):
+        # if no specific page is defined we just start at 1
+        current_page = page_number if page_number else 1
+        # we will read page after page until
+        #  - we reached the limit, or
+        #  - there is no result (i.e. we were at the last page)
+        num_results = 0
         while True:
-            try:
-                results = [parse_func(x) for x in self._get_page(base_query, page_number)]
-                if not results:
-                    break
-                for result in results:
-                    result.c8y = self.c8y  # inject c8y connection into instance
-                    if limit and num_results > limit:
-                        raise StopIteration
-                    num_results = num_results + 1
-                    yield result
-            except StopIteration:
+            results = [parse_func(x) for x in self._get_page(base_query, current_page)]
+            # no results, so we are done
+            if not results:
                 break
-            page_number = page_number + 1
+            for result in results:
+                result.c8y = self.c8y  # inject c8y connection into instance
+                yield result
+                if limit and num_results >= limit:
+                    break
+                num_results = num_results + 1
+            # when a specific page was specified we don't read more pages
+            if page_number:
+                break
+            # continue with next page
+            current_page = current_page + 1
 
     def _create(self, jsonify_func, *objects):
         for o in objects:
