@@ -333,7 +333,7 @@ class Events(CumulocityResource):
             each of the given event objects.
 
         Args:
-            events (*Event):  Collection of Event instances
+            *events (Event):  Collection of Event instances
         """
         for e in events:
             if not e.time:
@@ -344,7 +344,7 @@ class Events(CumulocityResource):
         """Write changes to the database.
 
         Args:
-            events (*Event):  Collection of Event instances
+            *events (Event):  Collection of Event instances
         """
         super()._update(Event.to_diff_json, *events)
 
@@ -354,7 +354,7 @@ class Events(CumulocityResource):
 
         Args:
             event (Event): Event used as model for the update
-            event_ids (*Event):  Collection of ID of the events to update
+            *event_ids (str):  Collection of ID of the events to update
         """
         super()._apply_to(Event.to_full_json, event, *event_ids)
 

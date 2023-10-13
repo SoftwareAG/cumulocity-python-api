@@ -41,6 +41,18 @@ def build(c):
 
 
 @task(help={
+    'clean': "Whether to clean the output before generation."
+})
+def build_docs(c, clean=False):
+    """Build the documentation (HTML)."""
+    dist_dir = 'dist/docs'
+    docs_dir = 'docs'
+    if clean:
+        c.run(f'sphinx-build -M clean "{docs_dir}"  "{dist_dir}"')
+    c.run(f'sphinx-build -M html "{docs_dir}"  "{dist_dir}"')
+
+
+@task(help={
     'sample': "Which sample to build.",
     'name': "Microservice name. Defaults to sample name.",
     "version": "Microservice version. Defaults to '1.0.0'.",

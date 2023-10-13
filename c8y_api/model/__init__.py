@@ -5,8 +5,8 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from c8y_api.model.administration import *
-from c8y_api.model.applications import *
 from c8y_api.model.alarms import *
+from c8y_api.model.applications import *
 from c8y_api.model.audit import *
 from c8y_api.model.binaries import *
 from c8y_api.model.events import *
@@ -16,18 +16,65 @@ from c8y_api.model.managedobjects import *
 from c8y_api.model.measurements import *
 from c8y_api.model.notification2 import *
 from c8y_api.model.operations import *
+from c8y_api.model.tenant_options import *
 
-__all__ = ['administration', 'inventory', 'measurements', 'events',
-           'User', 'GlobalRole', 'InventoryRole', 'Users', 'GlobalRoles', 'InventoryRoles', 'InventoryRoleAssignment',
-           'Permission', 'ReadPermission', 'WritePermission', 'AnyPermission',
-           'Application',
-           'AuditRecord', 'AuditRecords',
-           'Operation', 'BulkOperation', 'Operations', 'BulkOperations',
-           'ManagedObject', 'Device', 'DeviceGroup', 'Availability', 'Fragment', 'NamedObject',
-           'Inventory', 'DeviceInventory', 'DeviceGroupInventory',
-           'Identity', 'ExternalId', 'Binary', 'Binaries',
-           'Measurement', 'Measurements', 'Series', 'Units',
-           'Value', 'Count', 'Grams', 'Kilograms', 'Kelvin', 'Celsius', 'Percentage',
-           'Event', 'Events', 'Alarm', 'Alarms',
-           'Subscription', 'Subscriptions', 'Tokens',
-           'Meters', 'Centimeters', 'Liters', 'CubicMeters']
+
+__all__ = [
+    # API Classes
+    'Inventory',
+    'DeviceInventory',
+    'DeviceGroupInventory',
+    'Binaries',
+    'Identity',
+    'Measurements',
+    'Events',
+    'Alarms',
+    'Subscriptions',
+    'Tokens',
+    'Users',
+    'GlobalRoles',
+    'Operations',
+    'BulkOperations',
+    'Applications',
+    'TenantOptions',
+    'AuditRecords',
+    # Model Classes
+    'ManagedObject',
+    'Device',
+    'DeviceGroup',
+    'ExternalId',
+    'Binary',
+    'Measurement',
+    'Event',
+    'Alarm',
+    'Series',
+    'Subscription',
+    'Tokens',
+    'Availability',
+    'Fragment',
+    'NamedObject',
+    'User',
+    'GlobalRole',
+    'Permission',
+    'ReadPermission',
+    'WritePermission',
+    'AnyPermission',
+    'Operation',
+    'BulkOperation',
+    'Application',
+    'TenantOption',
+    'AuditRecord',
+    # Measurement Helpers
+    'Units',
+    'Celsius',
+    'Centimeters',
+    'Count',
+    'CubicMeters',
+    'Grams',
+    'Kelvin',
+    'Kilograms',
+    'Liters',
+    'Meters',
+    'Percentage',
+    'Value',
+]

@@ -296,7 +296,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            permissions (*str):  An Iterable of permission ID
+            *permissions (str):  An Iterable of permission ID
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -308,7 +308,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            permissions (*str):  An Iterable of permission ID
+            *permissions (str):  An Iterable of permission ID
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -320,7 +320,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            users (*str):  An Iterable of usernames
+            *users (str):  An Iterable of usernames
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -332,7 +332,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            users (*str):  An Iterable of usernames
+            *users (str):  An Iterable of usernames
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -507,7 +507,7 @@ class User(SimpleObject):
         """Update the password.
 
         This operation is executed immediately. No additional call to
-        the `update` function required.
+        the ``update`` function required.
 
         Args:
             new_password (str): The new password to set
@@ -520,9 +520,9 @@ class User(SimpleObject):
         """Set the owner for this user.
 
         This operation is executed immediately. No additional call to
-        the `update` function required.
+        the ``update`` function required.
 
-        Params:
+        Args:
             user_id (str): ID of the owner to set; can be None to
                 remove a currently set owner.
         """
@@ -534,10 +534,10 @@ class User(SimpleObject):
         """Set the delegate for this user.
 
         This operation is executed immediately. No additional call to
-        the `update` function required.
+        the ``update`` function required.
 
-        Params:
-            user_id (str): ID of the delegate to set; can be None to
+        Args:
+            user_id (str): ID of the delegate to set; can be ``None`` to
                 remove a currently set delegate.
         """
         self._assert_c8y()
@@ -547,7 +547,7 @@ class User(SimpleObject):
     def assign_global_role(self, role_id: str):
         """Assign a global role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
@@ -560,7 +560,7 @@ class User(SimpleObject):
     def unassign_global_role(self, role_id):
         """Unassign a global role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
@@ -573,7 +573,7 @@ class User(SimpleObject):
     def retrieve_global_roles(self) -> List[GlobalRole]:
         """Retrieve users's global roles.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Returns:
@@ -586,7 +586,7 @@ class User(SimpleObject):
     def retrieve_inventory_role_assignments(self):
         """Retrieve users's inventory roles.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Returns:
@@ -599,13 +599,13 @@ class User(SimpleObject):
     def assign_inventory_roles(self, object_id: str | int, *roles: str | int | InventoryRole):
         """Assign an inventory role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
             object_id (str): Object ID of an existing managed object
                 (i.e. device group)
-            roles (*str|*int|*InventoryRole): Existing InventoryRole objects resp.
+            *roles (str|int|InventoryRole): Existing InventoryRole objects resp.
                 the ID of existing inventory roles
         """
 
@@ -622,11 +622,11 @@ class User(SimpleObject):
     def unassign_inventory_roles(self, *assignment_ids: str):
         """Unassign an inventory role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
-            assignment_ids (*str): Object ID of existing inventory role
+            *assignment_ids (str): Object ID of existing inventory role
                 assignments (for this user)
         """
         base_path = self._build_user_path() + '/roles/inventory/'
@@ -705,10 +705,10 @@ class InventoryRoles(CumulocityResource):
     def get_all(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> List[InventoryRole]:
         """Get all defined inventory roles.
 
-        This function is a greedy version of the `select` function. All
+        This function is a greedy version of the ``select`` function. All
         available results are read immediately and returned as list.
 
-        See `select` for a documentation of arguments.
+        See ``select`` for a documentation of arguments.
 
         Returns:
             List of InventoryRole objects
@@ -737,11 +737,11 @@ class InventoryRoles(CumulocityResource):
     def get_all_assignments(self, username: str) -> List[InventoryRoleAssignment]:
         """Get all inventory role assignments of a user.
 
-        This function is a greedy version of the `select_assignments`
+        This function is a greedy version of the ``select_assignments``
         function. All available results are read immediately and returned
         as list.
 
-        See `select_assignments` for a documentation of arguments.
+        See ``select_assignments`` for a documentation of arguments.
 
         Returns:
             List of InventoryRoleAssignment objects
@@ -752,7 +752,7 @@ class InventoryRoles(CumulocityResource):
         """Create objects within the database.
 
         Args:
-            roles (*InventoryRole):  Collection of InventoryRole instances
+            *roles (InventoryRole):  Collection of InventoryRole instances
         """
         super()._create(InventoryRole.to_full_json, *roles)
 
@@ -760,7 +760,7 @@ class InventoryRoles(CumulocityResource):
         """Write changes to the database.
 
         Args:
-            roles (*InventoryRole):  Collection of InventoryRole instances
+            *roles (InventoryRole):  Collection of InventoryRole instances
         """
         super()._update(InventoryRole.to_diff_json, *roles)
 
@@ -778,23 +778,31 @@ class Users(CumulocityResource):
     def get(self, username):
         """Retrieve a specific user.
 
-        :param username The ID of the user (usually the mail address)
-        :rtype User
+        Args:
+            username (str): The ID of the user (usually the mail address)
+
+        Returns:
+            A User instance
         """
         user = User.from_json(self._get_object(username))
         user.c8y = self.c8y  # inject c8y connection into instance
         return user
 
-    def select(self, username=None, groups=None, page_size=5):
+    def select(self, username: str = None, groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
+               page_size: int = 5):
         """Lazily select and yield User instances.
 
         The result can be limited by username (prefix) and/or group membership.
 
-        :param username: A user's username or a prefix thereof
-        :param groups: a scalar or list of int (actual group ID), string (group names),
-            or actual Group instances
-        :param page_size:  Number of results fetched per request
-        :rtype Generator of Group instances
+        Args:
+            username (str): A user's username or a prefix thereof
+            groups (int, [int], str, [str], GlobalRole, [GlobalRole]): a scalar
+                or list of int (actual group ID), string (group names), or actual
+                Group instances
+            page_size (int):  Number of results fetched per request
+
+        Returns:
+            Generator of Group instances
         """
         # group_list can be ints, strings (names) or Group objects
         # it needs to become a comma-separated string
@@ -824,17 +832,21 @@ class Users(CumulocityResource):
                 yield user
             page_number = page_number + 1
 
-    def get_all(self, username=None, groups=None, page_size=1000):
+    def get_all(self, username: str = None, groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
+                page_size: int = 1000):
         """Select and retrieve User instances as list.
 
         The result can be limited by username (prefix) and/or group membership.
 
-        :param username: A user's username or a prefix thereof
-        :param groups: a scalar or list of int (actual group ID), string (group names),
-            or actual Group instances
-         :param page_size:  Maximum number of entries fetched per requests;
+        Args:
+            username (str): A user's username or a prefix thereof
+            groups: a scalar or list of int (actual group ID), string (group names),
+                or actual Group instances
+            page_size (int):  Maximum number of entries fetched per requests;
             this is a performance setting
-        :rtype: List of User
+
+        Returns:
+            List of User
         """
         return list(self.select(username, groups, page_size))
 
@@ -842,7 +854,7 @@ class Users(CumulocityResource):
         """Create users within the database.
 
         Args:
-            users (*User):  Collection of User instances
+            *users (User):  Collection of User instances
         """
         super()._create(lambda u: u.to_full_json(), *users)
 
@@ -913,7 +925,7 @@ class GlobalRoles(CumulocityResource):
         return the matching ones.
         These groups will be cached internally for subsequent calls.
 
-        See also method `reset_caches`
+        See also method ``reset_caches``
 
         Args:
             role_id (int|str):  An actual global role ID as int/string or a
@@ -990,7 +1002,7 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            usernames (*str):  Iterable of usernames to assign
+            *usernames (str):  Iterable of usernames to assign
         """
         path = self.build_object_path(role_id) + '/users'
         for username in usernames:
@@ -1002,7 +1014,7 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            usernames (*str):  Iterable of usernames to unassign
+            *usernames (str):  Iterable of usernames to unassign
         """
         base_path = self.build_object_path(role_id) + '/users/'
         for username in usernames:
@@ -1013,7 +1025,7 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            permissions (*str):  Iterable of permission ID to assign
+            *permissions (str):  Iterable of permission ID to assign
         """
         # permissions are called 'roles' in the Cumulocity datamodel
         path = self.build_object_path(role_id) + '/roles'
@@ -1026,7 +1038,7 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            permissions (*str):  Iterable of permission ID to assign
+            *permissions (str):  Iterable of permission ID to assign
         """
         # permissions are called 'roles' in the Cumulocity datamodel
         base_path = self.build_object_path(role_id) + '/roles/'
