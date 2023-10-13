@@ -1,0 +1,21 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
+version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+
+# Build documentation in the "docs/" directory with Sphinx
+sphinx:
+   configuration: docs/conf.py
