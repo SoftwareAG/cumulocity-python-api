@@ -50,7 +50,7 @@ class Subscription(SimpleObject):
 
     def __init__(self, c8y: CumulocityRestApi = None, name: str = None, context: str = None, source_id: str = None,
                  api_filter: List[str] = None, type_filter: str = None,
-                 fragments: List[str] = None):
+                 fragments: List[str] = None, non_persistent: bool = False):
         """ Create a new Subscription instance.
 
         Args:
@@ -61,6 +61,7 @@ class Subscription(SimpleObject):
             source_id (str):  Managed object ID the subscription is for.
             api_filter (List[str]):  List of APIs/resources to subscribe for.
             type_filter (str):  Object type the subscription is for.
+            non_persistent (bool): Indicates whether the messages for this subscription are persistent or non-persistent, meaning they can be lost if consumer is not connected.
 
         Returns:
             Subscription instance
@@ -72,9 +73,11 @@ class Subscription(SimpleObject):
         self.api_filter = api_filter
         self.type_filter = type_filter
         self.fragments = fragments
+        self.non_persistent = non_persistent
 
     def _to_json(self, only_updated=False, exclude: Set[str] = None) -> dict:
         json = super()._to_json(only_updated=only_updated, exclude=exclude)
+        json['nonPersistent'] = self.non_persistent
         if self.source_id:
             json['source'] = {'id': self.source_id}
         if self.api_filter or self.type_filter:
@@ -99,6 +102,10 @@ class Subscription(SimpleObject):
         """
         subscription = super()._from_json(json, Subscription())
         subscription.source_id = json['source']['id']
+        if 'nonPersistent' in json:
+            subscription.non_persistent = json['nonPersistent']
+        else:
+            subscription.non_persistent = False
         if 'subscriptionFilter' in json:
             if 'apis' in json['subscriptionFilter']:
                 subscription.api_filter = json['subscriptionFilter']['apis']
@@ -147,7 +154,7 @@ class Subscriptions(CumulocityResource):
         subscription.c8y = self.c8y  # inject c8y connection into instance
         return subscription
 
-    def select(self, context: str = None, source: str = None,
+    def select(self, context: str = None, source: str = None, subscription: str = None,
                limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[Subscription]:
         """ Query the database for subscriptions and iterate over the
         results.
@@ -162,6 +169,7 @@ class Subscriptions(CumulocityResource):
         Args:
             context (str):  Subscription context.
             source (str):  Managed object ID the subscription is for.
+            subscription (str): The subscription name by which filtering will be done.
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
@@ -171,10 +179,10 @@ class Subscriptions(CumulocityResource):
         Returns:
             Generator for Subscription instances
         """
-        base_query = self._build_base_query(context=context, source=source, page_size=page_size)
+        base_query = self._build_base_query(context=context, source=source, subscription=subscription, page_size=page_size)
         return super()._iterate(base_query, page_number, limit, Subscription.from_json)
 
-    def get_all(self, context: str = None, source: str = None,
+    def get_all(self, context: str = None, source: str = None, subscription: str = None,
                 limit: int = None, page_size: int = 1000, page_number: int = None) -> List[Subscription]:
         """ Query the database for subscriptions and return the results
         as list.
@@ -185,7 +193,7 @@ class Subscriptions(CumulocityResource):
         Returns:
             List of Subscription instances.
         """
-        return list(self.select(context=context, source=source, limit=limit,
+        return list(self.select(context=context, source=source, subscription=subscription, limit=limit,
                                 page_size=page_size, page_number=page_number))
 
     def create(self, *subscriptions: Subscription) -> None:
@@ -226,18 +234,21 @@ class Tokens(CumulocityResource):
         super().__init__(c8y, '/notification2')
         self.host = urllib.parse.urlparse(c8y.base_url).netloc
 
-    def generate(self, subscription: str, expires: int = 60, subscriber: str = None) -> str:
+    def generate(self, subscription: str, expires: int = 60, subscriber: str = None, signed: bool = True, shared: bool = False, non_persistent: bool = False) -> str:
         """Generate a new access token.
 
         Args:
             subscription (str): Subscription name
             expires (int):  Expiration time in minutes
             subscriber (str):  Subscriber Id (name)
+            signed (bool):If true, the token will be securely signed by the Cumulocity IoT platform.
+            shared (bool): If true, indicates that the token is used to create a shared consumer on the subscription.
+            non_persistent (bool): If true, indicates that the created token refers to the non-persistent variant of the named subscription.
 
         Returns:
             JWT access token as string.
         """
-        td_json = self._build_token_definition(subscription, expires, subscriber)
+        td_json = self._build_token_definition(subscription, expires, subscriber, signed, shared, non_persistent)
         token_json = self.c8y.post(self.resource + '/token', td_json)
         return token_json['token']
 
@@ -254,21 +265,26 @@ class Tokens(CumulocityResource):
         if not result_json['result'] == 'DONE':
             raise RuntimeError(f"Unexpected response: {js.dumps(result_json)}")
 
-    def build_websocket_uri(self, token: str):
+    def build_websocket_uri(self, token: str, consumer: str = None):
         """Build websocket access URL.
 
         Args:
             token (str):  Subscriber access token
+            consumer (str): Optional. Only impacts shared token. Connects source ids to specific consumers, even after reconnecting.
 
         Returns:
              A websocket (ws(s)://) URL to access the subscriber channel.
         """
         protocol = 'wss' if self.c8y.is_tls else 'ws'
-        return f'{protocol}://{self.host}/notification2/consumer/?token={token}'
+        consumer = f'&consumer={consumer}' if consumer is not None else ''
+        return f'{protocol}://{self.host}/notification2/consumer/?token={token}{consumer}'
 
-    def _build_token_definition(self, subscription: str, expires: int, subscriber: str = None):
+    def _build_token_definition(self, subscription: str, expires: int, subscriber: str = None, signed = True, shared = False, non_persistent = False):
         return {
             'subscriber': subscriber or self._default_subscriber,
             'subscription' : subscription,
-            'expiresInMinutes' : expires
+            'expiresInMinutes' : expires,
+            'signed' : signed,
+            'shared' : shared,
+            'nonPersistent' : non_persistent
         }
