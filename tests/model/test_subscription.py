@@ -14,7 +14,7 @@ import pytest
 
 from c8y_api import CumulocityRestApi
 from c8y_api.model.notification2 import Subscription
-from utils import isolate_last_call_arg
+from tests.utils import isolate_last_call_arg
 
 
 def fix_sample_jsons() -> List[dict]:
@@ -33,6 +33,10 @@ def test_parsing(sample_json):
     assert subscription.name == sample_json['subscription']
     assert subscription.context == sample_json['context']
     assert subscription.source_id == sample_json['source']['id']
+    if 'nonPersistent' in sample_json:
+        assert subscription.non_persistent == sample_json['nonPersistent']
+    else :
+        assert subscription.non_persistent == False
     if 'fragmentsToCopy' in sample_json:
         assert subscription.fragments == sample_json['fragmentsToCopy']
     if 'subscriptionFilter' in sample_json:
@@ -47,11 +51,14 @@ def test_formatting():
     subscription = Subscription(name='name', source_id='source_id', context=Subscription.Context.TENANT)
     subscription_json = subscription.to_full_json()
 
+    #print (subscription_json)
+
     assert subscription_json['subscription'] == 'name'
     assert subscription_json['context'] == 'tenant'
     assert subscription_json['source']['id'] == 'source_id'
+    #assert subscription_json['nonPersistent'] == False
     # expect no other entries
-    assert len(subscription_json) == 3
+    assert len(subscription_json) == 4
 
     subscription.fragments = ['f1', 'f2']
     subscription.type_filter = 'type_filter'
@@ -59,7 +66,7 @@ def test_formatting():
     assert subscription_json['fragmentsToCopy'] == subscription.fragments
     assert subscription_json['subscriptionFilter']['typeFilter'] == subscription.type_filter
     # expect no other entries
-    assert len(subscription_json) == 5
+    assert len(subscription_json) == 6
 
     subscription.api_filter = ['a1', 'a2']
     subscription_json = subscription.to_full_json()
@@ -67,7 +74,7 @@ def test_formatting():
     assert subscription_json['subscriptionFilter']['typeFilter'] == subscription.type_filter
     assert subscription_json['subscriptionFilter']['apis'] == subscription.api_filter
     # expect no other entries
-    assert len(subscription_json) == 5
+    assert len(subscription_json) == 6
 
 
 def test_create():
