@@ -1,6 +1,10 @@
 # Changelog
 
 
+* Testing code improvements.
+* Added support for signed, shared and non-persistent Notification 2.0 subscriptions and tokens (Thanks @wilbersl!)
+
+
 ## Version 1.9.1
 
 * Minor improvements and fixes.
