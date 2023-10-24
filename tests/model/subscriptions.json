@@ -47,7 +47,8 @@
           "measurements",
           "events"
         ]
-      }
+      },
+      "nonPersistent": false
     },
     {
       "id": "123456",
@@ -55,7 +56,8 @@
         "id": "251982"
       },
       "context": "mo",
-      "subscription": "testSubscription"
+      "subscription": "testSubscription",
+      "nonPersistent": true
     }
   ]
 }
