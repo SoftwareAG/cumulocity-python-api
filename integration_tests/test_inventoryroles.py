@@ -8,7 +8,7 @@ import pytest
 
 from c8y_api.model import User, InventoryRole, Permission, ReadPermission, WritePermission, AnyPermission
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CRUD(live_c8y):

@@ -4,15 +4,14 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, protected-access
 
 import random
 import pytest
 
-from tests.utils import RandomNameGenerator
+from c8y_api.model._parser import SimpleObjectParser
 
-# pylint: disable=protected-access
-from c8y_api.model._parser import SimpleObjectParser  # noqa
+from util.testing_util import RandomNameGenerator
 
 
 @pytest.fixture(scope='function')

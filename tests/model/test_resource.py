@@ -8,7 +8,8 @@ import random
 from unittest.mock import Mock
 
 from c8y_api.model import CumulocityResource
-from tests import RandomNameGenerator
+
+from util.testing_util import RandomNameGenerator
 
 
 def test_build_base_query():

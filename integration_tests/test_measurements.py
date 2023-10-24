@@ -15,7 +15,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model import Device, Measurement, Measurements, Series, Count, Kelvin
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def get_ids(ms: List[Measurement]) -> List[str]:
