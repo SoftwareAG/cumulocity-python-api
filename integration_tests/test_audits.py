@@ -10,7 +10,7 @@ from c8y_api import CumulocityApi
 from c8y_api.model import AuditRecord
 from c8y_api.model._util import _DateUtil  # noqa
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CR(live_c8y: CumulocityApi, sample_device):  # noqa (case)

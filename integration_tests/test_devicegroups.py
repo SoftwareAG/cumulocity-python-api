@@ -11,7 +11,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model import DeviceGroup
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CRUD(live_c8y: CumulocityApi, safe_executor):

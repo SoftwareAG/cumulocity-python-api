@@ -18,7 +18,7 @@ import pytest
 
 from c8y_api import CumulocityApi
 from c8y_api.model import Event, Device
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 @pytest.fixture(scope='session')

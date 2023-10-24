@@ -12,7 +12,7 @@ from typing import List
 import pytest
 
 from c8y_api.model import AuditRecord
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def fix_sample_jsons() -> List[dict]:

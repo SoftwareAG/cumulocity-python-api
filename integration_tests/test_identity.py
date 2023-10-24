@@ -9,7 +9,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model.identity import ExternalId
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CRUD(live_c8y: CumulocityApi, sample_device):

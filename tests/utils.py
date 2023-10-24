@@ -17,6 +17,7 @@ from c8y_api.model._base import CumulocityObject
 
 from util.testing_util import RandomNameGenerator
 
+
 def get_ids(objs: List[CumulocityObject]) -> Set[str]:
     """Isolate the ID from a list of database objects."""
     return {o.id for o in objs}

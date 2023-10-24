@@ -14,7 +14,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model import Event, ManagedObject, Measurement, Count, Value, Device
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 from tests.utils import get_ids
 
 
