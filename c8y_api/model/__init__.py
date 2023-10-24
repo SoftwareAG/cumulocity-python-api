@@ -39,6 +39,7 @@ __all__ = [
     'TenantOptions',
     'AuditRecords',
     # Model Classes
+    'CumulocityResource',
     'ManagedObject',
     'Device',
     'DeviceGroup',

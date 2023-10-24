@@ -19,7 +19,7 @@ from c8y_api._util import c8y_keys
 from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import Application, Device
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 @pytest.fixture(scope='session')
