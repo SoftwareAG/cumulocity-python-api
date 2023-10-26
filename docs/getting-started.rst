@@ -99,7 +99,7 @@ have a look here: `Python Virtual Environments: A Primer <https://realpython.com
 
 The last command will download the latest version of the Cumulocity Python
 API (the module is abbreviated ``c8y-api``) including all dependencies from
-pypi.org_ and install it into the previously created virtual environment
+`pypi.org <http://pypi.org>`_ and install it into the previously created virtual environment
 (indicated by the ``(venv)`` prompt).
 
 Now we are all set to start developing!
@@ -294,7 +294,7 @@ Clearing alarms
 Within Cumulocity IoT, alarms are special events that need manual
 intervention. They feature a lifecycle and correspondingly can only be
 created once (creating an identical alarm multiple times does not raise
-the alarm again, see also `Cumulocity IoT’s Event model <https://cumulocity.com/guides/concepts/domain-model/#events`_.
+the alarm again, see also `Cumulocity IoT’s Event model <https://cumulocity.com/guides/concepts/domain-model/#events>`_.
 
 Because of this, we can run our sample application multiple times without
 spamming the platform with additional alarms. A alarm can only be raised
@@ -386,4 +386,4 @@ Some hints where to go next:
    You can also create measurements using a neat object-oriented API
 
 If you are interested in participating in the further development of the
-Cumulocity Python API, please join our `GitHub community <https://github.com/SoftwareAG/cumulocity-python-api`_.
+Cumulocity Python API, please join our `GitHub community <https://github.com/SoftwareAG/cumulocity-python-api>`_.
