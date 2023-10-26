@@ -31,7 +31,7 @@ class SimpleObjectParser(object):
         Use the skip list to skip certain objects fields within the update
         regardless whether they are defined in the mapping.
 
-        Params:
+        Args:
             obj_json: JSON object (nested dict) to parse
             new_obj:  object instance to update (usually newly created)
             skip:  list of object field names to skip or None if nothing
@@ -55,7 +55,7 @@ class SimpleObjectParser(object):
 
         If a field is present in both lists, it will be excluded.
 
-        Params:
+        Args:
             include:  an iterable of object fields to include or None if all
                 fields should be included
             exclude:  an iterable of object fields to exclude or None of no

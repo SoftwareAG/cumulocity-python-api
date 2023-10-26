@@ -24,7 +24,7 @@ class _DictWrapper(MutableMapping):
         self.__dict__['_property_items'] = dictionary
         self.__dict__['_property_on_update'] = on_update
 
-    def has(self, name):
+    def has(self, name: str):
         """Check whether a key is present in the dictionary."""
         return name in self.__dict__['_property_items']
 
@@ -95,11 +95,11 @@ class CumulocityObjectParser:
         Use the skip list to skip certain objects fields within the update
         regardless whether they are defined in the mapping.
 
-        Params:
-            obj_json (dict): JSON object (nested dict) to parse
-            new_obj (Any):  object instance to update (usually newly created)
-            skip (Iterable):  collection of object field names to skip
-                or None if nothing should be skipped
+        Args:
+            obj_json (dict): JSON object (nested dict) to parse.
+            new_obj (Any):  Object instance to update (usually newly created).
+            skip (Iterable):  Collection of object field names to skip
+                or None if nothing should be skipped.
 
         Returns:
             The updated object instance.
@@ -114,12 +114,12 @@ class CumulocityObjectParser:
 
         If a field is present in both lists, it will be excluded.
 
-        Params:
-            obj (Any):  the object to format as JSON
-            include (Iterable):  an collection of object fields to include
-                or None if all fields should be included
-            exclude (Iterable):  an collection of object fields to exclude
-                or None of no field should be included
+        Args:
+            obj (Any):  the object to format as JSON.
+            include (Iterable):  Collection of object fields to include
+                or None if all fields should be included.
+            exclude (Iterable):  Collection of object fields to exclude
+                or None of no field should be included.
 
         Returns:
             A JSON representation (nested dict) of the object.
@@ -140,11 +140,11 @@ class SimpleObject(CumulocityObject):
     _accept = None
 
     class UpdatableProperty:
-        """Providing updatable properties for SimpleObject instances.
-
-        An updatable property is watched - write access will be recorded
-        within the SimpleObject instance to be able to provide incremental
-        updates to objects within Cumulocity."""
+        """Updatable property."""
+        # Providing updatable properties for SimpleObject instances.
+        # An updatable property is watched - write access will be recorded
+        # within the SimpleObject instance to be able to provide incremental
+        # updates to objects within Cumulocity."""
 
         def __init__(self, name):
             self.internal_name = name
@@ -198,7 +198,7 @@ class SimpleObject(CumulocityObject):
         return a full representation of the JSON. It is used for object
         creation and update within Cumulocity.
 
-        Params:
+        Args:
             json (dict): The JSON to parse.
 
         Returns:
@@ -214,9 +214,9 @@ class SimpleObject(CumulocityObject):
         creation and update within Cumulocity, so for example the 'id'
         field is never included.
 
-        Params:
-            only_updated(bool): Whether the result should be limited to
-                changed fields only (for object updates). Default: False
+        Args:
+            only_updated (bool):  Whether the result should be limited to
+                changed fields only (for object updates). Default: `False`
 
         Returns:
             A JSON (nested dict) object.
@@ -251,10 +251,10 @@ class SimpleObject(CumulocityObject):
         """
         return self.to_json(only_updated=True)
 
-    def get_updates(self) -> set:
+    def get_updates(self) -> set[str]:
         """Get the names of updated fields.
 
-        Return:
+        Returns:
             A set of (internal) field names that where updated after
             object creation.
         """
@@ -315,34 +315,34 @@ class ComplexObject(SimpleObject):
             self.fragments[key] = value
         self.__setattr__ = self._setattr_
 
-    def __setitem__(self, name, fragment):
+    def __setitem__(self, name: str, fragment: str | bool | int | float | dict):
         """ Add/set a custom fragment.
 
         The fragment value can be a simple value or any JSON-like structure
-        (specified as nested dictionary).
-        :: python
+        (specified as nested dictionary).::
+
             obj['c8y_SimpleValue'] = 14
             obj['c8y_ComplexValue'] = { 'x': 1, 'y': 2, 'text': 'message'}
 
-        :param name:  Name of the custom fragment
-        :param fragment:  custom value/structure to assign
-        :returns:  None
+        Args:
+            name (str):  Name of the custom fragment.
+            fragment (str|bool|int|float|dict):  custom value/structure to assign.
         """
         self.fragments[name] = fragment
         self._signal_updated_fragment(name)
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
         """ Get the value of a custom fragment.
 i
         Depending on the definition the value can be a scalar or a
         complex structure (modelled as nested dictionary).
 
-        Access to fragments can also be done in dot notation.
-        :: python
+        Access to fragments can also be done in dot notation::
             msg = obj['c8y_Custom']['text']
             msg = obj.c8y_Custom.text
 
-        :param name: Name of the custom fragment
+        Args:
+            name (str): Name of the custom fragment.
         """
         # A fragment is a simple dictionary. By wrapping it into the _DictWrapper class
         # it is ensured that the same access behaviour is ensured on all levels.
@@ -353,13 +353,14 @@ i
         return item if not isinstance(item, dict) else \
             _DictWrapper(self.fragments[name], lambda: self._signal_updated_fragment(name))
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """ Get the value of a custom fragment.
 
         Depending on the definition the value can be a scalar or a
         complex structure (modelled as nested dictionary).
 
-        :param name: Name of the custom fragment
+        Args:
+            name (str): Name of the custom fragment.
         """
         try:
             return self[name]
@@ -422,7 +423,7 @@ i
         return ([] if not self._updated_fields else list(self._updated_fields)) \
                + ([] if not self._updated_fragments else list(self._updated_fragments))
 
-    def _signal_updated_fragment(self, name):
+    def _signal_updated_fragment(self, name: str):
         if not self._updated_fragments:
             self._updated_fragments = {name}
         else:
@@ -566,7 +567,7 @@ class CumulocityResource:
         or strings).
 
         Args:
-            objects (*str):  Objects within the database specified by ID
+            *objects (str):  Objects within the database specified by ID
         """
         try:
             object_ids = [o.id for o in objects]  # noqa (id)

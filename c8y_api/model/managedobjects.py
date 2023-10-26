@@ -15,36 +15,38 @@ class NamedObject(object):
 
     This class is used to model Cumulocity references.
     """
-    def __init__(self, id=None, name=None):  # noqa
+    def __init__(self, id: str = None, name: str = None):  # noqa
         """ Create a new instance.
 
-        :param id:  Database ID of the object
-        :param name:  Name of the object
-        :returns:  New NamedObject instance
+        Args:
+            id (str):  Database ID of the object
+            name (str):  Name of the object
         """
         self.id = id
         self.name = name
 
     @classmethod
-    def from_json(cls, object_json):
+    def from_json(cls, object_json: dict) -> NamedObject:
         """ Build a new instance from JSON.
 
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
-
-        :param object_json:  JSON object (nested dictionary)
+        Args:
+            object_json (dict):  JSON object (nested dictionary)
             representing a named object within Cumulocity
-        :returns:  NamedObject instance
+        Returns:
+              NamedObject instance
         """
         return NamedObject(id=object_json['id'], name=object_json.get('name', ''))
 
-    def to_json(self):
+    def to_json(self) -> dict:
         """ Convert the instance to JSON.
 
         The JSON format produced by this function is what is used by the
         Cumulocity REST API.
 
-        :returns:  JSON object (nested dictionary)
+        Returns:
+            JSON object (nested dictionary)
         """
         return {'id': self.id, 'name': self.name}
 
@@ -56,7 +58,7 @@ class Fragment(object):
     within their data model.
 
     For example, every measurement contains such a fragment, holding
-    the actual data points:
+    the actual data points::
 
         "pt_current": {
             "CURR": {
@@ -65,31 +67,29 @@ class Fragment(object):
             }
         }
 
-    A fragment has a name (*pt_current* in above example) and can virtually
+    A fragment has a name (`pt_current` in above example) and can virtually
     define any substructure.
     """
     def __init__(self, name: str, **kwargs):
         """ Create a new fragment.
 
-        Params
+        Args:
             name (str):  Name of the fragment
-            kwargs:  Named elements of the fragment. Each element
+            **kwargs:  Named elements of the fragment. Each element
                 can either be a simple value of a complex substructure
                 modelled as nested dictionary.
-        Returns:
-            New Fragment instance
         """
         self.name = name
         self.items = kwargs
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> str|int|float|bool|dict:
         """ Get a specific element of the fragment.
 
         Args:
             name (str):  Name of the element
 
         Returns:
-            Value of the element. May be a simple value or a
+            Value of the element. Can be a simple value or a
             complex substructure defined as nested dictionary.
         """
         item = self.items[name]
@@ -106,13 +106,16 @@ class Fragment(object):
         """
         return name in self.items
 
-    def add_element(self, name, element):
+    def add_element(self, name: str, element: Any|dict) -> Fragment:
         """ Add an element.
 
-        :param name:  Name of the element
-        :param element:  Value of the element, either a simple value or
-            a complex substructure defined as nested dictionary.
-        :returns:  self
+        Args:
+            name (str):  Name of the element.
+            element (Any|dict):  Value of the element, either a simple
+                value or a complex substructure defined as nested dictionary.
+
+        Returns:
+            `self` reference
         """
         self.items[name] = element
         return self
@@ -675,7 +678,8 @@ class DeviceGroup(ManagedObject):
         This operation will create the group and all added child groups
         within the database.
 
-        :returns:  A fresh DeviceGroup instance representing the created
+        Returns:
+            A fresh DeviceGroup instance representing the created
             object within the database. This instance can be used to get at
             the ID of the new object.
 
@@ -689,7 +693,8 @@ class DeviceGroup(ManagedObject):
 
         Note: Removing child groups is currently not supported.
 
-        :returns:  A fresh DeviceGroup instance representing the updated
+        Returns:
+            A fresh DeviceGroup instance representing the updated
             object within the database.
         """
         return super()._update()

@@ -28,7 +28,7 @@ class PermissionUtil:
 
 
 class Permission(SimpleObject):
-    """Represents an Permission object within Cumulocity.
+    """Represents a Permission object within Cumulocity.
 
     Notes:
       - Permissions are not created/deleted but only assigned to users or
@@ -80,8 +80,8 @@ class Permission(SimpleObject):
     def to_json(self, only_updated=False) -> dict:
         # no doc change required
         json = self._to_json()
-        # for permissions it is actually ok to give the ID if there is any
-        # for updates, this will create less objects within the database
+        # for permissions, it is actually ok to give the ID if there is any
+        # for updates, this will create fewer objects within the database
         if self.id:
             # permission IDs are actually ints
             json['id'] = int(self.id)
@@ -89,21 +89,21 @@ class Permission(SimpleObject):
 
 
 class ReadPermission(Permission):
-    """Prepresents a read permission within Cumulocity."""
+    """Represents a read permission within Cumulocity."""
     # pylint: disable=abstract-method
     def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
         super().__init__(level=Permission.Level.READ, scope=scope, type=type)
 
 
 class WritePermission(Permission):
-    """Prepresents a write permission within Cumulocity."""
+    """Represents a write permission within Cumulocity."""
     # pylint: disable=abstract-method
     def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
         super().__init__(level=Permission.Level.WRITE, scope=scope, type=type)
 
 
 class AnyPermission(Permission):
-    """Prepresents a read/write permission within Cumulocity."""
+    """Represents a read/write permission within Cumulocity."""
     # pylint: disable=abstract-method
     def __init__(self, scope=Permission.Scope.ANY, type='*'):  # noqa
         super().__init__(level=Permission.Level.ANY, scope=scope, type=type)
@@ -223,7 +223,7 @@ class InventoryRoleAssignment(SimpleObject):
 
 
 class GlobalRole(SimpleObject):
-    """Represents an Global Role object within Cumulocity.
+    """Represents a Global Role object within Cumulocity.
 
     Notes:
       - Global Roles are called 'groups' in the Cumulocity Standard REST API;
@@ -231,7 +231,7 @@ class GlobalRole(SimpleObject):
         used for consistency with the Cumulocity realm.
 
       - Only a limited set of properties are actually updatable. Others must
-        be set explicitely using the corresponding API (for example: permissions).
+        be set explicitly using the corresponding API (for example: permissions).
 
     See also: https://cumulocity.com/api/#tag/Groups
     """
@@ -339,7 +339,7 @@ class GlobalRole(SimpleObject):
         GlobalRoles(self.c8y).unassign_users(self.id, *users)
 
     def _build_resource_path(self):
-        # overriding the default as we need the tenand ID in there
+        # overriding the default as we need the tenant ID in there
         return f'/user/{self.c8y.tenant_id}/groups'
 
 
@@ -363,7 +363,7 @@ class UserUtil:
 
     @staticmethod
     def build_application_references(*ids) -> List[dict]:
-        """Build the JSON structure for a applicaiton reference."""
+        """Build the JSON structure for an application reference."""
         if not ids:
             return []
         return [{'id': str(aid), 'type': 'MICROSERVICE'} for aid in ids]
@@ -375,11 +375,11 @@ class UserUtil:
 
 
 class User(SimpleObject):
-    """Represents an User object within Cumulocity.
+    """Represents a User object within Cumulocity.
 
     Notes:
       - Only a limited set of properties are actually updatable. Others must
-        be set explicitely using the corresponding API (for example: global roles, permissions,
+        be set explicitly using the corresponding API (for example: global roles, permissions,
         owner, etc.)
     """
 
@@ -402,21 +402,29 @@ class User(SimpleObject):
     _accept = CumulocityRestApi.ACCEPT_USER
     _custom_properties_parser = ComplexObjectParser({}, [])
 
-    def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, first_name=None, last_name=None, phone=None,
-                 tfa_enabled=None, require_password_reset=None):
+    def __init__(self, c8y: CumulocityRestApi = None, username: str = None, email: str = None,
+                 enabled: bool = True, display_name: str = None, password:str = None,
+                 first_name: str = None, last_name: str = None, phone: str = None,
+                 tfa_enabled: bool = None, require_password_reset: bool = None):
         """
-        :param c8y:
-        :param username:
-        :param email:
-        :param enabled:
-        :param display_name:
-        :param password:  the initial password for the user
-            if omitted, a newly created user will be send a password reset link
-            (for human users)
-        :param first_name:
-        :param last_name:
-        :param phone:
+            Create a new User instance.
+
+            Args:
+                c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                    to be set for direct manipulation (create, delete).
+                username (str):  The user's username.
+                email (str):  The user's email address.
+                enabled (bool):  Whether the user is enabled.
+                display_name (str):  The user's display name
+                password (str):  The initial password for the user. If omitted,
+                    a newly created user will be sent a password reset link
+                    (for human users).
+                first_name (str):  The user's first name.
+                last_name (str):  The user's last name.
+                phone (str):  The user's phone number.
+                tfa_enabled (bool):  Whether 2nd factor login is enabled.
+                require_password_reset (bool):  Whether the password must be
+                    reset by the user after the next login.
         """
         super().__init__(c8y)
         self.username = username
@@ -571,7 +579,7 @@ class User(SimpleObject):
         GlobalRoles(self.c8y).unassign_users(role_id, self.username)
 
     def retrieve_global_roles(self) -> List[GlobalRole]:
-        """Retrieve users's global roles.
+        """Retrieve user's global roles.
 
         This operation is executed immediately. No call to ``update``
         is required.
@@ -584,7 +592,7 @@ class User(SimpleObject):
         return GlobalRoles(self.c8y).get_all(self.username)
 
     def retrieve_inventory_role_assignments(self):
-        """Retrieve users's inventory roles.
+        """Retrieve the user's inventory roles.
 
         This operation is executed immediately. No call to ``update``
         is required.
@@ -630,8 +638,8 @@ class User(SimpleObject):
                 assignments (for this user)
         """
         base_path = self._build_user_path() + '/roles/inventory/'
-        for id in assignment_ids:
-            self.c8y.delete(base_path + str(id))
+        for aid in assignment_ids:
+            self.c8y.delete(base_path + str(aid))
 
     def _build_resource_path(self):
         # overriding the default as we need the tenant ID in there
@@ -662,11 +670,11 @@ class InventoryRoles(CumulocityResource):
         super().__init__(c8y, '/user/inventoryroles')
         self.object_name = "roles"
 
-    def get(self, id: str | int) -> InventoryRole:
+    def get(self, role_id: str | int) -> InventoryRole:
         """Get a specific inventory role object.
 
         Args:
-            id (str|int): Cumulocity ID of the inventory role
+            role_id (str|int): Cumulocity ID of the inventory role
 
         Returns:
             An InventoryRole instance for this ID
@@ -677,7 +685,7 @@ class InventoryRoles(CumulocityResource):
         Note: In contrast to other API the InventoryRole API does not raise
         an KeyError (i.e. 404) for undefined ID but a SyntaxError (HTTP 500).
         """
-        role = InventoryRole.from_json(self._get_object(id))
+        role = InventoryRole.from_json(self._get_object(role_id))
         role.c8y = self.c8y  # inject c8y connection into instance
         return role
 
@@ -870,9 +878,9 @@ class Users(CumulocityResource):
     def set_owner(self, user_id: str, owner_id: str | None):
         """Set the owner of a given user.
 
-        Params:
+        Args:
             user_id (str): The user to set an owner for
-            owner_id (str):  The Id of the owner user; Can be None to
+            owner_id (str):  The ID of the owner user; Can be None to
                 unassign/remove the current owner
         """
         if owner_id:
@@ -883,9 +891,9 @@ class Users(CumulocityResource):
     def set_delegate(self, user_id: str, delegate_id: str | None):
         """Set the delegate of a given user.
 
-        Params:
+        Args:
             user_id (str): The user to set an owner for
-            delegate_id (str):  The Id of the delegate user; Can be None to
+            delegate_id (str):  The ID of the delegate user; Can be None to
                 unassign/remove the current owner
         """
         if delegate_id:
@@ -1027,7 +1035,7 @@ class GlobalRoles(CumulocityResource):
             role_id (int|str):  Technical ID of the global role
             *permissions (str):  Iterable of permission ID to assign
         """
-        # permissions are called 'roles' in the Cumulocity datamodel
+        # permissions are called 'roles' in the Cumulocity data model
         path = self.build_object_path(role_id) + '/roles'
         for permission in permissions:
             reference = PermissionUtil.build_reference(permission)
@@ -1040,7 +1048,7 @@ class GlobalRoles(CumulocityResource):
             role_id (int|str):  Technical ID of the global role
             *permissions (str):  Iterable of permission ID to assign
         """
-        # permissions are called 'roles' in the Cumulocity datamodel
+        # permissions are called 'roles' in the Cumulocity data model
         base_path = self.build_object_path(role_id) + '/roles/'
         for permission in permissions:
             self.c8y.delete(base_path + permission)

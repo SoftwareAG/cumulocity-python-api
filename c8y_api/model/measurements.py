@@ -125,11 +125,11 @@ class Measurement(ComplexObject):
     def __init__(self, c8y=None, type=None, source=None, time=None, **kwargs):  # noqa (type)
         """ Create a new Measurement object.
 
-        Params:
-            c8y(CumulocityRestApi):  Cumulocity connection reference; needs
+        Args:
+            c8y (CumulocityRestApi)  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
-            type(str):  Measurement type
-            source(str):  Device ID which this measurement is for
+            type (str)  Measurement type
+            source (str)  Device ID which this measurement is for
             time(str|datetime):  Datetime string or Python datetime object. A
                 given datetime string needs to be in standard ISO format incl.
                 timezone: YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is retured by the
@@ -159,8 +159,8 @@ class Measurement(ComplexObject):
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
-        Params:
-            measurement_json(dict):  JSON object (nested dictionary)
+        Args:
+            measurement_json (dict)  JSON object (nested dictionary)
                 representing a measurement within Cumulocity
 
         Returns:
@@ -261,7 +261,7 @@ class Series(dict):
                 timestamps: bool | str = None) -> List | List[tuple]:
         """Collect series results.
 
-        Params:
+        Args:
             series (str|Sequence[str]):  Which series' values to collect. If
                 multiple series are collected each element in the result will
                 be a tuple. If omitted, all available series are collected.
@@ -388,7 +388,7 @@ class Measurements(CumulocityResource):
     def get(self, measurement_id: str | int) -> Measurement:
         """ Read a specific measurement from the database.
 
-        params:
+        Args:
             measurement_id (str|int):  database ID of a measurement
 
         Returns:
@@ -414,7 +414,7 @@ class Measurements(CumulocityResource):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        Params:
+        Args:
             type (str):  Alarm type
             source (str):  Database ID of a source device
             fragment (str):  Name of a present custom/standard fragment
@@ -492,7 +492,7 @@ class Measurements(CumulocityResource):
                    before=None, after=None, min_age=None, max_age=None, reverse=False) -> Series:
         """Query the database for a list of series and their values.
 
-        Params:
+        Args:
             source (str):  Database ID of a source device
             aggregation (str):  Aggregation type
             series (str|Sequence[str]):  Series' to query
@@ -534,11 +534,11 @@ class Measurements(CumulocityResource):
                 before=None, after=None, min_age=None, max_age=None):
         """ Query the database and delete matching measurements.
 
-         All parameters are considered to be filters, limiting the result set
+        All parameters are considered to be filters, limiting the result set
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        Params: See 'select' function
+        Args: See 'select' function
         """
         base_query = self._build_base_query(type=type, source=source,
                                             fragment=fragment, value=value, series=series,
@@ -552,7 +552,7 @@ class Measurements(CumulocityResource):
     def create(self, *measurements):
         """ Bulk create a collection of measurements within the database.
 
-        Params:
-            measurements (Iterable): Iterable collection of Measurement objects.
+        Args:
+            *measurements (Measurement): Collection of Measurement objects.
         """
         self._create_bulk(Measurement.to_json, 'measurements', self.c8y.CONTENT_MEASUREMENT_COLLECTION, *measurements)

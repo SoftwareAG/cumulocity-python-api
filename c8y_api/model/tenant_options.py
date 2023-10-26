@@ -241,7 +241,7 @@ class TenantOptions(CumulocityResource):
         """ Create options within the database.
 
         Args:
-            options (*TenantOption):  Collection of TenantObject instances
+            *options (TenantOption):  Collection of TenantObject instances
         """
         super()._create(TenantOption.to_json, *options)
 
@@ -249,7 +249,7 @@ class TenantOptions(CumulocityResource):
         """ Update options within the database.
 
         Args:
-            options (*TenantOption):  Collection of TenantObject instances
+            *options (TenantOption):  Collection of TenantObject instances
         """
         for o in options:
             self.c8y.put(self.build_object_path(o.category, o.key), json=o.to_diff_json(), accept=None)
@@ -267,7 +267,7 @@ class TenantOptions(CumulocityResource):
         """ Delete options within the database.
 
         Args:
-            options (*TenantOption):  Collection of TenantObject instances
+            *options (TenantOption):  Collection of TenantObject instances
         """
         for o in options:
             self.delete_by(o.category, o.key)

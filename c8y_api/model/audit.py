@@ -216,7 +216,7 @@ class AuditRecords(CumulocityResource):
             each of the given objects.
 
         Args:
-            records (*AuditRecord):  Collection of AuditRecord instances
+            *records (AuditRecord):  Collection of AuditRecord instances
         """
         for r in records:
             if not r.time:

@@ -152,7 +152,7 @@ class Inventory(CumulocityResource):
         Args:
             object_model (ManagedObject): ManagedObject instance holding
                 the change structure (e.g. a specific fragment)
-           *object_ids (str): a collection of ID of already existing
+            *object_ids (str): a collection of ID of already existing
                 managed objects within the database
         """
         super()._apply_to(ManagedObject.to_full_json, object_model, *object_ids)
@@ -313,13 +313,18 @@ class DeviceGroupInventory(Inventory):
     See also: https://cumulocity.com/api/#tag/Inventory-API
     """
 
-    def get(self, group_id):
+    def get(self, group_id: str):
         # pylint: disable=arguments-differ, arguments-renamed
         """ Retrieve a specific device group object.
 
-        :param group_id:  ID of the device group object
-        :return:  a DeviceGroup instance
-        :raises:  KeyError if the ID is not defined within the database
+        Args:
+            group_id (str):  ID of the device group object.
+
+        Returns:
+            DeviceGroup instance.
+
+        Raises:
+            KeyError if the ID is not defined within the database.
         """
         group = DeviceGroup.from_json(self._get_object(group_id))
         group.c8y = self.c8y
@@ -404,7 +409,7 @@ class DeviceGroupInventory(Inventory):
         collect the entire result set before returning.
 
         Returns:
-            List of DeviceGroup instances
+            List of DeviceGroup instances.
         """
         return list(self.select(type=type, parent=parent, fragment=fragment, name=name,
                                 page_size=page_size, page_number=page_number))
@@ -412,17 +417,18 @@ class DeviceGroupInventory(Inventory):
     def create(self, *groups):
         """Batch create a collection of groups and entire group trees.
 
-        :param groups:  collection of DeviceGroup instances; each can
-            define children as needed.
+        Args:
+            *groups (DeviceGroup):  collection of DeviceGroup instances;
+                each can define children as needed.
         """
         super()._create(DeviceGroup.to_json, *groups)
 
-    def assign_children(self, root_id, *child_ids):
+    def assign_children(self, root_id: str, *child_ids: str):
         """Link child groups to this device group.
 
         Args:
-            root_id (str|int): ID of the root device group
-           *child_ids (str|int): ID of the child device groups
+            root_id (str): ID of the root device group.
+            *child_ids (str): Collection of the child device group ID.
         """
         # adding multiple references at once is not (yet) supported
         # refs = {'references': [InventoryUtil.build_managed_object_reference(id) for id in child_ids]}
@@ -435,13 +441,13 @@ class DeviceGroupInventory(Inventory):
         """Unlink child groups from this device group.
 
         Args:
-            root_id (str|int): ID of the root device group
-           *child_ids (str|int): ID of the child device groups
+            root_id (str): ID of the root device group.
+            *child_ids (str): Collection of the child device group ID.
         """
         refs = {'references': [ManagedObjectUtil.build_managed_object_reference(i) for i in child_ids]}
         self.c8y.delete(self.build_object_path(root_id) + '/childAssets', json=refs)
 
-    def delete(self, *groups: DeviceGroup | str | int):
+    def delete(self, *groups: DeviceGroup|str):
         """Delete one or more single device groups within the database.
 
         The child groups (if there are any) are left dangling. This is
@@ -449,22 +455,22 @@ class DeviceGroupInventory(Inventory):
         Cumulocity REST API.
 
         Args:
-            groups:  Objects resp. their ID within the database
+            *groups (str|DeviceGroup):  Collection of objects (or ID).
         """
         self._delete(False, *groups)
 
-    def delete_trees(self, *groups: DeviceGroup | str | int):
+    def delete_trees(self, *groups: DeviceGroup|str):
         """Delete one or more device groups trees within the database.
 
         This is equivalent to using the `cascade=true` parameter in the
         Cumulocity REST API.
 
         Args:
-            groups:  Objects resp. their ID within the database
+            *groups (str|DeviceGroup):  Collection of objects (or ID).
         """
         self._delete(False, *groups)
 
-    def _delete(self, cascade: bool, *objects: DeviceGroup | str | int):
+    def _delete(self, cascade: bool, *objects: DeviceGroup|str):
         try:
             object_ids = [o.id for o in objects]  # noqa (id)
         except AttributeError:

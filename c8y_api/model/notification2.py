@@ -94,7 +94,7 @@ class Subscription(SimpleObject):
         return a full representation of the JSON. It is used for object
         creation and update within Cumulocity.
 
-        Params:
+        Args:
             json (dict): The JSON to parse.
 
         Returns:
@@ -197,7 +197,7 @@ class Subscriptions(CumulocityResource):
         """ Create subscriptions within the database.
 
         Args:
-            subscriptions (*TenantOption):  Collection of Subscription instances
+            *subscriptions (TenantOption):  Collection of Subscription instances
         """
         super()._create(Subscription.to_full_json, *subscriptions)
 
@@ -250,8 +250,12 @@ class Tokens(CumulocityResource):
         token_json = self.c8y.post(self.resource + '/token', td_json)
         return token_json['token']
 
-    def renew(self, token: str):
-        """Renew a token."""
+    def renew(self, token: str) -> str:
+        """Renew a token.
+
+        Args:
+            token:  Currently valid token to be renewed.
+        """
 
     def unsubscribe(self, token: str):
         """Invalidate a token and unsubscribe a subscriber.

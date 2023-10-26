@@ -30,7 +30,6 @@ __all__ = [
     'Events',
     'Alarms',
     'Subscriptions',
-    'Tokens',
     'Users',
     'GlobalRoles',
     'Operations',

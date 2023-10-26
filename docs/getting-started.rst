@@ -360,7 +360,7 @@ If you know the ID of the alarm object, you could do that, though:
    test_alarm.c8y = c8y   # specify cumulocity connection
    test_alarm.id  = ''    # specify the alarm object id
 
-   test_alarm.status = Alarm.Status.CLEARED`
+   test_alarm.status = Alarm.Status.CLEARED
    test_alarm.update()    # this would work now
 
 Ok, but wait! Why does the very same then work within the loop? Well, because

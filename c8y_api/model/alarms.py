@@ -70,7 +70,7 @@ class Alarm(ComplexObject):
             status (str):  Alarm status
             severity (str):  Alarm severity
             kwargs:  Additional arguments are treated as custom fragments
-    """
+        """
         super().__init__(c8y=c8y, **kwargs)
         self.type = type
         self.source = source
@@ -88,6 +88,7 @@ class Alarm(ComplexObject):
         self.time = _DateUtil.ensure_timestring(time)
 
     text = SimpleObject.UpdatableProperty('_u_text')
+    """Updatable property"""
     status = SimpleObject.UpdatableProperty('_u_status')
     severity = SimpleObject.UpdatableProperty('_u_severity')
 

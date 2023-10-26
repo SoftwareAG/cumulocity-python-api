@@ -45,7 +45,7 @@ class Operation(ComplexObject):
     def __init__(self, c8y=None, device_id=None, description=None, status=None, **kwargs):
         """ Create a new Operation object.
 
-        Params:
+        Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
             device_id (str):  Device ID which this operation is for
@@ -80,7 +80,7 @@ class Operation(ComplexObject):
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
-        Params:
+        Args:
             json (dict):  JSON object (nested dictionary)
                 representing an operation within Cumulocity
 
@@ -140,7 +140,7 @@ class Operations(CumulocityResource):
     def get(self, operation_id: str | int) -> Operation:
         """ Read a specific operation from the database.
 
-        params:
+        Args:
             operation_id (str|int):  database ID of an operation
 
         Returns:
@@ -168,7 +168,7 @@ class Operations(CumulocityResource):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        Params:
+        Args:
             agent_id (str): Database ID of agent
             device_id (str):  Database ID of device
             status (str): Status of operation
@@ -254,7 +254,7 @@ class Operations(CumulocityResource):
         to objects which meet the filters specification. Filters can be
         combined (as defined in the Cumulocity REST API).
 
-        Params:
+        Args:
             agent_id (str): Database ID of agent
             device_id (str):  Database ID of device
             status (str): Status of operation
@@ -324,7 +324,7 @@ class BulkOperation(ComplexObject):
                  operation_prototype: dict = None, **kwargs):
         """ Create a new Operation object.
 
-        Params:
+        Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
             device_id (str):  Device ID which this operation is for
@@ -372,7 +372,7 @@ class BulkOperation(ComplexObject):
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
-        Params:
+        Args:
             json (dict):  JSON object (nested dictionary)
                 representing an operation within Cumulocity
 
@@ -414,7 +414,7 @@ class BulkOperations(CumulocityResource):
     def get(self, operation_id: str | int) -> BulkOperation:
         """ Read a specific bulk operation from the database.
 
-        params:
+        Args:
             operation_id (str|int):  database ID of a bulk operation
 
         Returns:
@@ -437,7 +437,7 @@ class BulkOperations(CumulocityResource):
         to objects which meet the filters' specification.  Filters can be
         combined (within reason).
 
-        Params:
+        Args:
             limit (int):  Limit the number of results to this number.
             page_size (int):  Define the number of operations which are
                 read (and parsed in one chunk). This is a performance

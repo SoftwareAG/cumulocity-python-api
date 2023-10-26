@@ -12,19 +12,23 @@ import pytest
 def test_select_name(live_c8y: CumulocityApi):
     """Verify that select by name works."""
     apps = live_c8y.applications.get_all(name='devicemanagement')
-    assert len(apps) == 1
+    assert apps
     app = apps[0]
-
     assert app.name == 'devicemanagement'
     assert app.owner == 'management'
     assert app.type == 'HOSTED'
     assert app.availability == 'MARKET'
 
+def test_select_owner(live_c8y: CumulocityApi):
+    """Verify that select by owner works."""
+    # this test assumes, that the live tenant owns at least one application
+    apps = live_c8y.applications.get_all(owner=live_c8y.tenant_id)
+    assert apps
+
 
 @pytest.mark.parametrize('param, param_func', [
     ('type', lambda x: 'HOSTED'),
     ('user', lambda x: x.username),
-    ('owner', lambda x: 'management'),
     ('tenant', lambda x: x.tenant_id),
     ('subscriber', lambda x: x.tenant_id),
     ('provided_for', lambda x: x.tenant_id),

@@ -150,7 +150,7 @@ class Binaries(CumulocityResource):
         one by one, in case of an error the state is unclear.
 
         Args:
-            binaries (*Binary):  Binaries to upload
+            *binaries (Binary):  Binaries to upload
 
         Returns:
             The number of successfully created binaries.

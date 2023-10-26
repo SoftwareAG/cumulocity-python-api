@@ -35,10 +35,12 @@ Object Models
 -------------
 
 .. automodule:: c8y_api.model
-    :members: ManagedObject, Device, DeviceGroup, ExternalId, Binary, Measurement, Event, Alarm, Series, Subscription, Tokens, Availability, Fragment, NamedObject, User, GlobalRole, Permission, ReadPermission, WritePermission, AnyPermission, Operation, BulkOperation, Application, TenantOption, AuditRecord
+    :members: ManagedObject, Device, DeviceGroup, ExternalId, Binary, Measurement, Event, Alarm, Series, Subscription, Availability, Fragment, NamedObject, User, GlobalRole, Permission, ReadPermission, WritePermission, AnyPermission, Operation, BulkOperation, Application, TenantOption, AuditRecord
     :special-members: __init__
+    :undoc-members:
 
-Object Model Additions
+
+Measurement Additions
 ----------------------
 
 .. automodule:: c8y_api.model
