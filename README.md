@@ -2,10 +2,14 @@
 ![GitHub](https://img.shields.io/github/license/SoftwareAG/cumulocity-python-api)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/SoftwareAG/cumulocity-python-api)
 ![GitHub Release Date](https://img.shields.io/github/release-date/SoftwareAG/cumulocity-python-api)
+![ReadTheDocs](https://img.shields.io/readthedocs/cumulocity-python-api)
 
 # cumulocity-python-api
 
 This project is a Python client for the Cumulocity REST API to make it easier to develop programs, scripts, device agents or microservices in Python.
+
+See also the [documentation on _Read the Docs_](https://cumulocity-python-api.readthedocs.io/).
+
 
 ## Installation
 
@@ -33,7 +37,7 @@ pip install c8y_api
 ### Installation using pip
 
 Releases are also archived within the GitHub releases page. The module is released as standard Python wheel (_.whl_ file).
-It can be ownloaded and installed using pip using the following command:
+It can be downloaded and installed using pip using the following command:
 
 ```shell
 pip install <release wheel file>
