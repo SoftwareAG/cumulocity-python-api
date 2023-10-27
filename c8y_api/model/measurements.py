@@ -395,7 +395,7 @@ class Measurements(CumulocityResource):
             Measurement object
 
         Raises:
-            KeyError: If the ID cannot be resolved.
+            KeyError:  if the ID cannot be resolved.
         """
         measurement = Measurement.from_json(self._get_object(measurement_id))
         measurement.c8y = self.c8y  # inject c8y connection into instance

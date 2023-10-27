@@ -144,7 +144,7 @@ class Subscriptions(CumulocityResource):
              A Subscription instance
 
         Raises:
-            KeyError if the given ID is not defined within the database
+            KeyError:  if the given ID is not defined within the database
         """
         subscription = Subscription.from_json(super()._get_object(subscription_id))
         subscription.c8y = self.c8y  # inject c8y connection into instance

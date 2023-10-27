@@ -75,7 +75,8 @@ class ExternalId(SimpleObject):
     def create(self) -> ExternalId:
         """ Store the external ID to the database.
 
-        :returns:  self
+        Returns:
+            `self` reference
         """
         self._assert_c8y()
         Identity(self.c8y).create(self.external_id, self.external_type, self.managed_object_id)
@@ -84,7 +85,8 @@ class ExternalId(SimpleObject):
     def delete(self):
         """ Remove the external ID from the database.
 
-        :returns:  self
+        Returns:
+            `self` reference
         """
         self._assert_c8y()
         Identity(self.c8y).delete(self.external_id, self.external_type)
@@ -92,8 +94,9 @@ class ExternalId(SimpleObject):
     def get_id(self):
         """ Read the referenced managed object ID from database.
 
-        :returns:  Database ID referenced by the external_id and
-            external_type of this instance.
+        Returns:
+            Database ID referenced by the external_id and external_type
+            of this instance.
         """
         self._assert_c8y()
         Identity(self.c8y).get_id(self.external_id, self.external_type)

@@ -116,9 +116,9 @@ class CumulocityRestApi:
             The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 is accepted).
         """
         additional_headers = self._prepare_headers(accept=accept)
@@ -146,9 +146,9 @@ class CumulocityRestApi:
             The binary data as bytes.
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 is accepted).
         """
         r = self.session.get(self.base_url + resource, params=params)
@@ -176,9 +176,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 and 201 are accepted).
         """
         assert isinstance(json, dict)
@@ -213,8 +213,8 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 201 is accepted).
         """
 
@@ -257,9 +257,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 is accepted).
         """
         assert isinstance(json, dict)
@@ -293,9 +293,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 201 is accepted).
         """
 
@@ -335,9 +335,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 and 204 are accepted).
         """
         if json:

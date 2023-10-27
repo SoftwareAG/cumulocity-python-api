@@ -200,7 +200,7 @@ class TenantOptions(CumulocityResource):
              A TenantOption instance
 
         Raises:
-            KeyError if the given combination of category and key
+            KeyError:  if the given combination of category and key
             is not defined within the database
         """
         option = TenantOption.from_json(self.c8y.get(resource=self.build_object_path(category, key)))
@@ -218,7 +218,7 @@ class TenantOptions(CumulocityResource):
              The value of the specified option
 
         Raises:
-            KeyError if the given combination of category and key
+            KeyError:  if the given combination of category and key
             is not defined within the database
         """
         # this is a very simple payload, we extract it directly

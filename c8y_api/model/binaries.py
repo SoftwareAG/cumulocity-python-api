@@ -60,7 +60,7 @@ class Binary(ManagedObject):
             at the ID of the new object.
 
         Raises:
-            FileNotFoundError if the file refers to an invalid path.
+            FileNotFoundError:  if the file refers to an invalid path.
 
         See also function Binaries.create which doesn't parse the result.
         """
@@ -82,7 +82,7 @@ class Binary(ManagedObject):
             within the database.
 
         Raises:
-            FileNotFoundError if the file refers to an invalid path.
+            FileNotFoundError:  if the file refers to an invalid path.
 
         Note: The binary metadata cannot be updated using this method. Only
         the binary attachment is updated.
@@ -135,7 +135,7 @@ class Binaries(CumulocityResource):
             A Binary instance referencing the uploaded file.
 
         Raises:
-            FileNotFoundError if the file refers to an invalid path.
+            FileNotFoundError:  if the file refers to an invalid path.
         """
         object_json = {
             'type': type,
@@ -156,7 +156,7 @@ class Binaries(CumulocityResource):
             The number of successfully created binaries.
 
         Raises:
-            FileNotFoundError if one of the file attributes within the
+            FileNotFoundError:  if one of the file attributes within the
                 binaries refers to an invalid file path
         """
         all_files = [b.file for b in binaries]
@@ -176,6 +176,6 @@ class Binaries(CumulocityResource):
                 (defaults to 'application/octet-stream')
 
         Raises:
-            FileNotFoundError if the file refers to an invalid path.
+            FileNotFoundError:  if the file refers to an invalid path.
         """
         self.c8y.put_file(self.build_object_path(id), file=file, accept='', content_type=type)

@@ -37,8 +37,8 @@ def isolate_last_call_arg(mock: Mock, name: str, pos: int = None) -> Any:
         Value of the call argument
 
     Raises:
-        KeyError if the argument was not given/found by name and the
-        position was not given/out of bounds.
+        KeyError:  if the argument was not given/found by name and the
+            position was not given/out of bounds.
     """
     mock.assert_called()
     args, kwargs = mock.call_args
@@ -64,8 +64,8 @@ def isolate_all_call_args(mock: Mock, name: str, pos: int = None) -> List[Any]:
         List of value of the call argument
 
     Raises:
-        KeyError if the argument was not given/found by name and the
-        position was not given/out of bounds.
+        KeyError:  if the argument was not given/found by name and the
+            position was not given/out of bounds.
     """
     mock.assert_called()
     result = []

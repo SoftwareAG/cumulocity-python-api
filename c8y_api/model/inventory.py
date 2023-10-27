@@ -37,7 +37,7 @@ class Inventory(CumulocityResource):
              A ManagedObject instance
 
         Raises:
-            KeyError if the ID is not defined within the database
+            KeyError:  if the ID is not defined within the database
         """
         managed_object = ManagedObject.from_json(self._get_object(id))
         managed_object.c8y = self.c8y  # inject c8y connection into instance
@@ -232,7 +232,7 @@ class DeviceInventory(Inventory):
             A Device instance
 
         Raises:
-            KeyError if the ID is not defined within the database
+            KeyError:  if the ID is not defined within the database
         """
         device = Device.from_json(self._get_object(id))
         device.c8y = self.c8y
@@ -324,7 +324,7 @@ class DeviceGroupInventory(Inventory):
             DeviceGroup instance.
 
         Raises:
-            KeyError if the ID is not defined within the database.
+            KeyError:  if the ID is not defined within the database.
         """
         group = DeviceGroup.from_json(self._get_object(group_id))
         group.c8y = self.c8y

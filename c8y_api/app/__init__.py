@@ -87,7 +87,7 @@ class _CumulocityAppBase(object):
             The value of the environment variable.
 
         Raises:
-            ValueError (not KeyError!) if the variable is not present.
+            ValueError:  (not KeyError!) if the variable is not present.
         """
         try:
             return os.environ[name]

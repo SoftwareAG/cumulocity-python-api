@@ -680,7 +680,7 @@ class InventoryRoles(CumulocityResource):
             An InventoryRole instance for this ID
 
         Raises:
-            SyntaxError if the ID is not defined.
+            SyntaxError:  if the ID is not defined.
 
         Note: In contrast to other API the InventoryRole API does not raise
         an KeyError (i.e. 404) for undefined ID but a SyntaxError (HTTP 500).
