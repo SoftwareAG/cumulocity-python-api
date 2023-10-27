@@ -14,9 +14,9 @@ The **Cumulocity Python API** (``c8y_api`` module) provides a convenience wrappe
 around the standard Cumulocity REST API (see also the
 `OpenAPI documentation <https://cumulocity.com/api/core/>`_).
 
-The ``CumulocityRestApi`` class provides the fundamental wrapping around
+The :class:`CumulocityRestApi` class provides the fundamental wrapping around
 authentication and basic ``get``, ``post``, ``put``, ``delete`` commands.
-The ``CumulocityApi`` class is your entrypoint into higher level functions,
+The :class:`CumulocityApi` class is your entrypoint into higher level functions,
 grouped by contexts like ``inventory``, ``users``, and ``measurements``.
 Each of these contexts is documented in detail within the
 :ref:`main-api-classes` section.
@@ -38,15 +38,15 @@ particularly useful for developing Cumulocity microservices. For this,
 the module provides two helper classes that take care of microservice
 specific authentication.
 
-The ``SimpleCumulocityApp`` class should be used for single tenant
+The :class:`SimpleCumulocityApp` class should be used for single tenant
 microservices. It automatically reads the microservice's environment
 to determines the microservice access credentials.
 
-The ``MultiTenantCumulocityApp`` class should be used for multi-tenant
+The :class:`MultiTenantCumulocityApp` class should be used for multi-tenant
 microservices which need to handle requests for arbitrary Cumulocity
 tenants. It reads the microservice's environment to determine the
 necessary bootstrap credentials and provides additional functions to
-dynamically obtain ``CumulocityApi`` instances for specific tenants.
+dynamically obtain :class:`CumulocityApi` instances for specific tenants.
 
 .. automodule::  c8y_api.app
     :members: SimpleCumulocityApp, MultiTenantCumulocityApp
