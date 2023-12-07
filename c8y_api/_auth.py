@@ -22,6 +22,7 @@ class HTTPBearerAuth(AuthBase):
 
     def __call__(self, r):
         r.headers['Authorization'] = 'Bearer ' + self.token
+        return r
 
 
 class AuthUtil:

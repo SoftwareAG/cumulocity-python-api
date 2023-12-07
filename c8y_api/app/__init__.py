@@ -11,13 +11,13 @@ import os
 from cachetools import TTLCache
 from requests.auth import HTTPBasicAuth, AuthBase
 
-from c8y_api._auth import AuthUtil
+from c8y_api._auth import AuthUtil, HTTPBearerAuth
 from c8y_api._main_api import CumulocityApi
 from c8y_api._util import c8y_keys
 
 
 class _CumulocityAppBase(object):
-    """Internal class, base for both Per Tenant and Multi Tenant specifc
+    """Internal class, base for both Per Tenant and Multi Tenant specific
     implementation."""
 
     def __init__(self, log: logging.Logger, cache_size: int = 100, cache_ttl: int = 3600, **kwargs):
@@ -37,7 +37,7 @@ class _CumulocityAppBase(object):
         previously created instances are cached.
 
         Args:
-            headers (dict): A dictionarity of HTTP header entries. The user
+            headers (dict): A dictionary of HTTP header entries. The user
                 access is based on the Authorization header within.
 
         Returns:
@@ -101,7 +101,7 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
 
     The SimpleCumulocityApp class is intended to be used as base within
     a single-tenant micro service hosted on Cumulocity. It evaluates the
-    environment to teh resolve the authentication information automatically.
+    environment to the resolve the authentication information automatically.
 
     Note: This class should be used in Cumulocity micro services using the
     PER_TENANT authentication mode only. It will not function in environments
@@ -109,7 +109,7 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
 
     The SimpleCumulocityApp class is an enhanced version of the standard
     CumulocityApi class. All Cumulocity functions can be used directly.
-    Additionally it can be used to provide CumulocityApi instances for
+    Additionally, it can be used to provide CumulocityApi instances for
     specific named users via the `get_user_instance` function.
     """
 
@@ -131,10 +131,16 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
         """
         baseurl = self._get_env('C8Y_BASEURL')
         tenant_id = self._get_env('C8Y_TENANT')
-        username = self._get_env('C8Y_USER')
-        password = self._get_env('C8Y_PASSWORD')
+        # authentication is either token or username/password
+        try:
+            token = self._get_env('C8Y_TOKEN')
+            auth = HTTPBearerAuth(token)
+        except ValueError:
+            username = self._get_env('C8Y_USER')
+            password = self._get_env('C8Y_PASSWORD')
+            auth = HTTPBasicAuth(f'{tenant_id}/{username}', password)
         super().__init__(log=self._log, cache_size=cache_size, cache_ttl=cache_ttl,
-                         base_url=baseurl, tenant_id=tenant_id, auth=HTTPBasicAuth(f'{tenant_id}/{username}', password),
+                         base_url=baseurl, tenant_id=tenant_id, auth=auth,
                          application_key=application_key)
 
     def _build_user_instance(self, auth) -> CumulocityApi:
@@ -149,7 +155,7 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
 
     The MultiTenantCumulocityApp class is intended to be used as base within
     a multi-tenant micro service hosted on Cumulocity. It evaluates the
-    environment to teh resolve the bootstrap authentication information
+    environment to the resolve the bootstrap authentication information
     automatically.
 
     Note: This class is intended to be used in Cumulocity micro services
@@ -178,24 +184,41 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
         try:
             return self._subscribed_auths[tenant_id]
         except KeyError:
-            self._subscribed_auths = self._read_subscriptions(self.bootstrap_instance)
+            self._subscribed_auths = self._read_subscription_auths(self.bootstrap_instance)
             return self._subscribed_auths[tenant_id]
 
     @classmethod
-    def _read_subscriptions(cls, bootstrap_instance: CumulocityApi):
+    def _read_subscriptions(cls, bootstrap_instance: CumulocityApi) -> list[dict]:
+        """Read subscribed tenants details.
+
+        Returns:
+            A list of tenant details dicts.
+        """
+        subscriptions = bootstrap_instance.get('/application/currentApplication/subscriptions')
+        return subscriptions['users']
+
+    @classmethod
+    def _read_subscription_auths(cls, bootstrap_instance: CumulocityApi):
         """Read subscribed tenant's auth information.
 
         Returns:
             A dict of tenant auth information by ID
         """
-        subscriptions = bootstrap_instance.get('/application/currentApplication/subscriptions')
         cache = {}
-        for subscription in subscriptions['users']:
+        for subscription in cls._read_subscriptions(bootstrap_instance):
             tenant = subscription['tenant']
             username = subscription['name']
             password = subscription['password']
             cache[tenant] = HTTPBasicAuth(f'{tenant}/{username}', password)
         return cache
+
+    def get_subscribers(self) -> list[str]:
+        """Query the subscribed tenants.
+
+        Returns:
+            A list of tenant ID.
+        """
+        return [x['tenant'] for x in self._read_subscriptions(self.bootstrap_instance)]
 
     @classmethod
     def _create_bootstrap_instance(cls) -> CumulocityApi:

@@ -127,10 +127,10 @@ def test_multi_tenant__caching_instances():
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__build_from_subscriptions():
-    """Verify that a uncached instance is build using the subscriptions."""
+    """Verify that an uncached instance is build using the subscriptions."""
     # pylint: disable=protected-access
 
-    with patch.object(MultiTenantCumulocityApp, '_read_subscriptions') as read_subscriptions:
+    with patch.object(MultiTenantCumulocityApp, '_read_subscription_auths') as read_subscriptions:
         # we mock _read_subscriptions so that we don't need an actual
         # connection and it returns what we want
         read_subscriptions.return_value = {'t12345': HTTPBasicAuth('username', 'password')}
@@ -195,7 +195,7 @@ def test_read_subscriptions():
 
         # we just need any CumulocityApi to do this call
         c8y = CumulocityApi(base_url=base_url, tenant_id=tenant_id, username=user, password=password)
-        subscriptions = MultiTenantCumulocityApp._read_subscriptions(c8y)
+        subscriptions = MultiTenantCumulocityApp._read_subscription_auths(c8y)
         # -> subscriptions were parsed correctly
         assert 't12345' in subscriptions
         assert 't54321' in subscriptions
