@@ -449,6 +449,4 @@ class Alarms(CumulocityResource):
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             status=status, severity=severity, resolved=resolved,
                                             before=before, after=after, min_age=min_age, max_age=max_age)
-        # remove &page_number= from the end
-        query = base_query[:base_query.rindex('&')]
-        self.c8y.delete(query)
+        self.c8y.delete(base_query)

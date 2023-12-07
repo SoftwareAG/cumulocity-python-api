@@ -96,6 +96,7 @@ def test_get_by_something(live_c8y: CumulocityApi, similar_objects: List[Managed
     kwargs = {key: value_fun(similar_objects[0])}
     selected_mos = live_c8y.inventory.get_all(**kwargs)
     assert get_ids(similar_objects) == get_ids(selected_mos)
+    assert live_c8y.inventory.get_count(**kwargs) == len(similar_objects)
 
 
 def test_get_availability(live_c8y: CumulocityApi, sample_device: Device):

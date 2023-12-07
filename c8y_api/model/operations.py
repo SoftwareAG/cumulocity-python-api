@@ -275,9 +275,7 @@ class Operations(CumulocityResource):
         base_query = self._build_base_query(agent_id=agent_id, device_id=device_id, status=status,
                                             bulk_id=bulk_id, fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age)
-        # remove &page_number= from the end
-        query = base_query[:base_query.rindex('&')]
-        self.c8y.delete(query)
+        self.c8y.delete(base_query)
 
 
 class BulkOperation(ComplexObject):

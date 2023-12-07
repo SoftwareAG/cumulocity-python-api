@@ -7,11 +7,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Generator, List
 
 from c8y_api.model._base import CumulocityResource
-from c8y_api.model._util import _DateUtil, _QueryUtil
+from c8y_api.model._util import _QueryUtil
 from c8y_api.model.managedobjects import ManagedObjectUtil, ManagedObject, Device, Availability, DeviceGroup
 
 
@@ -56,6 +55,19 @@ class Inventory(CumulocityResource):
         """
         return list(self.select(type=type, fragment=fragment, name=name, owner=owner, limit=limit, page_size=page_size))
 
+    def get_count(self, type: str = None, fragment: str = None, name: str = None,
+                  owner: str = None, query: str = None) -> int:  # noqa (type)
+        """Calculate the number of potential results of a database query.
+
+        This function uses the same parameters as the `select` function.
+
+        Returns:
+            Number of potential results
+        """
+        base_query = self._prepare_query(type=type, fragment=fragment, name=name,
+                                         owner=owner, query=query, page_size=1)
+        return self._get_count(base_query)
+
     def select(self, type: str = None, fragment: str = None, name: str = None, owner: str = None,  # noqa (type)
                query: str = None, limit: int = None,
                page_size: int = 1000, page_number: int = None) -> Generator[ManagedObject]:
@@ -91,10 +103,10 @@ class Inventory(CumulocityResource):
         return self._select(ManagedObject.from_json, type=type, fragment=fragment, name=name, owner=owner,
                             query=None, limit=limit, page_size=page_size, page_number=page_number)
 
-    def _select(self, jsonyfy_func, type: str = None, fragment: str = None, name: str = None,  # noqa
-                owner: str = None, query: str = None, limit: int = None,
-                page_size: int = 1000, page_number: int = None) -> Generator[Any]:
-
+    def _prepare_query(self, type: str = None, fragment: str = None, name: str = None,  # noqa
+                owner: str = None, query: str = None, page_size: int = 1000) -> str:
+        """The inventory API features a query API that needs some additional
+        preparations before we can actually invoke the queries."""
         query_filters = []
 
         # if there is no custom query, we check whether standard filters need to
@@ -117,11 +129,16 @@ class Inventory(CumulocityResource):
                 query = '$filter=(' + ' and '.join(query_filters) + ')'
 
         if query:
-            base_query = self._build_base_query(query=query, page_size=page_size)
-        else:
-            base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
+            return self._build_base_query(query=query, page_size=page_size)
+        return self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
 
-        return super()._iterate(base_query, page_number, limit, jsonyfy_func)
+    def _select(self, jsonyfy_func, type: str = None, fragment: str = None, name: str = None,  # noqa
+                owner: str = None, query: str = None, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> Generator[Any]:
+        base_query = self._prepare_query(type=type, fragment=fragment, name=name,
+                                         owner=owner, query=query, page_size=page_size)
+        return  super()._iterate(base_query, page_number, limit, jsonyfy_func)
+
 
     def create(self, *objects: ManagedObject):
         """Create managed objects within the database.
@@ -241,7 +258,7 @@ class DeviceInventory(Inventory):
     def select(self, type: str = None, name: str = None, owner: str = None,  # noqa (type, args)
                query: str = None, limit: int = None,
                page_size: int = 100, page_number: int = None) -> Generator[Device]:
-        # pylint: disable=arguments-differ
+        # pylint: disable=arguments-differ, arguments-renamed
         """ Query the database for devices and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -250,6 +267,9 @@ class DeviceInventory(Inventory):
         All parameters are considered to be filters, limiting the result set
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
+
+        Note: this variant doesn't allow filtering by fragment because the
+        `c8y_IsDevice` fragment is automatically filtered.
 
         Args:
             type (str):  Device type
@@ -273,8 +293,8 @@ class DeviceInventory(Inventory):
                             query=query, limit=limit, page_size=page_size, page_number=page_number)
 
     def get_all(self, type: str = None, name: str = None, owner: str = None,   # noqa (type, parameters)
-                page_size: int = 100, page_number: int = None) -> List[Device]:
-        # pylint: disable=arguments-differ
+                limit: int = None, page_size: int = 100, page_number: int = None) -> List[Device]:
+        # pylint: disable=arguments-differ, arguments-renamed
         """ Query the database for devices and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -283,7 +303,19 @@ class DeviceInventory(Inventory):
         Returns:
             List of Device objects
         """
-        return list(self.select(type=type, name=name, owner=owner, page_size=page_size, page_number=page_number))
+        return list(self.select(type=type, name=name, owner=owner, limit=limit,
+                                page_size=page_size, page_number=page_number))
+
+    def get_count(self, type: str = None, name: str = None, owner: str = None) -> int:  # noqa
+        # pylint: disable=arguments-differ, arguments-renamed
+        """Calculate the number of potential results of a database query.
+
+        This function uses the same parameters as the `select` function.
+
+        Returns:
+            Number of potential results
+        """
+        return self._get_count(super()._prepare_query(type=type, name=name, owner=owner, page_size=1))
 
     def delete(self, *devices: Device):
         """ Delete one or more devices and the corresponding within the database.
@@ -330,6 +362,39 @@ class DeviceGroupInventory(Inventory):
         group.c8y = self.c8y
         return group
 
+    def _prepare_query(self, type: str, parent: str | int = None, fragment: str = None,  # noqa
+               name: str = None, owner: str = None, query: str = None, page_size: int = 100) -> str:
+        # pylint: disable=arguments-differ, arguments-renamed
+        query_filters = []
+
+        # if there is no custom query, we check whether standard filters need to
+        # be translated into a query
+        if not query:
+
+            # Both name and parent filters can only be expressed as a query,
+            # which then triggers "query mode"
+            if name:
+                query_filters.append(f"name eq '{_QueryUtil.encode_odata_query_value(name)}'")
+            if parent:
+                query_filters.append(f"bygroupid({parent})")
+                type = DeviceGroup.CHILD_TYPE  # noqa
+
+            # if any query was defined, all filters must be put into the query
+            if query_filters:
+                if type:
+                    query_filters.append(f"type eq '{type}'")
+                if owner:
+                    query_filters.append(f"owner eq '{owner}'")
+                if fragment:
+                    query_filters.append(f"has({fragment}")
+                query = '$filter=' + ' and '.join(query_filters)
+
+        if query:
+            return self._build_base_query(query=query, page_size=page_size)
+
+        return self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
+
+
     def select(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,  # noqa
                name: str = None, owner: str = None, query: str = None,
                page_size: int = 100, page_number: int = None) -> Generator[DeviceGroup]:
@@ -369,36 +434,23 @@ class DeviceGroupInventory(Inventory):
         Returns:
             Generator of DeviceGroup instances
         """
-        query_filters = []
-
-        # if there is no custom query, we check whether standard filters need to
-        # be translated into a query
-        if not query:
-
-            # Both name and parent filters can only be expressed as a query,
-            # which then triggers "query mode"
-            if name:
-                query_filters.append(f"name eq '{_QueryUtil.encode_odata_query_value(name)}'")
-            if parent:
-                query_filters.append(f"bygroupid({parent})")
-                type = DeviceGroup.CHILD_TYPE  # noqa
-
-            # if any query was defined, all filters must be put into the query
-            if query_filters:
-                if type:
-                    query_filters.append(f"type eq '{type}'")
-                if owner:
-                    query_filters.append(f"owner eq '{owner}'")
-                if fragment:
-                    query_filters.append(f"has({fragment}")
-                query = '$filter=' + ' and '.join(query_filters)
-
-        if query:
-            base_query = self._build_base_query(query=query, page_size=page_size)
-        else:
-            base_query = self._build_base_query(type=type, fragment=fragment, owner=owner, page_size=page_size)
-
+        base_query = self._prepare_query(type=type, parent=parent, fragment=fragment,
+                                         name=name, owner=owner, query=query, page_size=page_size)
         return super()._iterate(base_query, page_number, limit=9999, parse_func=DeviceGroup.from_json)
+
+    def get_count(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None,
+               name: str = None, owner: str = None, query: str = None) -> int:
+        # pylint: disable=arguments-differ, arguments-renamed
+        """Calculate the number of potential results of a database query.
+
+        This function uses the same parameters as the `select` function.
+
+        Returns:
+            Number of potential results
+        """
+        base_query = self._prepare_query(type=type, parent=parent, fragment=fragment,
+                                         name=name, owner=owner, query=query, page_size=1)
+        return self._get_count(base_query)
 
     def get_all(self, type: str = DeviceGroup.ROOT_TYPE, parent: str | int = None, fragment: str = None, # noqa
                 name: str = None, owner: str = None, page_size: int = 100, page_number: int = None):  # noqa

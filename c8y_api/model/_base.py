@@ -508,14 +508,18 @@ class CumulocityResource:
 
     def _build_base_query(self, **kwargs):
         params = CumulocityResource._prepare_query_params(**kwargs)
-        return self.resource + '?' + urlencode(params) + '&currentPage='
+        return self.resource + '?' + urlencode(params)
 
     def _get_object(self, object_id):
         return self.c8y.get(self.build_object_path(object_id))
 
     def _get_page(self, base_query: str, page_number: int):
-        result_json = self.c8y.get(base_query + str(page_number))
+        result_json = self.c8y.get(base_query +  '&currentPage=' + str(page_number))
         return result_json[self.object_name]
+
+    def _get_count(self, base_query: str) -> int:
+        result_json = self.c8y.get(base_query + '&withTotalPages=true')
+        return result_json['statistics']['totalPages']
 
     def _iterate(self, base_query: str, page_number: int | None, limit: int, parse_func):
         # if no specific page is defined we just start at 1
