@@ -94,12 +94,13 @@ def test_single_page_select(live_c8y: CumulocityApi, measurement_factory):
 
 
 def clone_measurement(m:Measurement, key) -> Measurement:
+    """Clone a Measurement object."""
     m2 = Measurement(m.c8y, type=m.type, source=m.source, time=m.time)
     if key == 'type':
         m2.type = m2.type + '2'
     for fragment, series in m.fragments.items():
         for name, value in series.items():
-            if key == 'fragment' or key == 'value':
+            if key in ('fragment', 'value'):
                 fragment = fragment + '2'
             if key == 'series':
                 name = name + '2'

@@ -796,7 +796,9 @@ class Users(CumulocityResource):
         user.c8y = self.c8y  # inject c8y connection into instance
         return user
 
-    def select(self, username: str = None, groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
+    def select(self,
+               username: str = None,
+               groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
                page_size: int = 5):
         """Lazily select and yield User instances.
 
@@ -840,7 +842,9 @@ class Users(CumulocityResource):
                 yield user
             page_number = page_number + 1
 
-    def get_all(self, username: str = None, groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
+    def get_all(self,
+                username: str = None,
+                groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
                 page_size: int = 1000):
         """Select and retrieve User instances as list.
 

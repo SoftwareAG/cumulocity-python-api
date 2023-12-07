@@ -81,12 +81,12 @@ def test_CRUD2(live_c8y):
 
 def test_assignments(live_c8y, sample_device, factory):
     """Verify that inventory roles can be assigned, retrieved and unassigned."""
-    username = 'user_' + RandomNameGenerator.random_name(2)
+    email = 'user_' + RandomNameGenerator.random_name(2) + '@test.com'
     role1_name = 'role_' + RandomNameGenerator.random_name(2)
     role2_name = 'role_' + RandomNameGenerator.random_name(2)
 
     # create a user
-    user = User(username=username, email='test@test.com')
+    user = User(username=email, email=email)
     user = factory(user)
 
     # create inventory roles

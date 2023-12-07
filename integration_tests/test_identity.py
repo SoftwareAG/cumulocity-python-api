@@ -52,4 +52,3 @@ def test_CRUD(live_c8y: CumulocityApi, sample_device):
 
     with pytest.raises(KeyError):
         live_c8y.identity.get(id_ref2, id_type)
-

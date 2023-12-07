@@ -17,6 +17,7 @@ from tests.utils import isolate_last_call_arg
 
 @pytest.fixture(scope='function', name='sample_json')
 def fix_sample_json() -> dict:
+    """Provide sample JSON data."""
     path = os.path.dirname(__file__) + '/tenant_option.json'
     with open(path, encoding='utf-8', mode='rt') as f:
         return json.load(f)
@@ -87,7 +88,7 @@ def test_create(sample_json: dict, sample_option: TenantOption):
     assert sample_option.to_json.call_count == 1
     # 2) the given resource path should be correct
     resource = isolate_last_call_arg(c8y.post, 'resource', 0)
-    assert resource == f'/tenant/options'
+    assert resource == '/tenant/options'
     # 3) the given payload should match what to_json returned
     payload = isolate_last_call_arg(c8y.post, 'json', 1)
     assert set(payload.keys()) == {'expected'}

@@ -122,12 +122,15 @@ class Fragment(object):
 
 
 class Availability(object):
+    """Cumulocity availability status labels"""
 
     class ConnectionStatus:
+        """Connection status labels"""
         CONNECTED = 'CONNECTED'
         DISCONNECTED = 'DISCONNECTED'
 
     class DataStatus:
+        """Data status labels"""
         AVAILABLE = 'AVAILABLE'
         UNAVAILABLE = 'UNAVAILABLE'
 
@@ -146,11 +149,19 @@ class Availability(object):
 
     @property
     def interval_minutes(self) -> int:
-        """Return the required updated interval in minutes as integer."""
+        """Return the required update interval in minutes as integer."""
         return int(self.interval.split(' ', 1)[0])
 
     @classmethod
-    def from_json(cls, object_json: dict):
+    def from_json(cls, object_json: dict) -> Availability:
+        """Parse from Cumulocity JSON.
+
+        Args:
+            object_json (dict):  Cumulocity JSON representation
+
+        Returns:
+            A new Availability instance.
+        """
         obj = Availability()
         obj.device_id = object_json['deviceId']
         obj.external_id = object_json['externalId']
@@ -230,11 +241,13 @@ class ManagedObject(ComplexObject):
          'deviceParents', 'assetParents', 'additionParents'])
 
     class Resource:
+        """Inventory sub-resources."""
         AVAILABILITY = 'availability'
         SUPPORTED_MEASUREMENTS = 'supportedMeasurements'
         SUPPORTED_SERIES = 'supportedSeries'
 
     class Fragment:
+        """Standard fragments."""
         SUPPORTED_MEASUREMENTS = 'c8y_SupportedMeasurements'
         SUPPORTED_SERIES = 'c8y_SupportedSeries'
 

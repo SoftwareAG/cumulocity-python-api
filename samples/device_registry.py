@@ -1,3 +1,10 @@
+# Copyright (c) 2020 Software AG,
+# Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA,
+# and/or its subsidiaries and/or its affiliates and/or their licensors.
+# Use, reproduction, transfer, publication or disclosure is prohibited except
+# as specifically provided for in your License Agreement with Software AG.
+# pylint: disable=broad-except
+
 import logging
 import dotenv
 
@@ -42,7 +49,7 @@ device_c8y = None
 try:
     device_c8y = registry.await_connection(DEVICE_ID, timeout='5h', pause='5s')
 except Exception as e:
-    logger.error("Got error", e)
+    logger.error("Got error", exc_info=e)
 
 # 3) Create a digital twin
 device = Device(c8y=device_c8y, name=DEVICE_ID, type='c8y_TestDevice',

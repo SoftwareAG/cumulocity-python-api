@@ -7,6 +7,7 @@
 import json
 import os
 from datetime import datetime, timezone
+from dateutil import parser
 from typing import List
 
 import pytest
@@ -47,7 +48,6 @@ def test_parsing(sample_json):
 
 def test_formatting():
     """Verify that simple formatting as JSON works as expected."""
-
     op = BulkOperation(
         group_id='group_id',
         failed_parent_id='failed-parent-id',
@@ -65,8 +65,6 @@ def test_formatting():
 
     op.id = 'some-id'
     op_json = op.to_full_json()
-
-    from dateutil import parser
 
     assert 'id' not in op_json
     assert op_json['groupId'] == op.group_id

@@ -11,7 +11,7 @@ from inputimeout import inputimeout, TimeoutOccurred
 
 from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import Device, Event
-from model import Fragment
+from c8y_api.model import Fragment
 
 logging.basicConfig(level=logging.DEBUG)
 

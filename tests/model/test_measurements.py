@@ -40,8 +40,8 @@ def test_measurement_parsing():
     assert m.to_full_json() == expected_full_json
 
 
-@pytest.fixture
-def sample_series():
+@pytest.fixture(name='sample_series')
+def fix_sample_series():
     """Verify that parsing an Operation from JSON works and provide this
     as a fixture for other tests."""
     path = os.path.dirname(__file__) + '/series.json'
@@ -238,5 +238,6 @@ def test_collect_multiple_series_with_timestamp(sample_series: Series):
         assert all(len(v[i]) == 2 for v in values if v[i])
 
     # -> if not None, each element in the 2-tuple (min, max) have same type
+    # pylint: disable=unidiomatic-typecheck
     for i in range(1, len(series_names)+1):
         assert all(type(v[i][0]) == type(v[i][1]) for v in values if v[i])
