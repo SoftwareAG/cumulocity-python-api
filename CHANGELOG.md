@@ -1,8 +1,15 @@
 # Changelog
 
+## Version 1.9.2
 
 * Testing code improvements.
 * Added support for signed, shared and non-persistent Notification 2.0 subscriptions and tokens (Thanks @wilbersl!)
+* Fixed audit record parsing.
+* Various code and documentation improvements.
+* Added support for token-based authentication for interactive sessions.
+* Added page_number parameter to inventory queries to be able to pull a specific page.
+* Added get_count functions to inventory to estimate expected number of results.
+* Added get_subscribers function MultiTenantCumulocityApp.
 
 
 ## Version 1.9.1
