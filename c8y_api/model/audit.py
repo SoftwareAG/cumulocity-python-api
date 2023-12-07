@@ -101,7 +101,8 @@ class AuditRecord(ComplexObject):
     def from_json(cls, json: dict) -> AuditRecord:
         # (no doc update required)
         obj = super()._from_json(json, AuditRecord())
-        obj.source = json['source']['id']
+        if 'source' in obj:
+            obj.source = json['source']['id']
         return obj
 
     def to_json(self, only_updated: bool = False) -> dict:

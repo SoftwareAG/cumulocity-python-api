@@ -3,15 +3,16 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
+# pylint: disable=protected-access
 
 import json
 import os
-from datetime import datetime
 from typing import List
 
 import pytest
 
 from c8y_api.model import AuditRecord
+from c8y_api.model._util import _DateUtil
 from util.testing_util import RandomNameGenerator
 
 
@@ -29,19 +30,22 @@ def test_parsing(sample_json):
     record = AuditRecord.from_json(sample_json)
 
     assert record.type == sample_json['type']
-    assert record.source == sample_json['source']['id']
+    if 'source' in sample_json:
+        assert record.source == sample_json['source']['id']
     assert record.activity == sample_json['activity']
     assert record.text == sample_json['text']
-    assert record.severity == sample_json['severity']
-
+    if 'severity' in sample_json:
+        assert record.severity == sample_json['severity']
     assert record.user == sample_json['user']
-    assert record.application == sample_json['application']
+    if 'application' in sample_json:
+        assert record.application == sample_json['application']
 
     assert record.time == sample_json['time']
     assert record.creation_time == sample_json['creationTime']
-    # assert record.datetime == sample_json['time']
+    assert record.datetime == _DateUtil.to_datetime(sample_json['time'])
 
-    assert record.com_cumulocity_model_event_AuditSourceDevice.id == '18924'
+    if record.type == 'Alarm':
+        assert record.com_cumulocity_model_event_AuditSourceDevice.id == '18924'
 
 def test_formatting():
     """Verify that JSON formatting works."""
