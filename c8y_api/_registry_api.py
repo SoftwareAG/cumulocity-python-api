@@ -67,7 +67,7 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
                 'ms' (milliseconds).
                 A reasonable value for this depends on application.
             pause (str):  How long to pause between request confirmation checks
-                This is a formmated string, see `timeout` parameter.
+                This is a formatted string, see `timeout` parameter.
 
         Returns:
             Credentials object holding the device credentials
@@ -119,7 +119,7 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
                 'ms' (milliseconds).
                 A reasonable value for this depends on application.
             pause (str):  How long to pause between request confirmation checks
-                This is a formmated string, see `timeout` parameter.
+                This is a formatted string, see `timeout` parameter.
 
         Returns:
             Device-specific CumulocityAPI instance

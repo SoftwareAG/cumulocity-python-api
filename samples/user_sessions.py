@@ -8,19 +8,19 @@
 This sample code demonstrates how to obtain Cumulocity user sessions (sessions
 that are run within the context of a named user).
 
-When writing a micro service for Cumulocity you always have two options to
+When writing a microservice for Cumulocity you always have two options to
 get access to Cumulocity:
 
-  a) Use a technical user' context. This is injected into the micro service
+  a) Use a technical user' context. This is injected into the microservice
      via environment variables that the c8y_api automatically deals with.
 
-  b) Use the context of whatever user accesses the micro service. The
+  b) Use the context of whatever user accesses the microservice. The
      credentials for this context must be extracted from the inbound request.
 
 The SimpleCumulocityApp and MultiTenantCumulocityApp classes can be used to
 get a user specific CumulocityApi instance using the get_user_instance
 function as illustrated below. This function will automatically extract the
-authorization information within the inboud request's headers and build a
+authorization information within the inbound request's headers and build a
 CumulocityApi instance based on that.
 """
 
@@ -37,9 +37,9 @@ c8y = SimpleCumulocityApp()
 @app.route("/info")
 def info():
     """Return user's username and devices they have access to."""
-    # The user's credentials (to access Cumulocity and to access the micro
-    # service) are part of the inbound request's headers. This is resolved
-    # automatically when using the get_user_instance function.
+    # The user's credentials (to access Cumulocity and to access the
+    # microservice) are part of the inbound request's headers. This is
+    # resolved automatically when using the get_user_instance function.
     user_c8y = c8y.get_user_instance(request.headers)
     devices_json = [{'name': d.name,
                      'id': d.id,

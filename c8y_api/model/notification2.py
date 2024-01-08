@@ -116,7 +116,7 @@ class Subscription(SimpleObject):
             A fresh Subscription instance representing the created
             subscription within the database.
 
-        See also function Subscriptions.create which doesn't parse the result.
+        See also function `Subscriptions.create` which doesn't parse the result.
         """
         return self._create()
 

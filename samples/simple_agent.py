@@ -37,7 +37,7 @@ input("\nPress ENTER to continue.")
 # it should be used using device bootstrap credentials.
 c8y_registry = CumulocityDeviceRegistry(base_url, tenant_id, bootstrap_username, bootstrap_password)
 
-print("\nThis client will now continously query for the device credentials."
+print("\nThis client will now continuously query for the device credentials."
       "\nPlease approve the request within the Cumulocity UI.")
 # The registry provides two auxiliary functions, `await_credentials` which
 # blocks until the device registration was acknowledged and `await_connection`

@@ -124,7 +124,7 @@ class Alarm(ComplexObject):
         """Convert the first occurrence time to a Python datetime object.
 
         Returns:
-            Standard Python datetime object for the first occurance time.
+            Standard Python datetime object for the first occurrence time.
         """
         return super()._to_datetime(self.first_occurrence_time)
 
@@ -205,7 +205,7 @@ class Alarm(ComplexObject):
         must be defined for this to function. This is always the case if
         the instance was built by the API.
 
-        See also functions Alarms.delete and Alarms.delete_by
+        See also functions `Alarms.delete` and `Alarms.delete_by`
         """
         self._assert_c8y()
         if not self.type:
@@ -371,11 +371,12 @@ class Alarms(CumulocityResource):
         """
         super()._update(Alarm.to_diff_json, *alarms)
 
-    def apply_to(self, alarm, *alarm_ids):
+    def apply_to(self, alarm: Alarm|dict, *alarm_ids: str):
         """Apply changes made to a single instance to other objects in the database.
 
         Args:
-            alarm (Alarm): Object serving as model for the update
+            alarm (Alarm|dict): Object serving as model for the update or
+                simply a dictionary representing the diff JSON.
             *alarm_ids (str): A collection of database IDS of alarms
         """
         super()._apply_to(Alarm.to_full_json, alarm, *alarm_ids)

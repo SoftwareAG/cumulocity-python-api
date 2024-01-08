@@ -82,7 +82,7 @@ class TenantOption(SimpleObject):
             A fresh TenantOption instance representing the created
             option within the database.
 
-        See also function TenantOptions.create which doesn't parse the result.
+        See also function `TenantOptions.create` which doesn't parse the result.
         """
         return super()._create()
 
@@ -93,14 +93,14 @@ class TenantOption(SimpleObject):
             A fresh TenantOption instance representing the updated
             object within the database.
 
-        See also function TenantOptions.update which doesn't parse the result.
+        See also function `TenantOptions.update` which doesn't parse the result.
         """
         return super()._update()
 
     def delete(self) -> None:
         """Delete the option within the database.
 
-        See also function TenantOptions.delete to delete multiple objects.
+        See also function `TenantOptions.delete` to delete multiple objects.
         """
         super()._delete()
 
@@ -225,7 +225,7 @@ class TenantOptions(CumulocityResource):
         return self.c8y.get(resource=self.build_object_path(category, key))['value']
 
     def set_value(self, category: str, key: str, value: str):
-        """ Create a option within the database.
+        """ Create an option within the database.
 
         This is a shortcut function to avoid unnecessary instantiation of
         the TenantOption class.

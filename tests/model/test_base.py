@@ -199,6 +199,6 @@ def test_complexobject_instantiation_and_formatting():
     expected_diff_json = {
         'c8y_field': obj.field,
         'c8y_simple': obj.c8y_simple,
-        'c8y_complex': {'a': 'valueA', 'b': 'newB'}  # the a field is unchanged but is included nonetheless
+        'c8y_complex': {'a': 'valueA', 'b': 'newB'}  # the 'a' field is unchanged but is included nonetheless
     }
     assert obj._to_json(only_updated=True) == expected_diff_json

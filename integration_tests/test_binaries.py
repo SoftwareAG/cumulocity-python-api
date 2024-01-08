@@ -69,7 +69,7 @@ def test_CRUD(live_c8y: CumulocityApi, file_factory):
         # -> the file data matches what we have on disk
         assert file2_data == binary.read_file().decode('utf-8')
 
-        # 3) delete the binarz
+        # 3) delete the binary
         binary.delete()
 
         # -> cannot be found anymore
@@ -90,7 +90,7 @@ def test_CRUD2(live_c8y: CumulocityApi, file_factory):
     # 1) upload a binary file
     created = live_c8y.binaries.upload(file=file1_name, name='test.txt', type='text/raw')
 
-    # -> the returned managed object has all the meta data
+    # -> the returned managed object has all the metadata
     assert created.id
     assert created.is_binary
     assert created.c8y_IsBinary is not None

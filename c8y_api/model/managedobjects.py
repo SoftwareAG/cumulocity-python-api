@@ -213,7 +213,7 @@ class ManagedObject(ComplexObject):
         mo.add_fragment('c8y_CustomValue', value=12, uom='units')
 
     Note: This does not work if a fragment is actually a field, not a
-    structure own it's own. A direct assignment to such a value fragment,
+    structure own its own. A direct assignment to such a value fragment,
     like
 
         mo.c8y_CustomReferences = [1, 2, 3]
@@ -374,7 +374,7 @@ class ManagedObject(ComplexObject):
             object within the database. This instance can be used to get
             at the ID of the new managed object.
 
-        See also function Inventory.create which doesn't parse the result.
+        See also function `Inventory.create` which doesn't parse the result.
         """
         return self._create()
 
@@ -385,7 +385,7 @@ class ManagedObject(ComplexObject):
             A fresh ManagedObject instance representing the updated
             object within the database.
 
-        See also function Inventory.update which doesn't parse the result.
+        See also function `Inventory.update` which doesn't parse the result.
         """
         return self._update()
 
@@ -397,10 +397,10 @@ class ManagedObject(ComplexObject):
         Args:
             other_id (str|int):  Database ID of the event to update.
         Returns:
-            A fresh ManagedObject instance representing the updated
+            A fresh `ManagedObject` instance representing the updated
             object within the database.
 
-        See also function Inventory.apply_to which doesn't parse the result.
+        See also function `Inventory.apply_to` which doesn't parse the result.
         """
         self._assert_c8y()
         # put diff json to another object (by ID)
@@ -620,7 +620,7 @@ class DeviceGroup(ManagedObject):
     def __init__(self, c8y=None, root: bool = False, name: str = None, owner: str = None, **kwargs):
         """ Build a new DeviceGroup object.
 
-        A type of a device group will always be either `c8y_DeviceGroup`
+        The type of a device group will always be either `c8y_DeviceGroup`
         or `c8y_DeviceSubGroup` (depending on it's level). This is handled
         by the API.
 
@@ -696,7 +696,7 @@ class DeviceGroup(ManagedObject):
             object within the database. This instance can be used to get at
             the ID of the new object.
 
-        See also function DeviceGroupInventory.create which doesn't parse
+        See also function `DeviceGroupInventory.create` which doesn't parse
         the result.
         """
         return super()._create()

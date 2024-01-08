@@ -44,8 +44,8 @@ def sample_device(live_c8y: CumulocityApi, device_registry: CumulocityDeviceRegi
     # 1) create a device connection request
     live_c8y.device_inventory.request(device_id)
 
-    # 2) continously try to accept the request
-    # the request can be accepted once there was some communication
+    # 2) continuously try to accept the request
+    # It can be accepted once there was some communication
     # we will do this asynchronously
     def await_communication_and_accept():
         # pylint: disable=bare-except
