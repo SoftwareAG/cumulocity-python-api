@@ -44,12 +44,12 @@ def fixture_jwt_token_bytes():
 
 
 def test_resolve_tenant_id(jwt_token_bytes):
-    """Verify that parsing the tenant ID from an Bearer authentication
+    """Verify that parsing the tenant ID from a Bearer authentication
     string works as expected."""
     assert JWT(jwt_token_bytes).tenant_id == 't12345'
 
 
 def test_resolve_username(jwt_token_bytes):
-    """Verify that parsing the username from an Bearer authentication
+    """Verify that parsing the username from a Bearer authentication
     string works as expected."""
     assert JWT(jwt_token_bytes).username == 'some.user@softwareag.com'

@@ -64,7 +64,7 @@ class RandomNameGenerator:
         """Generate a readable random name from joined random words.
 
         Args:
-            num (int):  number of random words to concactenate
+            num (int):  number of random words to concatenate
             sep (str):  concatenation separator
 
         Returns:

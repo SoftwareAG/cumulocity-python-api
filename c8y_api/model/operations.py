@@ -175,10 +175,10 @@ class Operations(CumulocityResource):
             bulk_id (str): The bulk operation ID that this object belongs to
             fragment (str):  Name of a present custom/standard fragment
             before (datetime|str):  Datetime object or ISO date/time string.
-                Only operaton assigned to a time before this date are
+                Only operations assigned to a time before this date are
                 returned.
             after (datetime|str):  Datetime object or ISO date/time string.
-                Only operation assigned to a time after this date are
+                Only operations assigned to a time after this date are
                 returned.
             min_age (timedelta):  Timedelta object. Only operation of
                 at least this age are returned.
@@ -240,7 +240,7 @@ class Operations(CumulocityResource):
         base_query = self._build_base_query(agent_id=agent_id, device_id=device_id, status=status,
                                             bulk_id=bulk_id, fragment=fragment, after=after,
                                             before=before, min_age=min_age, reverse=True, page_size=1)
-        m = Operation.from_json(self._get_page(base_query, "1")[0])
+        m = Operation.from_json(self._get_page(base_query, 1)[0])
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
 
@@ -261,11 +261,11 @@ class Operations(CumulocityResource):
             bulk_id (str): The bulk operation ID that this object belongs to
             fragment (str):  Name of a present custom/standard fragment
             before (datetime|str):  Datetime object or ISO date/time string.
-                Only operaton assigned to a time before this date are
-                returned.
+                Only operations assigned to a time before this date are
+                selected.
             after (datetime|str):  Datetime object or ISO date/time string.
                 Only operation assigned to a time after this date are
-                returned.
+                selected.
             min_age (timedelta):  Timedelta object. Only operation of
                 at least this age are returned.
             max_age (timedelta):  Timedelta object. Only operations with
