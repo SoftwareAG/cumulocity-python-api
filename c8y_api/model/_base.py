@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import urllib.parse
 from typing import Any, Iterable, Set
 
 from collections.abc import MutableMapping
@@ -153,10 +154,12 @@ class SimpleObject(CumulocityObject):
             return obj.__dict__[self.internal_name]
 
         def __set__(self, obj, value):
+            # pylint: disable=protected-access
             obj._signal_updated_field(self.internal_name)
             obj.__dict__[self.internal_name] = value
 
         def __delete__(self, obj):
+            # pylint: disable=protected-access
             obj._signal_updated_field(self.internal_name)
             obj.__dict__[self.internal_name] = None
 
@@ -171,7 +174,7 @@ class SimpleObject(CumulocityObject):
         methods and alike. The resource path does not include leading or
         trailing '/' characters.
 
-        By default this is just static the class `_resource` field but it
+        By default, this is just static the class `_resource` field, but it
         can be customized in derived classes if this needs to be dynamic.
         """
         return self._resource
@@ -183,7 +186,7 @@ class SimpleObject(CumulocityObject):
         methods and alike. The object path does not include leading or
         trailing '/' characters.
 
-        By default this is just the class `_resource` field plus object ID
+        By default, this is just the class `_resource` field plus object ID,
         but it can be customized if this needs to be dynamic.
         """
         # no need to assert the ID - this function is only used when
@@ -192,7 +195,7 @@ class SimpleObject(CumulocityObject):
 
     @classmethod
     def from_json(cls, json: dict) -> Any[SimpleObject]:
-        """Create a object instance from Cumulocity JSON format.
+        """Create an object instance from Cumulocity JSON format.
 
         Caveat: this function is primarily for internal use and does not
         return a full representation of the JSON. It is used for object
@@ -204,7 +207,7 @@ class SimpleObject(CumulocityObject):
         Returns:
             A CumulocityObject instance.
         """
-        # The from_json function must be implemented in the sub class
+        # The from_json function must be implemented in the subclass
 
     def to_json(self, only_updated=False) -> dict:
         """Create a representation of this object in Cumulocity JSON format.
@@ -315,7 +318,7 @@ class ComplexObject(SimpleObject):
             self.fragments[key] = value
         self.__setattr__ = self._setattr_
 
-    def __setitem__(self, name: str, fragment: str | bool | int | float | dict):
+    def __setitem__(self, name: str, fragment: str | bool | int | float | dict | list):
         """ Add/set a custom fragment.
 
         The fragment value can be a simple value or any JSON-like structure
@@ -333,7 +336,7 @@ class ComplexObject(SimpleObject):
 
     def __getitem__(self, name: str):
         """ Get the value of a custom fragment.
-i
+
         Depending on the definition the value can be a scalar or a
         complex structure (modelled as nested dictionary).
 
@@ -461,15 +464,19 @@ class CumulocityResource:
         return self.resource + '/' + str(object_id)
 
     @staticmethod
-    def _prepare_query_params(type=None, name=None, fragment=None, source=None,  # noqa (type)
-                              value=None, series=None, owner=None,
-                              device_id=None, agent_id=None, bulk_id=None,
-                              before=None, after=None,
-                              created_before=None, created_after=None,
-                              updated_before=None, updated_after=None,
-                              min_age=None, max_age=None,
-                              reverse=None, page_size=None, page_number=None,
-                              **kwargs):
+    def _prepare_query_params(
+            type=None, name=None, fragment=None, source=None,  # noqa (type)
+            value=None, series=None, owner=None,
+            device_id=None, agent_id=None, bulk_id=None, ids=None,
+            text=None,
+            before=None, after=None,
+            created_before=None, created_after=None,
+            updated_before=None, updated_after=None,
+            min_age=None, max_age=None,
+            reverse=None, page_size=None,
+            page_number=None,  # (must not be part of the prepared query)
+            **kwargs):
+        assert not page_number
         # min_age/max_age should be timedelta objects that can be used for
         # alternative calculation of the before/after parameters
         if min_age:
@@ -492,23 +499,38 @@ class CumulocityResource:
         updated_before = _DateUtil.ensure_timestring(updated_before)
         updated_after = _DateUtil.ensure_timestring(updated_after)
 
-        params = {k: v for k, v in {'type': type, 'name': name, 'owner': owner,
-                                    'source': source, 'fragmentType': fragment,
-                                    'valueFragmentType': value,
-                                    'valueFragmentSeries': series,
-                                    'deviceId': device_id, 'agentId': agent_id,
-                                    'bulkOperationId': bulk_id,
-                                    'dateFrom': after, 'dateTo': before,
-                                    'createdFrom': created_after, 'createdTo': created_before,
-                                    'lastUpdatedFrom': updated_after, 'lastUpdatedTo': updated_before,
-                                    'revert': str(reverse) if reverse else None,
-                                    'pageSize': page_size}.items() if v}
+        params = {
+            'type': type,
+            'name': name,
+            'owner': owner,
+            'source': source,
+            'fragmentType': fragment,
+            'valueFragmentType': value,
+            'valueFragmentSeries': series,
+            'deviceId': device_id,
+            'agentId': agent_id,
+            'bulkId': bulk_id,
+            'text': text,
+            'ids': ','.join(ids) if ids else None,
+            'bulkOperationId': bulk_id,
+            'dateFrom': after,
+            'dateTo': before,
+            'createdFrom': created_after,
+            'createdTo': created_before,
+            'lastUpdatedFrom': updated_after,
+            'lastUpdatedTo': updated_before,
+            'revert': str(reverse) if reverse else None,
+            'pageSize': page_size}
+        params = {k: v for k, v in params.items() if v}
         params.update({k: v for k, v in kwargs.items() if v is not None})
         return params
 
-    def _build_base_query(self, **kwargs):
-        params = CumulocityResource._prepare_query_params(**kwargs)
-        return self.resource + '?' + urlencode(params)
+    def _build_base_query(self, expression: str = None, **kwargs):
+        if expression:
+            encoded_params = urllib.parse.quote_plus(expression)
+        else:
+            encoded_params = urlencode(CumulocityResource._prepare_query_params(**kwargs))
+        return self.resource + '?' + encoded_params
 
     def _get_object(self, object_id):
         return self.c8y.get(self.build_object_path(object_id))
@@ -518,6 +540,7 @@ class CumulocityResource:
         return result_json[self.object_name]
 
     def _get_count(self, base_query: str) -> int:
+        # the page_size=1 parameter must already be part of the query string
         result_json = self.c8y.get(base_query + '&withTotalPages=true')
         return result_json['statistics']['totalPages']
 
@@ -557,8 +580,8 @@ class CumulocityResource:
         for o in objects:
             self.c8y.put(self.resource + '/' + str(o.id), json=jsonify_func(o), accept=None)
 
-    def _apply_to(self, jsonify_func, model, *object_ids):
-        model_json = jsonify_func(model)
+    def _apply_to(self, jsonify_func, model: dict|Any, *object_ids):
+        model_json = model if isinstance(model, dict) else jsonify_func(model)
         for object_id in object_ids:
             self.c8y.put(self.resource + '/' + str(object_id), model_json, accept=None)
 
@@ -566,7 +589,7 @@ class CumulocityResource:
     def delete(self, *objects: str):
         """ Delete one or more objects within the database.
 
-        The objects can be specified as instances of an database object
+        The objects can be specified as instances of a database object
         (then, the id field needs to be defined) or simply as ID (integers
         or strings).
 
