@@ -23,7 +23,7 @@ def fix_token_app(test_environment):
             'username': c8y.auth.username,
             'password': c8y.auth.password
         }
-    r = requests.post(url=c8y.base_url + '/tenant/oauth', data=form_data)
+    r = requests.post(url=c8y.base_url + '/tenant/oauth', data=form_data, timeout=60.0)
     # Obtain token from response
     assert r.status_code == 200
     cookie = r.headers['Set-Cookie']

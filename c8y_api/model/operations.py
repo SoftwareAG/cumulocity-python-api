@@ -352,7 +352,7 @@ class BulkOperation(ComplexObject):
 
     @operation_prototype.setter
     def operation_prototype(self, fragment):
-        self.__setitem__('operationPrototype', fragment)
+        self['operationPrototype'] = fragment
 
     @property
     def start_datetime(self) -> datetime:

@@ -70,7 +70,7 @@ def test_environment(logger):
 @pytest.fixture(scope='session')
 def live_c8y(test_environment) -> CumulocityApi:
     """Provide a live CumulocityApi instance as defined by the environment."""
-    if 'C8Y_BASEURL' not in os.environ.keys():
+    if 'C8Y_BASEURL' not in os.environ:
         raise RuntimeError("Missing Cumulocity environment variables (C8Y_*). Cannot create CumulocityApi instance. "
                            "Please define the required variables directly or setup a .env file.")
     return SimpleCumulocityApp()
