@@ -5,12 +5,13 @@ Deprecated
 pytest
 responses
 python-dotenv
+setuptools
 setuptools_scm
 invoke
 pylint
 PyJWT
 cachetools
 inputimeout
-flask
+Flask
 websockets
 pandas
