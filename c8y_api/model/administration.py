@@ -828,7 +828,7 @@ class Users(CumulocityResource):
             elif isinstance(groups[0], str):
                 groups_string = [str(self.__groups.get(name).id) for name in groups]
             else:
-                ValueError("Unable to identify type of given group identifiers.")
+                raise ValueError("Unable to identify type of given group identifiers.")
             groups_string = ','.join(groups_string)
         # lazily yield parsed objects page by page
         base_query = super()._build_base_query(username=username, groups=groups_string, page_size=page_size)
