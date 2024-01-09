@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any, Generator, List
 
 from c8y_api.model._base import CumulocityResource
