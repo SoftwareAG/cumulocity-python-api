@@ -62,7 +62,7 @@ class Binary(ManagedObject):
         Raises:
             FileNotFoundError:  if the file refers to an invalid path.
 
-        See also function Binaries.create which doesn't parse the result.
+        See also function `Binaries.create` which doesn't parse the result.
         """
         self._assert_c8y()
         response_json = self.c8y.post_file(self._build_resource_path(), file=self.file,

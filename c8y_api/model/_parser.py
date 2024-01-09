@@ -56,10 +56,11 @@ class SimpleObjectParser(object):
         If a field is present in both lists, it will be excluded.
 
         Args:
+            obj (object): the object to represent in JSON format.
             include:  an iterable of object fields to include or None if all
-                fields should be included
+                fields should be included.
             exclude:  an iterable of object fields to exclude or None of no
-                field should be excluded
+                field should be excluded.
 
         Returns:
             A JSON representation (nested dict) of the object.

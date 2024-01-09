@@ -99,7 +99,7 @@ def test_to_json_simple(simple_object_and_mapping):
 
 def test_to_json_simple_includes(simple_object_and_mapping):
     """Verify that simple JSON rendering works using the to_json method
-    of a parser instance when an include is is specified."""
+    of a parser instance when an include is specified."""
 
     obj, mapping = simple_object_and_mapping
     parser = SimpleObjectParser(mapping)

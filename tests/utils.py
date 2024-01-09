@@ -47,7 +47,7 @@ def isolate_last_call_arg(mock: Mock, name: str, pos: int = None) -> Any:
     if len(args) > pos:
         return args[pos]
     raise KeyError(f"Argument not found: '{name}'. "
-                   f"Not given explcitely and position ({pos}) out of of bounds.")
+                   f"Not given explicitly and position ({pos}) out of of bounds.")
 
 
 def isolate_all_call_args(mock: Mock, name: str, pos: int = None) -> List[Any]:
@@ -91,7 +91,7 @@ def b64encode(auth_string: str) -> str:
 
 
 def build_auth_string(auth_value: str) -> str:
-    """Build a complete auth string from an base64 encoded auth value.
+    """Build a complete auth string from a base64 encoded auth value.
     This detects the type based on the `auth_value` contents, assuming
     that JWT tokens always start with an '{'."""
     auth_type = 'BEARER' if auth_value.startswith('ey') else 'BASIC'

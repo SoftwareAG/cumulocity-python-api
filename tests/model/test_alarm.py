@@ -88,7 +88,7 @@ def test_formatting(sample_alarm: Alarm):
 
     assert 'id' not in alarm_json
     assert 'creationTime' not in alarm_json
-    assert 'firstOccuranceTime' not in alarm_json
+    assert 'firstOccurrenceTime' not in alarm_json
 
     assert alarm_json['type'] == sample_alarm.type
     assert alarm_json['source']['id'] == sample_alarm.source

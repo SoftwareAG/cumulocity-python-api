@@ -188,7 +188,7 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code not in (200, 201):
+        if r.status_code not in (200, 201, 204):
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.content:
             return r.json()
@@ -269,7 +269,7 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code != 200:
+        if r.status_code not in (200, 202, 204):
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.content:
             return r.json()

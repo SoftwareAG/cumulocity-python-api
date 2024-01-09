@@ -33,7 +33,7 @@ class _CumulocityAppBase(object):
         """Return a user-specific CumulocityApi instance.
 
         The instance will have user access, based on the Authorization header
-        provided in the headers dict. The instance will be build on demand,
+        provided in the headers dict. The instance will be built on demand,
         previously created instances are cached.
 
         Args:
@@ -100,10 +100,10 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
     """Application-like Cumulocity API.
 
     The SimpleCumulocityApp class is intended to be used as base within
-    a single-tenant micro service hosted on Cumulocity. It evaluates the
+    a single-tenant microservice hosted on Cumulocity. It evaluates the
     environment to the resolve the authentication information automatically.
 
-    Note: This class should be used in Cumulocity micro services using the
+    Note: This class should be used in Cumulocity microservices using the
     PER_TENANT authentication mode only. It will not function in environments
     using the MULTITENANT mode.
 
@@ -154,11 +154,11 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
     """Multi-tenant enabled Cumulocity application wrapper.
 
     The MultiTenantCumulocityApp class is intended to be used as base within
-    a multi-tenant micro service hosted on Cumulocity. It evaluates the
+    a multi-tenant microservice hosted on Cumulocity. It evaluates the
     environment to the resolve the bootstrap authentication information
     automatically.
 
-    Note: This class is intended to be used in Cumulocity micro services
+    Note: This class is intended to be used in Cumulocity microservices
     using the MULTITENANT authentication mode. It will not function in
     PER_TENANT environments.
 

@@ -348,12 +348,13 @@ class Events(CumulocityResource):
         """
         super()._update(Event.to_diff_json, *events)
 
-    def apply_to(self, event: Event, *event_ids: str):
+    def apply_to(self, event: Event|dict, *event_ids: str):
         """Apply changes made to a single instance to other objects in the
         database.
 
         Args:
-            event (Event): Event used as model for the update
+            event (Event|dict): Event used as model for the update or simply
+                a dictionary representing the diff JSON.
             *event_ids (str):  Collection of ID of the events to update
         """
         super()._apply_to(Event.to_full_json, event, *event_ids)

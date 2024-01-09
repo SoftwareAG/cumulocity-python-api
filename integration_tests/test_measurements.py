@@ -159,7 +159,11 @@ def test_select_by(live_c8y: CumulocityApi, measurement_factory, key, key_lambda
 def test_delete_by(live_c8y: CumulocityApi, measurement_factory, key, key_lambda):
     """Verify that get and delete by type works as expected."""
     measurements_for_deletion = measurement_factory(10)
-    kwargs = {key: key_lambda(measurements_for_deletion[0])}
+    kwargs = {
+        key: key_lambda(measurements_for_deletion[0]),
+        # a date or source is required as a minimum
+        'after': '1970-01-01T00:00:00Z'
+    }
 
     # 0 add some 'similar' measurements
     additional_measurements = []
@@ -197,8 +201,9 @@ def fix_sample_series_device(live_c8y: CumulocityApi, sample_device: Device) -> 
     live_c8y.measurements.create(*ms_iter)
     live_c8y.measurements.create(*ms_temps)
 
-    sample_device['c8y_SupportedSeries'] = ['c8y_Temperature.c8y_AverageTemperature',
-                                            'c8y_Iteration.c8y_Counter']
+    sample_device['c8y_SupportedSeries'] = [
+        'c8y_Temperature.c8y_AverageTemperature',
+        'c8y_Iteration.c8y_Counter']
     return sample_device.update()
 
 

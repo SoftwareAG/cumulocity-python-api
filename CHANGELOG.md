@@ -1,5 +1,12 @@
 # Changelog
 
+
+* The `select` and `get_all` functions now feature an `expression` parameter which allows to directly specify the entire REST API filtering expression.
+* Fixed, unified and streamlined the behavior or the `query` parameter within all `select` and `get_all` functions.
+* The `apply_to` functions now allow to specify the to-be-applied changes directly in JSON. 
+* Various tiny code and documentation improvements. 
+
+
 ## Version 1.9.2
 
 * Testing code improvements.
