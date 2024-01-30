@@ -25,6 +25,12 @@
       "changes": [
         {
           "attribute": "status",
+          "newValue": "ACKNOWLEDGED",
+          "previousValue": "ACTIVE",
+          "type": "com.cumulocity.model.event.CumulocityAlarmStatuses"
+        },
+        {
+          "attribute": "status",
           "newValue": "CLEARED",
           "previousValue": "ACTIVE",
           "type": "com.cumulocity.model.event.CumulocityAlarmStatuses"

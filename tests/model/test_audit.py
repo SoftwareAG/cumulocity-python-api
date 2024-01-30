@@ -11,7 +11,7 @@ from typing import List
 
 import pytest
 
-from c8y_api.model import AuditRecord
+from c8y_api.model import AuditRecord, Change
 from c8y_api.model._util import _DateUtil
 from util.testing_util import RandomNameGenerator
 
@@ -39,6 +39,13 @@ def test_parsing(sample_json):
     assert record.user == sample_json['user']
     if 'application' in sample_json:
         assert record.application == sample_json['application']
+    if 'changes' in sample_json:
+        assert len(record.changes) == len(sample_json['changes'])
+        for i, c in enumerate(record.changes):
+            assert c.attribute == sample_json['changes'][i]['attribute']
+            assert c.type == sample_json['changes'][i]['type']
+            assert c.new_value == sample_json['changes'][i]['newValue']
+            assert c.previous_value == sample_json['changes'][i]['previousValue']
 
     assert record.time == sample_json['time']
     assert record.creation_time == sample_json['creationTime']
@@ -53,7 +60,12 @@ def test_formatting():
     record = AuditRecord(type=RandomNameGenerator.random_name(), time='now', source='source-id',
                          activity='audit activity', text='audit text',
                          severity=AuditRecord.Severity.INFORMATION,
-                         application='some application', user='some@softwareag.com',
+                         application='some application',
+                         user='some@softwareag.com',
+                         changes=[
+                             Change(attribute='attr', new_value='new', previous_value='old', type='type'),
+                             Change(attribute='attr2', new_value='new2', previous_value='old2', type='type2')
+                         ],
                          customFragment={'value': 12},
                          property=42)
     record.id = 'id'
@@ -74,8 +86,28 @@ def test_formatting():
     assert record_json['time'] == record.time
     assert 'creationTime' not in record_json
 
+    assert len(record_json['changes']) == 2
+    assert record_json['changes'][1]['attribute'] == 'attr2'
+    assert record_json['changes'][1]['type'] == 'type2'
+    assert record_json['changes'][1]['newValue'] == 'new2'
+    assert record_json['changes'][1]['previousValue'] == 'old2'
 
     expected_keys = {'type', 'time', 'source', 'severity',
                      'activity', 'text', 'application', 'user',
-                     'customFragment', 'property'}
+                     'changes', 'customFragment', 'property'}
     assert set(record_json.keys()) == expected_keys
+
+
+def test_no_changes():
+    """Verify that the changes fragment is only present if provided."""
+    record = AuditRecord(type=RandomNameGenerator.random_name())
+    record_json = record.to_full_json()
+    assert 'changes' not in record_json
+
+
+def test_empty_changes():
+    """Verify that the changes fragment can be present but empty."""
+    record = AuditRecord(type=RandomNameGenerator.random_name(), changes=[])
+    record_json = record.to_full_json()
+    assert 'changes' in record_json
+    assert len(record_json['changes']) == 0

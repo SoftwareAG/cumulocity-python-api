@@ -64,6 +64,7 @@ __all__ = [
     'Application',
     'TenantOption',
     'AuditRecord',
+    'Change',
     # Measurement Helpers
     'Units',
     'Celsius',

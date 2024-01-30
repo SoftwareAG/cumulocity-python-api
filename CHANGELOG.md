@@ -1,6 +1,9 @@
 # Changelog
 
 
+* Added Changes support to the Audit API.
+
+
 ## Version 1.10
 
 * The `select` and `get_all` functions now feature an `expression` parameter which allows to directly specify the entire REST API filtering expression.
