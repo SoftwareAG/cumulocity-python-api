@@ -90,10 +90,6 @@ class Subscription(SimpleObject):
     def from_json(cls, json: dict) -> Subscription:
         """Create a Subscription instance from Cumulocity JSON format.
 
-        Caveat: this function is primarily for internal use and does not
-        return a full representation of the JSON. It is used for object
-        creation and update within Cumulocity.
-
         Args:
             json (dict): The JSON to parse.
 
