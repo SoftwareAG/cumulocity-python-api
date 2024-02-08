@@ -43,25 +43,25 @@ class AuditRecord(ComplexObject):
 
     class Type:
         """Audit record source types."""
-        ALARM = "Alarm",
-        APPLICATION = "Application",
-        BULKOPERATION = "BulkOperation",
-        CEPMODULE = "CepModule",
-        CONNECTOR = "Connector",
-        EVENT = "Event",
-        GROUP = "Group",
-        INVENTORY = "Inventory",
-        INVENTORYROLE = "InventoryRole",
-        OPERATION = "Operation",
-        OPTION = "Option",
-        REPORT = "Report",
-        SINGLESIGNON = "SingleSignOn",
-        SMARTRULE = "SmartRule",
-        SYSTEM = "SYSTEM",
-        TENANT = "Tenant",
-        TENANT_AUTH_CONFIG = "TenantAuthConfig",
-        TRUSTED_CERTIFICATES = "TrustedCertificates",
-        USER = "User",
+        ALARM = "Alarm"
+        APPLICATION = "Application"
+        BULKOPERATION = "BulkOperation"
+        CEPMODULE = "CepModule"
+        CONNECTOR = "Connector"
+        EVENT = "Event"
+        GROUP = "Group"
+        INVENTORY = "Inventory"
+        INVENTORYROLE = "InventoryRole"
+        OPERATION = "Operation"
+        OPTION = "Option"
+        REPORT = "Report"
+        SINGLESIGNON = "SingleSignOn"
+        SMARTRULE = "SmartRule"
+        SYSTEM = "SYSTEM"
+        TENANT = "Tenant"
+        TENANT_AUTH_CONFIG = "TenantAuthConfig"
+        TRUSTED_CERTIFICATES = "TrustedCertificates"
+        USER = "User"
         USER_AUTHENTICATION = "UserAuthentication"
 
     _parser = ComplexObjectParser({
