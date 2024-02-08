@@ -307,6 +307,7 @@ class SimpleObject(CumulocityObject):
 class ComplexObject(SimpleObject):
     """Abstract base class for all complex cumulocity objects
     (that can have custom fragments)."""
+    # pylint: disable=unnecessary-dunder-call
 
     log = logging.getLogger(__name__)
 

@@ -18,6 +18,7 @@ from c8y_api.model._util import _DateUtil
 
 @dataclasses.dataclass
 class Change:
+    """Change details fragment within an audit log."""
     attribute: str = None
     new_value: str = None
     previous_value: str = None

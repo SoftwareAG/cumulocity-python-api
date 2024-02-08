@@ -65,6 +65,7 @@ def test_simpleobject_instantiation_and_formatting():
     #  -> the change set is undefined/empty
     assert not obj._updated_fields
     #  -> the updated JSON representation will be empty
+    # pylint: disable=(use-implicit-booleaness-not-comparison
     assert obj._to_json(only_updated=True) == {}
     #  -> the full JSON representation will be defined
     assert obj._to_json(only_updated=False) == {'c8y_field': 'directly updated field'}
@@ -186,6 +187,7 @@ def test_complexobject_instantiation_and_formatting():
     assert obj._to_json() == expected_full_json
     # -> diff JSON should be empty as there are no changes
     assert not obj.get_updates()
+    # pylint: disable=(use-implicit-booleaness-not-comparison
     assert obj._to_json(only_updated=True) == {}
 
     # 3_ resetting the update status (twiddling with internals)
