@@ -19,8 +19,16 @@ def fix_sample_jsons() -> List[dict]:
     """Read sample jsons from file. This is not a pytest fixture."""
     path = os.path.dirname(__file__) + '/bulk_operations.json'
     with open(path, encoding='utf-8', mode='rt') as f:
-        subscriptions = json.load(f)
-        return subscriptions['bulkOperations']
+        root = json.load(f)
+        return root['bulkOperations']
+
+def test_parsing_collection():
+    path = os.path.dirname(__file__) + '/bulk_operations.json'
+    with open(path, encoding='utf-8', mode='rt') as f:
+        root = json.load(f)
+
+
+
 
 @pytest.mark.parametrize('sample_json', fix_sample_jsons())
 def test_parsing(sample_json):

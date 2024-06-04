@@ -407,7 +407,9 @@ class BulkOperations(CumulocityResource):
     """
 
     def __init__(self, c8y: CumulocityRestApi):
+        # bulk operations don't follow standard naming conventions
         super().__init__(c8y, 'devicecontrol/bulkoperations')
+        self.object_name = 'bulkOperations'
 
     def get(self, operation_id: str | int) -> BulkOperation:
         """ Read a specific bulk operation from the database.
