@@ -30,6 +30,7 @@ class CumulocityRestApi:
     ACCEPT_USER = 'application/vnd.com.nsn.cumulocity.user+json'
     ACCEPT_GLOBAL_ROLE = 'application/vnd.com.nsn.cumulocity.group+json'
     CONTENT_AUDIT_RECORD = 'application/vnd.com.nsn.cumulocity.auditrecord+json'
+    CONTENT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
     def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None, tfa_token: str = None,

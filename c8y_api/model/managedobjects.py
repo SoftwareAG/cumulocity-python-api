@@ -680,7 +680,8 @@ class DeviceGroup(ManagedObject):
         child_json = DeviceGroup(name=name, owner=owner if owner else self.owner, **kwargs).to_json()
 
         response_json = self.c8y.post(self._build_object_path() + '/childAssets', json=child_json,
-                                      accept=CumulocityRestApi.ACCEPT_MANAGED_OBJECT)
+                                      accept=CumulocityRestApi.ACCEPT_MANAGED_OBJECT,
+                                      content_type=CumulocityRestApi.CONTENT_MANAGED_OBJECT)
         result = self.from_json(response_json)
         result.c8y = self.c8y
         return result
