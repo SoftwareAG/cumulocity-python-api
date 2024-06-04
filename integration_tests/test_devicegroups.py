@@ -11,7 +11,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model import DeviceGroup
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CRUD(live_c8y: CumulocityApi, safe_executor):
@@ -62,7 +62,7 @@ def test_CRUD(live_c8y: CumulocityApi, safe_executor):
         with pytest.raises(KeyError):
             live_c8y.group_inventory.get(child2.id)
 
-        # x) delete root and cascase
+        # x) delete root and cascade
         root.delete_tree()
         # -> root and remaining child are gone
         with pytest.raises(KeyError):
@@ -138,17 +138,20 @@ def test_select(live_c8y: CumulocityApi, safe_executor):
         ids = [x.id for x in live_c8y.group_inventory.select(name=f'Root-{name}')]
         # -> only the root group is returned
         assert ids == [root.id]
+        assert live_c8y.group_inventory.get_count(name=f'Root-{name}') == 1
 
         # 2) select child folders via owner (no query)
         found_ids = [x.id for x in live_c8y.group_inventory.select(type='c8y_DeviceSubGroup', owner=live_c8y.username)]
         # -> only the child group can be found
         assert child1.id in found_ids
         assert root.id not in found_ids
+        assert live_c8y.group_inventory.get_count(type='c8y_DeviceSubGroup', owner=live_c8y.username) == len(found_ids)
 
         # 3) select child by parent and owner (implicit query)
         ids = [x.id for x in live_c8y.group_inventory.select(parent=root.id, owner=live_c8y.username)]
         # -> only the child is returned
         assert ids == [child1.id]
+        assert live_c8y.group_inventory.get_count(parent=root.id, owner=live_c8y.username) == 1
 
         root.delete_tree()
 

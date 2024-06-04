@@ -80,8 +80,8 @@ class Permission(SimpleObject):
     def to_json(self, only_updated=False) -> dict:
         # no doc change required
         json = self._to_json()
-        # for permissions it is actually ok to give the ID if there is any
-        # for updates, this will create less objects within the database
+        # for permissions, it is actually ok to give the ID if there is any
+        # for updates, this will create fewer objects within the database
         if self.id:
             # permission IDs are actually ints
             json['id'] = int(self.id)
@@ -223,7 +223,7 @@ class InventoryRoleAssignment(SimpleObject):
 
 
 class GlobalRole(SimpleObject):
-    """Represents an Global Role object within Cumulocity.
+    """Represents a Global Role object within Cumulocity.
 
     Notes:
       - Global Roles are called 'groups' in the Cumulocity Standard REST API;
@@ -231,7 +231,7 @@ class GlobalRole(SimpleObject):
         used for consistency with the Cumulocity realm.
 
       - Only a limited set of properties are actually updatable. Others must
-        be set explicitely using the corresponding API (for example: permissions).
+        be set explicitly using the corresponding API (for example: permissions).
 
     See also: https://cumulocity.com/api/#tag/Groups
     """
@@ -296,7 +296,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            permissions (*str):  An Iterable of permission ID
+            *permissions (str):  An Iterable of permission ID
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -308,7 +308,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            permissions (*str):  An Iterable of permission ID
+            *permissions (str):  An Iterable of permission ID
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -320,7 +320,7 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            users (*str):  An Iterable of usernames
+            *users (str):  An Iterable of usernames
         """
         super()._assert_c8y()
         super()._assert_id()
@@ -332,14 +332,14 @@ class GlobalRole(SimpleObject):
         This operation is executed immediately.
 
         Args:
-            users (*str):  An Iterable of usernames
+            *users (str):  An Iterable of usernames
         """
         super()._assert_c8y()
         super()._assert_id()
         GlobalRoles(self.c8y).unassign_users(self.id, *users)
 
     def _build_resource_path(self):
-        # overriding the default as we need the tenand ID in there
+        # overriding the default as we need the tenant ID in there
         return f'/user/{self.c8y.tenant_id}/groups'
 
 
@@ -363,7 +363,7 @@ class UserUtil:
 
     @staticmethod
     def build_application_references(*ids) -> List[dict]:
-        """Build the JSON structure for a applicaiton reference."""
+        """Build the JSON structure for an application reference."""
         if not ids:
             return []
         return [{'id': str(aid), 'type': 'MICROSERVICE'} for aid in ids]
@@ -392,9 +392,11 @@ class _BaseUser(SimpleObject):
             '_last_password_change': 'lastPasswordChange'})
     _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
 
-    def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
-                 password=None, first_name=None, last_name=None, phone=None,
-                 tfa_enabled=None, require_password_reset=None):
+    def __init__(self, c8y: CumulocityRestApi = None, username: str = None, email: str = None,
+                 enabled: bool = True, display_name: str = None, password:str = None,
+                 first_name: str = None, last_name: str = None, phone: str = None,
+                 tfa_enabled: bool = None, require_password_reset: bool = None):
+
         super().__init__(c8y)
         self.username = username
         self.password_strength = None
@@ -450,17 +452,24 @@ class User(_BaseUser):
                  password=None, first_name=None, last_name=None, phone=None,
                  tfa_enabled=None, require_password_reset=None):
         """
-        :param c8y:
-        :param username:
-        :param email:
-        :param enabled:
-        :param display_name:
-        :param password:  the initial password for the user
-            if omitted, a newly created user will be send a password reset link
-            (for human users)
-        :param first_name:
-        :param last_name:
-        :param phone:
+            Create a new User instance.
+
+            Args:
+                c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                    to be set for direct manipulation (create, delete).
+                username (str):  The user's username.
+                email (str):  The user's email address.
+                enabled (bool):  Whether the user is enabled.
+                display_name (str):  The user's display name
+                password (str):  The initial password for the user. If omitted,
+                    a newly created user will be sent a password reset link
+                    (for human users).
+                first_name (str):  The user's first name.
+                last_name (str):  The user's last name.
+                phone (str):  The user's phone number.
+                tfa_enabled (bool):  Whether 2nd factor login is enabled.
+                require_password_reset (bool):  Whether the password must be
+                    reset by the user after the next login.
         """
         super().__init__(c8y,
                          username=username, email=email, enabled=enabled,
@@ -522,7 +531,7 @@ class User(_BaseUser):
         """Update the password.
 
         This operation is executed immediately. No additional call to
-        the `update` function required.
+        the ``update`` function required.
 
         Args:
             new_password (str): The new password to set
@@ -535,9 +544,9 @@ class User(_BaseUser):
         """Set the owner for this user.
 
         This operation is executed immediately. No additional call to
-        the `update` function required.
+        the ``update`` function required.
 
-        Params:
+        Args:
             user_id (str): ID of the owner to set; can be None to
                 remove a currently set owner.
         """
@@ -549,10 +558,10 @@ class User(_BaseUser):
         """Set the delegate for this user.
 
         This operation is executed immediately. No additional call to
-        the `update` function required.
+        the ``update`` function required.
 
-        Params:
-            user_id (str): ID of the delegate to set; can be None to
+        Args:
+            user_id (str): ID of the delegate to set; can be ``None`` to
                 remove a currently set delegate.
         """
         self._assert_c8y()
@@ -562,7 +571,7 @@ class User(_BaseUser):
     def assign_global_role(self, role_id: str):
         """Assign a global role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
@@ -575,7 +584,7 @@ class User(_BaseUser):
     def unassign_global_role(self, role_id):
         """Unassign a global role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
@@ -586,9 +595,9 @@ class User(_BaseUser):
         GlobalRoles(self.c8y).unassign_users(role_id, self.username)
 
     def retrieve_global_roles(self) -> List[GlobalRole]:
-        """Retrieve users's global roles.
+        """Retrieve user's global roles.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Returns:
@@ -599,9 +608,9 @@ class User(_BaseUser):
         return GlobalRoles(self.c8y).get_all(self.username)
 
     def retrieve_inventory_role_assignments(self):
-        """Retrieve users's inventory roles.
+        """Retrieve the user's inventory roles.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Returns:
@@ -614,13 +623,13 @@ class User(_BaseUser):
     def assign_inventory_roles(self, object_id: str | int, *roles: str | int | InventoryRole):
         """Assign an inventory role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
             object_id (str): Object ID of an existing managed object
                 (i.e. device group)
-            roles (*str|*int|*InventoryRole): Existing InventoryRole objects resp.
+            *roles (str|int|InventoryRole): Existing InventoryRole objects resp.
                 the ID of existing inventory roles
         """
 
@@ -637,16 +646,16 @@ class User(_BaseUser):
     def unassign_inventory_roles(self, *assignment_ids: str):
         """Unassign an inventory role.
 
-        This operation is executed immediately. No call to `update`
+        This operation is executed immediately. No call to ``update``
         is required.
 
         Args:
-            assignment_ids (*str): Object ID of existing inventory role
+            *assignment_ids (str): Object ID of existing inventory role
                 assignments (for this user)
         """
         base_path = self._build_user_path() + '/roles/inventory/'
-        for id in assignment_ids:
-            self.c8y.delete(base_path + str(id))
+        for aid in assignment_ids:
+            self.c8y.delete(base_path + str(aid))
 
     def _build_resource_path(self):
         # overriding the default as we need the tenant ID in there
@@ -800,26 +809,26 @@ class InventoryRoles(CumulocityResource):
         super().__init__(c8y, '/user/inventoryroles')
         self.object_name = "roles"
 
-    def get(self, id: str | int) -> InventoryRole:
+    def get(self, role_id: str | int) -> InventoryRole:
         """Get a specific inventory role object.
 
         Args:
-            id (str|int): Cumulocity ID of the inventory role
+            role_id (str|int): Cumulocity ID of the inventory role
 
         Returns:
             An InventoryRole instance for this ID
 
         Raises:
-            SyntaxError if the ID is not defined.
+            SyntaxError:  if the ID is not defined.
 
         Note: In contrast to other API the InventoryRole API does not raise
         an KeyError (i.e. 404) for undefined ID but a SyntaxError (HTTP 500).
         """
-        role = InventoryRole.from_json(self._get_object(id))
+        role = InventoryRole.from_json(self._get_object(role_id))
         role.c8y = self.c8y  # inject c8y connection into instance
         return role
 
-    def select(self, limit: int = None, page_size: int = 1000) -> Generator[InventoryRole]:
+    def select(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[InventoryRole]:
         """Get all defined inventory roles.
 
         This function is implemented in a lazy fashion - results will only be
@@ -831,25 +840,27 @@ class InventoryRoles(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects read (and parsed
                 in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for InventoryRole objects
         """
         base_query = self._build_base_query(page_size=page_size)
-        return super()._iterate(base_query, limit, InventoryRole.from_json)
+        return super()._iterate(base_query, page_number, limit, InventoryRole.from_json)
 
-    def get_all(self, limit: int = None, page_size: int = 1000) -> List[InventoryRole]:
+    def get_all(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> List[InventoryRole]:
         """Get all defined inventory roles.
 
-        This function is a greedy version of the `select` function. All
+        This function is a greedy version of the ``select`` function. All
         available results are read immediately and returned as list.
 
-        See `select` for a documentation of arguments.
+        See ``select`` for a documentation of arguments.
 
         Returns:
             List of InventoryRole objects
         """
-        return list(self.select(limit=limit, page_size=page_size))
+        return list(self.select(limit=limit, page_size=page_size, page_number=page_number))
 
     def select_assignments(self, username: str) -> Generator[InventoryRoleAssignment]:
         """Get all inventory role assignments of a user.
@@ -873,11 +884,11 @@ class InventoryRoles(CumulocityResource):
     def get_all_assignments(self, username: str) -> List[InventoryRoleAssignment]:
         """Get all inventory role assignments of a user.
 
-        This function is a greedy version of the `select_assignments`
+        This function is a greedy version of the ``select_assignments``
         function. All available results are read immediately and returned
         as list.
 
-        See `select_assignments` for a documentation of arguments.
+        See ``select_assignments`` for a documentation of arguments.
 
         Returns:
             List of InventoryRoleAssignment objects
@@ -888,7 +899,7 @@ class InventoryRoles(CumulocityResource):
         """Create objects within the database.
 
         Args:
-            roles (*InventoryRole):  Collection of InventoryRole instances
+            *roles (InventoryRole):  Collection of InventoryRole instances
         """
         super()._create(InventoryRole.to_full_json, *roles)
 
@@ -896,7 +907,7 @@ class InventoryRoles(CumulocityResource):
         """Write changes to the database.
 
         Args:
-            roles (*InventoryRole):  Collection of InventoryRole instances
+            *roles (InventoryRole):  Collection of InventoryRole instances
         """
         super()._update(InventoryRole.to_diff_json, *roles)
 
@@ -915,10 +926,10 @@ class Users(CumulocityResource):
         """Retrieve a specific user.
 
         Args:
-            username(str):  The ID of the user (usually the mail address)
+            username (str): The ID of the user (usually the mail address)
 
         Returns:
-            User instance
+            A User instance
         """
         user = User.from_json(self._get_object(username))
         user.c8y = self.c8y  # inject c8y connection into instance
@@ -934,16 +945,23 @@ class Users(CumulocityResource):
         user.c8y = self.c8y
         return user
 
-    def select(self, username=None, groups=None, page_size=5):
+    def select(self,
+               username: str = None,
+               groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
+               page_size: int = 5):
         """Lazily select and yield User instances.
 
         The result can be limited by username (prefix) and/or group membership.
 
-        :param username: A user's username or a prefix thereof
-        :param groups: a scalar or list of int (actual group ID), string (group names),
-            or actual Group instances
-        :param page_size:  Number of results fetched per request
-        :rtype Generator of Group instances
+        Args:
+            username (str): A user's username or a prefix thereof
+            groups (int, [int], str, [str], GlobalRole, [GlobalRole]): a scalar
+                or list of int (actual group ID), string (group names), or actual
+                Group instances
+            page_size (int):  Number of results fetched per request
+
+        Returns:
+            Generator of Group instances
         """
         # group_list can be ints, strings (names) or Group objects
         # it needs to become a comma-separated string
@@ -959,7 +977,7 @@ class Users(CumulocityResource):
             elif isinstance(groups[0], str):
                 groups_string = [str(self.__groups.get(name).id) for name in groups]
             else:
-                ValueError("Unable to identify type of given group identifiers.")
+                raise ValueError("Unable to identify type of given group identifiers.")
             groups_string = ','.join(groups_string)
         # lazily yield parsed objects page by page
         base_query = super()._build_base_query(username=username, groups=groups_string, page_size=page_size)
@@ -973,17 +991,23 @@ class Users(CumulocityResource):
                 yield user
             page_number = page_number + 1
 
-    def get_all(self, username=None, groups=None, page_size=1000):
+    def get_all(self,
+                username: str = None,
+                groups: str | int | GlobalRole | List[str] | List[int] | List[GlobalRole] = None,
+                page_size: int = 1000):
         """Select and retrieve User instances as list.
 
         The result can be limited by username (prefix) and/or group membership.
 
-        :param username: A user's username or a prefix thereof
-        :param groups: a scalar or list of int (actual group ID), string (group names),
-            or actual Group instances
-         :param page_size:  Maximum number of entries fetched per requests;
+        Args:
+            username (str): A user's username or a prefix thereof
+            groups: a scalar or list of int (actual group ID), string (group names),
+                or actual Group instances
+            page_size (int):  Maximum number of entries fetched per requests;
             this is a performance setting
-        :rtype: List of User
+
+        Returns:
+            List of User
         """
         return list(self.select(username, groups, page_size))
 
@@ -991,7 +1015,7 @@ class Users(CumulocityResource):
         """Create users within the database.
 
         Args:
-            users (*User):  Collection of User instances
+            *users (User):  Collection of User instances
         """
         super()._create(lambda u: u.to_full_json(), *users)
 
@@ -1007,9 +1031,9 @@ class Users(CumulocityResource):
     def set_owner(self, user_id: str, owner_id: str | None):
         """Set the owner of a given user.
 
-        Params:
+        Args:
             user_id (str): The user to set an owner for
-            owner_id (str):  The Id of the owner user; Can be None to
+            owner_id (str):  The ID of the owner user; Can be None to
                 unassign/remove the current owner
         """
         if owner_id:
@@ -1020,9 +1044,9 @@ class Users(CumulocityResource):
     def set_delegate(self, user_id: str, delegate_id: str | None):
         """Set the delegate of a given user.
 
-        Params:
+        Args:
             user_id (str): The user to set an owner for
-            delegate_id (str):  The Id of the delegate user; Can be None to
+            delegate_id (str):  The ID of the delegate user; Can be None to
                 unassign/remove the current owner
         """
         if delegate_id:
@@ -1062,7 +1086,7 @@ class GlobalRoles(CumulocityResource):
         return the matching ones.
         These groups will be cached internally for subsequent calls.
 
-        See also method `reset_caches`
+        See also method ``reset_caches``
 
         Args:
             role_id (int|str):  An actual global role ID as int/string or a
@@ -1139,7 +1163,7 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            usernames (*str):  Iterable of usernames to assign
+            *usernames (str):  Iterable of usernames to assign
         """
         path = self.build_object_path(role_id) + '/users'
         for username in usernames:
@@ -1151,7 +1175,7 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            usernames (*str):  Iterable of usernames to unassign
+            *usernames (str):  Iterable of usernames to unassign
         """
         base_path = self.build_object_path(role_id) + '/users/'
         for username in usernames:
@@ -1162,9 +1186,9 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            permissions (*str):  Iterable of permission ID to assign
+            *permissions (str):  Iterable of permission ID to assign
         """
-        # permissions are called 'roles' in the Cumulocity datamodel
+        # permissions are called 'roles' in the Cumulocity data model
         path = self.build_object_path(role_id) + '/roles'
         for permission in permissions:
             reference = PermissionUtil.build_reference(permission)
@@ -1175,9 +1199,9 @@ class GlobalRoles(CumulocityResource):
 
         Args:
             role_id (int|str):  Technical ID of the global role
-            permissions (*str):  Iterable of permission ID to assign
+            *permissions (str):  Iterable of permission ID to assign
         """
-        # permissions are called 'roles' in the Cumulocity datamodel
+        # permissions are called 'roles' in the Cumulocity data model
         base_path = self.build_object_path(role_id) + '/roles/'
         for permission in permissions:
             self.c8y.delete(base_path + permission)

@@ -119,13 +119,15 @@ class Fragment(object):
 
 
 class Availability(object):
-    """Device availability information."""
+    """Cumulocity availability status labels"""
 
     class ConnectionStatus:
+        """Connection status labels"""
         CONNECTED = 'CONNECTED'
         DISCONNECTED = 'DISCONNECTED'
 
     class DataStatus:
+        """Data status labels"""
         AVAILABLE = 'AVAILABLE'
         UNAVAILABLE = 'UNAVAILABLE'
 

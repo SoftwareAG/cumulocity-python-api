@@ -6,13 +6,23 @@
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import datetime, timedelta
-from typing import Generator, List
+from typing import Generator, List, ClassVar
 
 from c8y_api._base_api import CumulocityRestApi
 from c8y_api.model._base import CumulocityResource, ComplexObject
-from c8y_api.model._parser import ComplexObjectParser
+from c8y_api.model._parser import ComplexObjectParser, SimpleObjectParser
 from c8y_api.model._util import _DateUtil
+
+
+@dataclasses.dataclass
+class Change:
+    """Change details fragment within an audit log."""
+    attribute: str = None
+    new_value: str = None
+    previous_value: str = None
+    type: str = None
 
 
 class AuditRecord(ComplexObject):
@@ -32,6 +42,29 @@ class AuditRecord(ComplexObject):
         WARNING = 'WARNING'
         INFORMATION = 'information'  # for whatever reason, this is used.
 
+    class Type:
+        """Audit record source types."""
+        ALARM = "Alarm"
+        APPLICATION = "Application"
+        BULKOPERATION = "BulkOperation"
+        CEPMODULE = "CepModule"
+        CONNECTOR = "Connector"
+        EVENT = "Event"
+        GROUP = "Group"
+        INVENTORY = "Inventory"
+        INVENTORYROLE = "InventoryRole"
+        OPERATION = "Operation"
+        OPTION = "Option"
+        REPORT = "Report"
+        SINGLESIGNON = "SingleSignOn"
+        SMARTRULE = "SmartRule"
+        SYSTEM = "SYSTEM"
+        TENANT = "Tenant"
+        TENANT_AUTH_CONFIG = "TenantAuthConfig"
+        TRUSTED_CERTIFICATES = "TrustedCertificates"
+        USER = "User"
+        USER_AUTHENTICATION = "UserAuthentication"
+
     _parser = ComplexObjectParser({
             'type': 'type',
             'time': 'time',
@@ -40,13 +73,30 @@ class AuditRecord(ComplexObject):
             'text': 'text',
             'severity': 'severity',
             'user': 'user',
-            'application': 'application'}, [] )
+            'application': 'application'}, ['changes'])
+
+    _change_parser: ClassVar[SimpleObjectParser] = SimpleObjectParser({
+            'attribute': 'attribute',
+            'type': 'type',
+            'previous_value': 'previousValue',
+            'new_value': 'newValue'})
+
     _resource = '/audit/auditRecords'
+
     _accept = CumulocityRestApi.CONTENT_AUDIT_RECORD
 
-    def __init__(self, c8y: CumulocityRestApi = None, type: str = None, time: str | datetime = None,  # noqa (type)
-                 source: str = None, activity: str = None, text: str = None, severity: str = None,
-                 application: str = None, user: str = None, **kwargs):
+    def __init__(self,
+                 c8y: CumulocityRestApi = None,
+                 type: str = None,   # noqa
+                 time: str | datetime = None,
+                 source: str = None,
+                 activity: str = None,
+                 text: str = None,
+                 changes: List[Change] = None,
+                 severity: str = None,
+                 application: str = None,
+                 user: str = None,
+                 **kwargs):
         """Create a new AuditRecord object.
 
         Args:
@@ -59,7 +109,7 @@ class AuditRecord(ComplexObject):
                 YYYY-MM-DD'T'HH:MM:SS.SSSZ as it is returned by the
                 Cumulocity REST API).
                 Use 'now' to set  to current datetime in UTC.
-            source (str):  The managed object ID to which the audit is associated
+            source (str):  The object ID to which the audit is associated
             activity (str):  Summary of the action that was carried out
             text (str):  Details of the action that was carried out
             severity (str):  Severity of the audit record.
@@ -74,6 +124,7 @@ class AuditRecord(ComplexObject):
         self.source = source
         self.activity = activity
         self.text = text
+        self.changes: List[Change] = changes
         self.severity = severity   # undocumented property
         self.application = application
         self.user = user
@@ -101,15 +152,20 @@ class AuditRecord(ComplexObject):
     def from_json(cls, json: dict) -> AuditRecord:
         # (no doc update required)
         obj = super()._from_json(json, AuditRecord())
-        obj.source = json['source']['id']
+        if 'source' in obj:
+            obj.source = json['source']['id']
+            if 'changes' in json:
+                obj.changes = [cls._change_parser.from_json(x, Change()) for x in json['changes']]
         return obj
 
     def to_json(self, only_updated: bool = False) -> dict:
         # (no doc update required)
         obj_json = super()._to_json(only_updated, exclude={'creation_time'})
-        # source needs to be set manually, but it cannot be updated
-        if not only_updated and self.source:
+        # source and changes need to be set manually
+        if self.source:
             obj_json['source'] = {'id': self.source}
+        if self.changes is not None:
+            obj_json['changes'] = [self._change_parser.to_json(x) for x in self.changes]
         return obj_json
 
     def create(self) -> AuditRecord:
@@ -150,7 +206,8 @@ class AuditRecords(CumulocityResource):
     def select(self, type: str = None, source: str = None, application: str = None, user: str = None, # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[AuditRecord]:
+               reverse: bool = False, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[AuditRecord]:
         """Query the database for audit records and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -176,6 +233,8 @@ class AuditRecords(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for AuditRecord objects
@@ -184,12 +243,13 @@ class AuditRecords(CumulocityResource):
                                             before=before, after=after,
                                             min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, AuditRecord.from_json)
+        return super()._iterate(base_query, page_number, limit, AuditRecord.from_json)
 
     def get_all(self, type: str = None, source: str = None, application: str = None, user: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[AuditRecord]:
+               reverse: bool = False, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[AuditRecord]:
         """Query the database for audit records and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -203,7 +263,7 @@ class AuditRecords(CumulocityResource):
         return list(self.select(type=type, source=source, application=application, user=user,
                                 before=before, after=after,
                                 min_age=min_age, max_age=max_age,
-                                reverse=reverse, limit=limit, page_size=page_size))
+                                reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
     def create(self, *records: AuditRecord):
         """Create audit record objects within the database.
@@ -212,7 +272,7 @@ class AuditRecords(CumulocityResource):
             each of the given objects.
 
         Args:
-            records (*AuditRecord):  Collection of AuditRecord instances
+            *records (AuditRecord):  Collection of AuditRecord instances
         """
         for r in records:
             if not r.time:

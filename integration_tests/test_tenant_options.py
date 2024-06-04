@@ -9,7 +9,7 @@ import pytest
 from c8y_api.app import CumulocityApi
 from c8y_api.model.tenant_options import TenantOption
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_get_all_mapped(live_c8y: CumulocityApi):

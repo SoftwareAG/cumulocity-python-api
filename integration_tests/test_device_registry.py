@@ -15,7 +15,7 @@ import pytest
 
 from c8y_api import CumulocityApi, CumulocityDeviceRegistry
 from c8y_api.model import Device
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 @pytest.fixture(scope='session')
@@ -25,14 +25,14 @@ def device_registry(test_environment, logger) -> CumulocityDeviceRegistry:
     # the live_c8y instance already read/updated the environment
     try:
         base_url = os.environ['C8Y_BASEURL']
-        bootstrap_tenantr = os.environ['C8Y_DEVICEBOOTSTRAP_TENANT']
+        bootstrap_tenant = os.environ['C8Y_DEVICEBOOTSTRAP_TENANT']
         bootstrap_user = os.environ['C8Y_DEVICEBOOTSTRAP_USER']
         bootstrap_password = os.environ['C8Y_DEVICEBOOTSTRAP_PASSWORD']
     except KeyError as e:
         raise RuntimeError(f"Missing Cumulocity environment variable: {e} "
                            "Please define the required variables directly or setup a .env file.") from e
 
-    return CumulocityDeviceRegistry(base_url, bootstrap_tenantr, bootstrap_user, bootstrap_password)
+    return CumulocityDeviceRegistry(base_url, bootstrap_tenant, bootstrap_user, bootstrap_password)
 
 
 @pytest.fixture(scope='function')
@@ -44,8 +44,8 @@ def sample_device(live_c8y: CumulocityApi, device_registry: CumulocityDeviceRegi
     # 1) create a device connection request
     live_c8y.device_inventory.request(device_id)
 
-    # 2) continously try to accept the request
-    # the request can be accepted once there was some communication
+    # 2) continuously try to accept the request
+    # It can be accepted once there was some communication
     # we will do this asynchronously
     def await_communication_and_accept():
         # pylint: disable=bare-except

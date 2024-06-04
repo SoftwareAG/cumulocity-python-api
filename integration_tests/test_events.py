@@ -18,12 +18,12 @@ import pytest
 
 from c8y_api import CumulocityApi
 from c8y_api.model import Event, Device
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 @pytest.fixture(scope='session')
 def sample_device(logger: Logger, live_c8y: CumulocityApi) -> Device:
-    """Provide an sample device, jsut for testing purposes."""
+    """Provide an sample device, just for testing purposes."""
 
     typename = RandomNameGenerator.random_name()
     device = Device(live_c8y, type=typename, name=typename).create()
@@ -126,6 +126,15 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
         events = live_c8y.events.get_all(type=typename)
         assert len(events) == 2
         assert all(e.text == 'another update' for e in events)
+
+        # 6) use apply_to with json
+        live_c8y.events.apply_to({'text': 'updated text', 'add_info': 'yes'}, *event_ids)
+
+        # -> the new text should be in all events
+        events = live_c8y.events.get_all(type=typename)
+        assert len(events) == 2
+        assert all(e.text == 'updated text' for e in events)
+        assert all(e.add_info == 'yes' for e in events)
 
     finally:
         live_c8y.events.delete(*event_ids)

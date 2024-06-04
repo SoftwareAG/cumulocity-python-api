@@ -6,7 +6,7 @@
 
 from c8y_api.app import SimpleCumulocityApp
 
-from util import load_dotenv
+from util.testing_util import load_dotenv
 
 load_dotenv()
 c8y = SimpleCumulocityApp()

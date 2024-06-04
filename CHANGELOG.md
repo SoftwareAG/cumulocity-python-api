@@ -1,5 +1,37 @@
 # Changelog
 
+
+* Added Changes support to the Audit API.
+
+
+## Version 1.10
+
+* The `select` and `get_all` functions now feature an `expression` parameter which allows to directly specify the entire REST API filtering expression.
+* Fixed, unified and streamlined the behavior or the `query` parameter within all `select` and `get_all` functions.
+* The `apply_to` functions now allow to specify the to-be-applied changes directly in JSON. 
+* Various tiny code and documentation improvements.
+* Updated GitHub Actions to latest Node versions.
+* Fixed build dependencies.
+
+
+## Version 1.9.2
+
+* Testing code improvements.
+* Added support for signed, shared and non-persistent Notification 2.0 subscriptions and tokens (Thanks @wilbersl!)
+* Fixed audit record parsing.
+* Various code and documentation improvements.
+* Added support for token-based authentication for interactive sessions.
+* Added page_number parameter to inventory queries to be able to pull a specific page.
+* Added get_count functions to inventory to estimate expected number of results.
+* Added get_subscribers function MultiTenantCumulocityApp.
+
+
+## Version 1.9.1
+
+* Minor improvements and fixes.
+* Added possibility to pull a specific result page to all `select` and `get_all` functions.
+
+
 ## Version 1.9.0
 
 * Added support for inventory endpoints `/availability`, `/supportedMeasurements` and `/supportedSeries`.
@@ -12,6 +44,7 @@
   microservice application for advanced integration testing. 
 
 * Making websocket ping interval explicit and updating it to 60 seconds by default.
+
 
 ## Version 1.8.2
 

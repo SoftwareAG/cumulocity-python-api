@@ -31,6 +31,7 @@ class CumulocityRestApi:
     ACCEPT_CURRENT_USER = 'application/vnd.com.nsn.cumulocity.currentuser+json'
     ACCEPT_GLOBAL_ROLE = 'application/vnd.com.nsn.cumulocity.group+json'
     CONTENT_AUDIT_RECORD = 'application/vnd.com.nsn.cumulocity.auditrecord+json'
+    CONTENT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
     def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None, tfa_token: str = None,
@@ -117,9 +118,9 @@ class CumulocityRestApi:
             The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 is accepted).
         """
         additional_headers = self._prepare_headers(accept=accept)
@@ -147,9 +148,9 @@ class CumulocityRestApi:
             The binary data as bytes.
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 is accepted).
         """
         r = self.session.get(self.base_url + resource, params=params)
@@ -177,9 +178,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 and 201 are accepted).
         """
         assert isinstance(json, dict)
@@ -189,7 +190,7 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code not in (200, 201):
+        if r.status_code not in (200, 201, 204):
             raise ValueError(f"Unable to perform POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.content:
             return r.json()
@@ -214,8 +215,8 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 201 is accepted).
         """
 
@@ -258,9 +259,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 is accepted).
         """
         assert isinstance(json, dict)
@@ -270,7 +271,7 @@ class CumulocityRestApi:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid PUT request. Status: {r.status_code} Response:\n" + r.text)
-        if r.status_code != 200:
+        if r.status_code not in (200, 202, 204):
             raise ValueError(f"Unable to perform PUT request. Status: {r.status_code} Response:\n" + r.text)
         if r.content:
             return r.json()
@@ -294,9 +295,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 201 is accepted).
         """
 
@@ -336,9 +337,9 @@ class CumulocityRestApi:
              The JSON response (nested dict)
 
         Raises:
-            KeyError if the resources is not found (404)
-            SyntaxError if the request cannot be processes (5xx)
-            ValueError if the response is not ok for other reasons
+            KeyError:  if the resources is not found (404)
+            SyntaxError:  if the request cannot be processes (5xx)
+            ValueError:  if the response is not ok for other reasons
                 (only 200 and 204 are accepted).
         """
         if json:

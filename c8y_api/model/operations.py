@@ -45,7 +45,7 @@ class Operation(ComplexObject):
     def __init__(self, c8y=None, device_id=None, description=None, status=None, **kwargs):
         """ Create a new Operation object.
 
-        Params:
+        Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
             device_id (str):  Device ID which this operation is for
@@ -80,7 +80,7 @@ class Operation(ComplexObject):
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
-        Params:
+        Args:
             json (dict):  JSON object (nested dictionary)
                 representing an operation within Cumulocity
 
@@ -140,14 +140,14 @@ class Operations(CumulocityResource):
     def get(self, operation_id: str | int) -> Operation:
         """ Read a specific operation from the database.
 
-        params:
+        Args:
             operation_id (str|int):  database ID of an operation
 
         Returns:
             Operation object
 
         Raises:
-            KeyError: If the ID cannot be resolved.
+            KeyError:  if the ID cannot be resolved.
         """
         operation = Operation.from_json(self._get_object(operation_id))
         operation.c8y = self.c8y  # inject c8y connection into instance
@@ -157,7 +157,8 @@ class Operations(CumulocityResource):
                bulk_id: str = None, fragment: str = None,
                before: str | datetime = None, after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Operation]:
+               reverse: bool = False, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[Operation]:
         """ Query the database for operations and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -167,17 +168,17 @@ class Operations(CumulocityResource):
         to objects which meet the filters specification.  Filters can be
         combined (within reason).
 
-        Params:
+        Args:
             agent_id (str): Database ID of agent
             device_id (str):  Database ID of device
             status (str): Status of operation
             bulk_id (str): The bulk operation ID that this object belongs to
             fragment (str):  Name of a present custom/standard fragment
             before (datetime|str):  Datetime object or ISO date/time string.
-                Only operaton assigned to a time before this date are
+                Only operations assigned to a time before this date are
                 returned.
             after (datetime|str):  Datetime object or ISO date/time string.
-                Only operation assigned to a time after this date are
+                Only operations assigned to a time after this date are
                 returned.
             min_age (timedelta):  Timedelta object. Only operation of
                 at least this age are returned.
@@ -189,6 +190,8 @@ class Operations(CumulocityResource):
             page_size (int):  Define the number of operations which are
                 read (and parsed in one chunk). This is a performance
                 related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator[Operation]: Iterable of matching Operation objects
@@ -197,13 +200,14 @@ class Operations(CumulocityResource):
                                             fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, Operation.from_json)
+        return super()._iterate(base_query, page_number, limit, Operation.from_json)
 
     def get_all(self, agent_id: str = None, device_id: str = None, status: str = None,
                 bulk_id: str = None, fragment: str = None,
                 before: str | datetime = None, after: str | datetime = None,
                 min_age: timedelta = None, max_age: timedelta = None,
-                reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Operation]:
+                reverse: bool = False, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[Operation]:
         """ Query the database for operations and return the results
         as list.
 
@@ -215,7 +219,7 @@ class Operations(CumulocityResource):
         """
         return list(self.select(agent_id=agent_id, device_id=device_id, status=status, bulk_id=bulk_id,
                                 fragment=fragment, before=before, after=after, min_age=min_age, max_age=max_age,
-                                reverse=reverse, limit=limit, page_size=page_size))
+                                reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
     def get_last(self, agent_id: str = None, device_id: str = None, status: str = None,
                  bulk_id: str = None, fragment: str = None,
@@ -236,7 +240,7 @@ class Operations(CumulocityResource):
         base_query = self._build_base_query(agent_id=agent_id, device_id=device_id, status=status,
                                             bulk_id=bulk_id, fragment=fragment, after=after,
                                             before=before, min_age=min_age, reverse=True, page_size=1)
-        m = Operation.from_json(self._get_page(base_query, "1")[0])
+        m = Operation.from_json(self._get_page(base_query, 1)[0])
         m.c8y = self.c8y  # inject c8y connection into instance
         return m
 
@@ -250,18 +254,18 @@ class Operations(CumulocityResource):
         to objects which meet the filters specification. Filters can be
         combined (as defined in the Cumulocity REST API).
 
-        Params:
+        Args:
             agent_id (str): Database ID of agent
             device_id (str):  Database ID of device
             status (str): Status of operation
             bulk_id (str): The bulk operation ID that this object belongs to
             fragment (str):  Name of a present custom/standard fragment
             before (datetime|str):  Datetime object or ISO date/time string.
-                Only operaton assigned to a time before this date are
-                returned.
+                Only operations assigned to a time before this date are
+                selected.
             after (datetime|str):  Datetime object or ISO date/time string.
                 Only operation assigned to a time after this date are
-                returned.
+                selected.
             min_age (timedelta):  Timedelta object. Only operation of
                 at least this age are returned.
             max_age (timedelta):  Timedelta object. Only operations with
@@ -271,9 +275,7 @@ class Operations(CumulocityResource):
         base_query = self._build_base_query(agent_id=agent_id, device_id=device_id, status=status,
                                             bulk_id=bulk_id, fragment=fragment,
                                             before=before, after=after, min_age=min_age, max_age=max_age)
-        # remove &page_number= from the end
-        query = base_query[:base_query.rindex('&')]
-        self.c8y.delete(query)
+        self.c8y.delete(base_query)
 
 
 class BulkOperation(ComplexObject):
@@ -320,7 +322,7 @@ class BulkOperation(ComplexObject):
                  operation_prototype: dict = None, **kwargs):
         """ Create a new Operation object.
 
-        Params:
+        Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
             device_id (str):  Device ID which this operation is for
@@ -350,7 +352,7 @@ class BulkOperation(ComplexObject):
 
     @operation_prototype.setter
     def operation_prototype(self, fragment):
-        self.__setitem__('operationPrototype', fragment)
+        self['operationPrototype'] = fragment
 
     @property
     def start_datetime(self) -> datetime:
@@ -368,7 +370,7 @@ class BulkOperation(ComplexObject):
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
 
-        Params:
+        Args:
             json (dict):  JSON object (nested dictionary)
                 representing an operation within Cumulocity
 
@@ -410,20 +412,20 @@ class BulkOperations(CumulocityResource):
     def get(self, operation_id: str | int) -> BulkOperation:
         """ Read a specific bulk operation from the database.
 
-        params:
+        Args:
             operation_id (str|int):  database ID of a bulk operation
 
         Returns:
             BulkOperation object
 
         Raises:
-            KeyError: If the ID cannot be resolved.
+            KeyError:  if the ID cannot be resolved.
         """
         operation = BulkOperation.from_json(self._get_object(operation_id))
         operation.c8y = self.c8y  # inject c8y connection into instance
         return operation
 
-    def select(self, limit: int = None, page_size: int = 1000) -> Generator[BulkOperation]:
+    def select(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[BulkOperation]:
         """ Query the database for operations and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -433,19 +435,21 @@ class BulkOperations(CumulocityResource):
         to objects which meet the filters' specification.  Filters can be
         combined (within reason).
 
-        Params:
+        Args:
             limit (int):  Limit the number of results to this number.
             page_size (int):  Define the number of operations which are
                 read (and parsed in one chunk). This is a performance
                 related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator[BulkOperation]: Iterable of matching BulkOperation objects
         """
         base_query = self._build_base_query(page_size=page_size)
-        return super()._iterate(base_query, limit, BulkOperation.from_json)
+        return super()._iterate(base_query, page_number, limit, BulkOperation.from_json)
 
-    def get_all(self, limit: int = None, page_size: int = 1000) -> List[BulkOperation]:
+    def get_all(self, limit: int = None, page_size: int = 1000, page_number: int = None) -> List[BulkOperation]:
         """ Query the database for bulk operations and return the results
         as list.
 
@@ -455,4 +459,4 @@ class BulkOperations(CumulocityResource):
         Returns:
             List of matching BulkOperation objects
         """
-        return list(self.select(limit=limit, page_size=page_size))
+        return list(self.select(limit=limit, page_size=page_size, page_number=page_number))

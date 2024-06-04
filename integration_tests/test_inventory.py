@@ -14,7 +14,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model import Event, ManagedObject, Measurement, Count, Value, Device
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 from tests.utils import get_ids
 
 
@@ -96,6 +96,21 @@ def test_get_by_something(live_c8y: CumulocityApi, similar_objects: List[Managed
     kwargs = {key: value_fun(similar_objects[0])}
     selected_mos = live_c8y.inventory.get_all(**kwargs)
     assert get_ids(similar_objects) == get_ids(selected_mos)
+    assert live_c8y.inventory.get_count(**kwargs) == len(similar_objects)
+
+
+@pytest.mark.parametrize('query, value_fun', [
+    ('type eq {}', lambda mo: mo.type),
+    ('$filter=type eq {} $orderby=id', lambda mo: mo.type),
+    ('$filter=name eq {}', lambda mo: mo.type + '*'),
+    ('has({})', lambda mo: mo.type + '_fragment'),
+])
+def test_get_by_query(live_c8y: CumulocityApi, similar_objects: List[ManagedObject], query: str, value_fun):
+    """Verify that the selection by query works as expected."""
+    query = query.replace('{}', value_fun(similar_objects[0]))
+    selected_mos = live_c8y.inventory.get_all(query=query)
+    assert get_ids(similar_objects) == get_ids(selected_mos)
+    assert live_c8y.inventory.get_count(query=query) == len(similar_objects)
 
 
 def test_get_availability(live_c8y: CumulocityApi, sample_device: Device):

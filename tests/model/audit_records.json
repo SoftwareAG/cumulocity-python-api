@@ -25,6 +25,12 @@
       "changes": [
         {
           "attribute": "status",
+          "newValue": "ACKNOWLEDGED",
+          "previousValue": "ACTIVE",
+          "type": "com.cumulocity.model.event.CumulocityAlarmStatuses"
+        },
+        {
+          "attribute": "status",
           "newValue": "CLEARED",
           "previousValue": "ACTIVE",
           "type": "com.cumulocity.model.event.CumulocityAlarmStatuses"
@@ -45,7 +51,34 @@
       "time": "1970-01-01T00:00:00.000Z",
       "type": "Alarm",
       "user": "someone@softwareag.com"
-    }
+    },
+    {
+         "activity": "User login",
+         "creationTime": "2023-12-07T10:38:04.718Z",
+         "type": "UserAuthentication",
+         "self": "https://t12345.cumulocity.com/audit/auditRecords/72293841",
+         "id": "72293841",
+         "text": "python-api@softwareag.com user logged in to the platform with OAuth internal login mode",
+         "time": "2023-12-07T10:38:04.718Z",
+         "user": "python-api@softwareag.com"
+      },
+      {
+         "activity": "Application subscribed",
+         "creationTime": "2023-12-07T10:38:04.021Z",
+         "source": {
+            "self": "https://t12345.cumulocity.com/inventory/managedObjects/100652",
+            "id": "100652"
+         },
+         "type": "Application",
+         "self": "https://t21106993.eu-latest.cumulocity.com/audit/auditRecords/72293840",
+         "id": "72293840",
+         "text": "Application \"inttest-application\" subscribed",
+         "time": "2023-12-07T10:38:04.021Z",
+         "user": "python-api@softwareag.com",
+         "c8y_Metadata": {
+            "action": "SUBSCRIBE"
+         }
+      }
   ],
   "next": "https://t12345.cumulocity.com/audit/auditRecords?application=apama-ctrl-1c-4g&pageSize=10&currentPage=2",
   "self": "https://t12345.cumulocity.com/audit/auditRecords?application=apama-ctrl-1c-4g&pageSize=10&currentPage=1",

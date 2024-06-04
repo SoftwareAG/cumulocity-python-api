@@ -15,7 +15,7 @@ import pytest
 from c8y_api import CumulocityApi
 from c8y_api.model import Device, Alarm
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CRUD(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
@@ -111,6 +111,15 @@ def test_CRUD_2(live_c8y: CumulocityApi, sample_device: Device):  # noqa (case)
         assert all(a.text == 'another update' for a in alarms)
         assert all(a.simple_attribute == 'value' for a in alarms)
 
+        # 6) use apply_to with json
+        live_c8y.alarms.apply_to({'text': 'new text', 'add_info': 'yes'}, *alarm_ids)
+
+        # -> the new text should be in all events
+        alarms = live_c8y.alarms.get_all(**get_filter)
+        assert len(alarms) == 2
+        assert all(a.text == 'new text' for a in alarms)
+        assert all(a.add_info == 'yes' for a in alarms)
+
     finally:
         live_c8y.alarms.delete_by(**get_filter)
 
@@ -175,7 +184,7 @@ def test_filter_by_update_time(live_c8y: CumulocityApi, sample_device, sample_al
     updated_datetimes.sort()
     pivot = updated_datetimes[len(updated_datetimes)//2]
 
-    # Note: We are using additional status/severity so that we don't interfer
+    # Note: We are using additional status/severity so that we don't interfere
     # with other tests creating alarms for the same device
     before_alarms = live_c8y.alarms.get_all(source=alarm.source, updated_before=pivot,
                                             severity=alarm.severity, status=alarm.status)

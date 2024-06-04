@@ -82,7 +82,7 @@ class TenantOption(SimpleObject):
             A fresh TenantOption instance representing the created
             option within the database.
 
-        See also function TenantOptions.create which doesn't parse the result.
+        See also function `TenantOptions.create` which doesn't parse the result.
         """
         return super()._create()
 
@@ -93,14 +93,14 @@ class TenantOption(SimpleObject):
             A fresh TenantOption instance representing the updated
             object within the database.
 
-        See also function TenantOptions.update which doesn't parse the result.
+        See also function `TenantOptions.update` which doesn't parse the result.
         """
         return super()._update()
 
     def delete(self) -> None:
         """Delete the option within the database.
 
-        See also function TenantOptions.delete to delete multiple objects.
+        See also function `TenantOptions.delete` to delete multiple objects.
         """
         super()._delete()
 
@@ -134,7 +134,8 @@ class TenantOptions(CumulocityResource):
         """
         return f'{self.resource}/{category}/{key}'
 
-    def select(self, category: str = None, limit: int = None, page_size: int = 1000) -> Generator[TenantOption]:
+    def select(self, category: str = None, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[TenantOption]:
         """ Query the database for tenant options and iterate over the
         results.
 
@@ -150,14 +151,17 @@ class TenantOptions(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for TenantObject instances
         """
         base_query = self._build_base_query(category=category, page_size=page_size)
-        return super()._iterate(base_query, limit, TenantOption.from_json)
+        return super()._iterate(base_query, page_number, limit, TenantOption.from_json)
 
-    def get_all(self, category: str = None, limit: int = None, page_size: int = 1000) -> List[TenantOption]:
+    def get_all(self, category: str = None, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[TenantOption]:
         """ Query the database for tenant options and return the results
         as list.
 
@@ -167,7 +171,7 @@ class TenantOptions(CumulocityResource):
         Returns:
             List of TenantObject instances
         """
-        return list(self.select(category=category, limit=limit, page_size=page_size))
+        return list(self.select(category=category, limit=limit, page_size=page_size, page_number=page_number))
 
     def get_all_mapped(self, category: str = None) -> dict[str, str]:
         """ Query the database for tenant options and return the results
@@ -196,7 +200,7 @@ class TenantOptions(CumulocityResource):
              A TenantOption instance
 
         Raises:
-            KeyError if the given combination of category and key
+            KeyError:  if the given combination of category and key
             is not defined within the database
         """
         option = TenantOption.from_json(self.c8y.get(resource=self.build_object_path(category, key)))
@@ -214,14 +218,14 @@ class TenantOptions(CumulocityResource):
              The value of the specified option
 
         Raises:
-            KeyError if the given combination of category and key
+            KeyError:  if the given combination of category and key
             is not defined within the database
         """
         # this is a very simple payload, we extract it directly
         return self.c8y.get(resource=self.build_object_path(category, key))['value']
 
     def set_value(self, category: str, key: str, value: str):
-        """ Create a option within the database.
+        """ Create an option within the database.
 
         This is a shortcut function to avoid unnecessary instantiation of
         the TenantOption class.
@@ -237,7 +241,7 @@ class TenantOptions(CumulocityResource):
         """ Create options within the database.
 
         Args:
-            options (*TenantOption):  Collection of TenantObject instances
+            *options (TenantOption):  Collection of TenantObject instances
         """
         super()._create(TenantOption.to_json, *options)
 
@@ -245,7 +249,7 @@ class TenantOptions(CumulocityResource):
         """ Update options within the database.
 
         Args:
-            options (*TenantOption):  Collection of TenantObject instances
+            *options (TenantOption):  Collection of TenantObject instances
         """
         for o in options:
             self.c8y.put(self.build_object_path(o.category, o.key), json=o.to_diff_json(), accept=None)
@@ -263,7 +267,7 @@ class TenantOptions(CumulocityResource):
         """ Delete options within the database.
 
         Args:
-            options (*TenantOption):  Collection of TenantObject instances
+            *options (TenantOption):  Collection of TenantObject instances
         """
         for o in options:
             self.delete_by(o.category, o.key)

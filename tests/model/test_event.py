@@ -31,7 +31,7 @@ def sample_event() -> Event:
 
 
 def test_parsing():
-    """Verify that parsing a Event from JSON works."""
+    """Verify that parsing an Event from JSON works."""
     path = os.path.dirname(__file__) + '/event.json'
     with open(path, encoding='utf-8', mode='rt') as f:
         event_json = json.load(f)
@@ -104,7 +104,7 @@ def test_updating(sample_event: Event):
     assert set(sample_event.to_diff_json().keys()) == expected_updates
 
     # 4) updated fragments are recorded
-    # Note: simple fragments can only updated using [] notation
+    # Note: simple fragments can only be updated using [] notation
     sample_event['simple_float'] = 543.21
     sample_event['simple_false'] = False
     sample_event.complex_2.level0.level1 = 'new value'

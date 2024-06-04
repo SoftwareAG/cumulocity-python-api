@@ -257,7 +257,7 @@ def test_get_404():
 
 
 def test_delete_defaults(mock_c8y: CumulocityRestApi):
-    """Verify the basic funtionality of the DELETE requests."""
+    """Verify the basic functionality of the DELETE requests."""
 
     with responses.RequestsMock() as rsps:
         rsps.add(method=responses.DELETE,

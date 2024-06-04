@@ -13,8 +13,7 @@ from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import ManagedObject, Subscription
 from c8y_tk.notification2 import Listener
 
-from testing_util import RandomNameGenerator
-from util import load_dotenv
+from util.testing_util import RandomNameGenerator, load_dotenv
 
 
 # load environment from a .env if present

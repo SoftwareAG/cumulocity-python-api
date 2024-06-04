@@ -73,7 +73,7 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
             Credentials object holding the device credentials
 
         Raises:
-            TimeoutError if the request was not confirmed in time.
+            TimeoutError:  if the request was not confirmed in time.
 
         See also: https://cumulocity.com/guides/users-guide/device-management/#connecting-devices
         """
@@ -119,13 +119,13 @@ class CumulocityDeviceRegistry(CumulocityRestApi):
                 'ms' (milliseconds).
                 A reasonable value for this depends on application.
             pause (str):  How long to pause between request confirmation checks
-                This is a formmated string, see `timeout` parameter.
+                This is a formatted string, see `timeout` parameter.
 
         Returns:
             Device-specific CumulocityAPI instance
 
         Raises:
-            TimeoutError if the request was not confirmed in time.
+            TimeoutError:  if the request was not confirmed in time.
 
         See also: https://cumulocity.com/guides/users-guide/device-management/#connecting-devices
         """

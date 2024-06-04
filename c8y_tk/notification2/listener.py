@@ -160,7 +160,7 @@ class AsyncListener(object):
     async def receive(self):
         """Read a message.
 
-        This will wait for a inbound message on the communication channel
+        This will wait for an inbound message on the communication channel
         and return it (raw).
 
         Returns:
@@ -280,7 +280,7 @@ class Listener(object):
     def receive(self) -> str:
         """Read a message.
 
-        This will wait for a inbound message on the communication channel
+        This will wait for an inbound message on the communication channel
         and return it (raw).
 
         Returns:

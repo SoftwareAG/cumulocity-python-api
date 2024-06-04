@@ -8,7 +8,8 @@ import random
 from unittest.mock import Mock
 
 from c8y_api.model import CumulocityResource
-from tests import RandomNameGenerator
+
+from util.testing_util import RandomNameGenerator
 
 
 def test_build_base_query():
@@ -64,6 +65,3 @@ def test_build_base_query():
     # -> all expected params are there
     for key, value in expected_params.items():
         assert f'{key}={value}' in base_query
-
-    # -> query string ends with currentPage param
-    assert base_query.endswith('currentPage=')

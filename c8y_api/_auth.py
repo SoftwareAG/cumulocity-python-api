@@ -22,6 +22,7 @@ class HTTPBearerAuth(AuthBase):
 
     def __call__(self, r):
         r.headers['Authorization'] = 'Bearer ' + self.token
+        return r
 
 
 class AuthUtil:
@@ -54,8 +55,8 @@ class AuthUtil:
             The tenant ID encoded in the auth information.
 
         Raises:
-            ValueError if the tenant ID cannot be resolved or an unsupported
-            AuthBase instance was provided.
+            ValueError:  if the tenant ID cannot be resolved or an unsupported
+                AuthBase instance was provided.
         """
         def resolve_basic(a):
             username = a.username
@@ -86,8 +87,8 @@ class AuthUtil:
             The username encoded in the auth information.
 
         Raises:
-            ValueError if the username cannot be resolved or an unsupported
-            AuthBase instance was provided.
+            ValueError:  if the username cannot be resolved or an unsupported
+                AuthBase instance was provided.
         """
         def resolve_basic(a):
             return a.username
@@ -138,7 +139,7 @@ class AuthUtil:
             Whatever is returned by the parsing functions.
 
         Raises:
-            ValueError if the auth string is of an unsupported type.
+            ValueError:  if the auth string is of an unsupported type.
         """
         if isinstance(auth, HTTPBasicAuth):
             return basic_fun(auth)
@@ -159,7 +160,7 @@ class AuthUtil:
             Whatever is returned by the parsing functions.
 
         Raises:
-            ValueError if the auth string is of an unsupported type.
+            ValueError:  if the auth string is of an unsupported type.
         """
         auth_type, auth_value = auth_string.split(' ')
 

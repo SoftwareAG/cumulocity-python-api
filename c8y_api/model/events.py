@@ -254,7 +254,8 @@ class Events(CumulocityResource):
                created_before: str | datetime = None, created_after: str | datetime = None,
                updated_before: str | datetime = None, updated_after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> Generator[Event]:
+               reverse: bool = False, limit: int = None,
+               page_size: int = 1000, page_number: int = None) -> Generator[Event]:
         """Query the database for events and iterate over the results.
 
         This function is implemented in a lazy fashion - results will only be
@@ -287,6 +288,8 @@ class Events(CumulocityResource):
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of events which are read (and
                 parsed in one chunk). This is a performance related setting.
+            page_number (int): Pull a specific page; this effectively disables
+                automatic follow-up page retrieval.
 
         Returns:
             Generator for Event objects
@@ -297,14 +300,15 @@ class Events(CumulocityResource):
                                             updated_before=updated_before, updated_after=updated_after,
                                             min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
-        return super()._iterate(base_query, limit, Event.from_json)
+        return super()._iterate(base_query, page_number, limit, Event.from_json)
 
     def get_all(self, type: str = None, source: str = None, fragment: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
                created_before: str | datetime = None, created_after: str | datetime = None,
                updated_before: str | datetime = None, updated_after: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
-               reverse: bool = False, limit: int = None, page_size: int = 1000) -> List[Event]:
+               reverse: bool = False, limit: int = None,
+                page_size: int = 1000, page_number: int = None) -> List[Event]:
         """Query the database for events and return the results as list.
 
         This function is a greedy version of the `select` function. All
@@ -320,8 +324,7 @@ class Events(CumulocityResource):
                                 created_before=created_before, created_after=created_after,
                                 updated_before=updated_before, updated_after=updated_after,
                                 min_age=min_age, max_age=max_age,
-                                reverse=reverse,
-                                limit=limit, page_size=page_size))
+                                reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
     def create(self, *events: Event):
         """Create event objects within the database.
@@ -330,7 +333,7 @@ class Events(CumulocityResource):
             each of the given event objects.
 
         Args:
-            events (*Event):  Collection of Event instances
+            *events (Event):  Collection of Event instances
         """
         for e in events:
             if not e.time:
@@ -341,17 +344,18 @@ class Events(CumulocityResource):
         """Write changes to the database.
 
         Args:
-            events (*Event):  Collection of Event instances
+            *events (Event):  Collection of Event instances
         """
         super()._update(Event.to_diff_json, *events)
 
-    def apply_to(self, event: Event, *event_ids: str):
+    def apply_to(self, event: Event|dict, *event_ids: str):
         """Apply changes made to a single instance to other objects in the
         database.
 
         Args:
-            event (Event): Event used as model for the update
-            event_ids (*Event):  Collection of ID of the events to update
+            event (Event|dict): Event used as model for the update or simply
+                a dictionary representing the diff JSON.
+            *event_ids (str):  Collection of ID of the events to update
         """
         super()._apply_to(Event.to_full_json, event, *event_ids)
 

@@ -8,7 +8,7 @@ import pytest
 
 from c8y_api.model import User, InventoryRole, Permission, ReadPermission, WritePermission, AnyPermission
 
-from tests import RandomNameGenerator
+from util.testing_util import RandomNameGenerator
 
 
 def test_CRUD(live_c8y):
@@ -40,8 +40,8 @@ def test_CRUD(live_c8y):
     # 3) delete the role
     role.delete()
     # -> verify that the role is gone
-    # (unfortunately this throws a SyntaxError instead of a KeyError)
-    with pytest.raises(SyntaxError):
+    # (this used to throw a SyntaxError, KeyError since 10.20)
+    with pytest.raises(KeyError):
         live_c8y.inventory_roles.get(role.id)
 
 
@@ -74,19 +74,19 @@ def test_CRUD2(live_c8y):
     # 5) delete the role
     live_c8y.inventory_roles.delete(created_role.id)
     # -> verify that the role is gone
-    # (unfortunately this throws a SyntaxError instead of a KeyError)
-    with pytest.raises(SyntaxError):
+    # (this used to throw a SyntaxError, KeyError since 10.20)
+    with pytest.raises(KeyError):
         live_c8y.inventory_roles.get(created_role.id)
 
 
 def test_assignments(live_c8y, sample_device, factory):
     """Verify that inventory roles can be assigned, retrieved and unassigned."""
-    username = 'user_' + RandomNameGenerator.random_name(2)
+    email = 'user_' + RandomNameGenerator.random_name(2) + '@test.com'
     role1_name = 'role_' + RandomNameGenerator.random_name(2)
     role2_name = 'role_' + RandomNameGenerator.random_name(2)
 
     # create a user
-    user = User(username=username, email='test@test.com')
+    user = User(username=email, email=email)
     user = factory(user)
 
     # create inventory roles

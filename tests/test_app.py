@@ -42,7 +42,7 @@ env_multi_tenant = {
 @mock.patch.dict(os.environ, env_per_tenant, clear=True)
 def test_per_tenant():
     """Verify that the instance will be created properly within a
-    per tenant environment"""
+    per-tenant environment"""
 
     c8y = SimpleCumulocityApp()
 
@@ -63,7 +63,7 @@ def test_per_tenant():
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__bootstrap_instance():
-    """Verify that the bootstrap instance will be created propertly within a
+    """Verify that the bootstrap instance will be created properly within a
     multi-tenant environment."""
 
     c8y = MultiTenantCumulocityApp().bootstrap_instance
@@ -86,7 +86,7 @@ def test_multi_tenant__bootstrap_instance():
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__caching_instances():
     """Verify that instances are cached by their tenant ID and the cache
-    is evaluated propertly."""
+    is evaluated properly."""
     # pylint: disable=protected-access
 
     # prepare a mock instance cache
@@ -127,12 +127,12 @@ def test_multi_tenant__caching_instances():
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__build_from_subscriptions():
-    """Verify that a uncached instance is build using the subscriptions."""
+    """Verify that an uncached instance is build using the subscriptions."""
     # pylint: disable=protected-access
 
-    with patch.object(MultiTenantCumulocityApp, '_read_subscriptions') as read_subscriptions:
+    with patch.object(MultiTenantCumulocityApp, '_read_subscription_auths') as read_subscriptions:
         # we mock _read_subscriptions so that we don't need an actual
-        # connection and it returns what we want
+        # connection and have a proper return value
         read_subscriptions.return_value = {'t12345': HTTPBasicAuth('username', 'password')}
 
         c8y_factory = MultiTenantCumulocityApp()
@@ -144,7 +144,7 @@ def test_multi_tenant__build_from_subscriptions():
         assert 't12345' in c8y_factory._subscribed_auths
         # -> instance is now in cache
         assert 't12345' in c8y_factory._tenant_instances
-        # -> attributes reflect was was returned by the subscriptions mock
+        # -> attributes reflect was returned by the subscriptions mock
         assert c8y.tenant_id == 't12345'
         assert c8y.username == 'username'
         assert isinstance(c8y.auth, HTTPBasicAuth)
@@ -195,7 +195,7 @@ def test_read_subscriptions():
 
         # we just need any CumulocityApi to do this call
         c8y = CumulocityApi(base_url=base_url, tenant_id=tenant_id, username=user, password=password)
-        subscriptions = MultiTenantCumulocityApp._read_subscriptions(c8y)
+        subscriptions = MultiTenantCumulocityApp._read_subscription_auths(c8y)
         # -> subscriptions were parsed correctly
         assert 't12345' in subscriptions
         assert 't54321' in subscriptions
@@ -219,7 +219,7 @@ def test_get_tenant_instance_from_headers(auth_value, tenant_id):
     c8y_factory._get_tenant_instance = Mock()
 
     # request a tenant instance from header dict
-    c8y_factory.get_tenant_instance(headers={'auTHOrization': build_auth_string(auth_value)})
+    c8y_factory.get_tenant_instance(headers={'authorization': build_auth_string(auth_value)})
     # -> the get function is called with the tenant ID
     c8y_factory._get_tenant_instance.assert_called_once_with(tenant_id)
 
@@ -260,7 +260,7 @@ def test_build_user_instance(auth_value, username):
     inbound HTTP headers."""
     # pylint: disable=protected-access
 
-    # build a Auth instance from the auth value
+    # build an Auth instance from the auth value
     auth = AuthUtil.parse_auth_string(build_auth_string(auth_value))
 
     with patch.dict(os.environ, env_per_tenant, clear=True):

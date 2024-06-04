@@ -22,6 +22,7 @@ c8y = SimpleCumulocityApp()
 print("CumulocityApp initialized.")
 print(f"{c8y.base_url}, Tenant: {c8y.tenant_id}, User:{c8y.username}")
 
+c8y.get_user_instance()
 
 # The SimpleCumulocityApp behaves just like any other CumulocityApi instance,
 # e.g. ...
