@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from c8y_api.model import User
+from c8y_api.model import User, CurrentUser
 
 
 @pytest.fixture(scope='function')
@@ -63,16 +63,15 @@ def test_current_parsing():
     with open(path, encoding='utf-8', mode='rt') as f:
         user_json = json.load(f)
 
-    user = User.from_json(user_json)
+    user = CurrentUser.from_json(user_json)
 
     # 2) verify that all parsed fields match the file counterpart
+    #    including fields from abstract base class
     assert user.id == user_json['id']
     assert user.username == user_json['userName']
     assert user.email == user_json['email']
 
-    # 3) referenced sets are parsed as well
-    assert not user.permission_ids
-    assert not user.global_role_ids
+    # 3) Current user specific sets are being parsed
     assert all(r['id'] in user.effective_permission_ids for r in user_json['effectiveRoles'])
 
 

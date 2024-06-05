@@ -6,8 +6,10 @@
 
 # pylint: disable=redefined-outer-name
 
-import datetime as dt
+import secrets
+import string
 import time
+from typing import Union
 
 import pytest
 import pyotp
@@ -17,6 +19,11 @@ from c8y_api.model import User
 
 from util.testing_util import RandomNameGenerator
 
+
+def generate_password():
+    """Generate a strong password meeting Cumulocity requirements."""
+    alphabet = string.ascii_letters + string.digits + '_-.#&$'
+    return 'Aa0.' + ''.join(secrets.choice(alphabet) for _ in range(12))
 
 def test_CRUD(live_c8y: CumulocityApi):  # noqa (case)
     """Verify that basic CRUD functionality works."""
@@ -68,21 +75,6 @@ def test_current_update(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
     current_user = current_user.update()
     assert current_user.first_name == "New"
 
-    # when the password is changed, the user_c8y needs to change
-    new_password1 = '1Pass-Ruby!Workforce'
-    live_c8y.users.set_password(current_user.username, new_password1)
-    with pytest.raises(ValueError) as e:
-        current_user.update()
-    assert '401' in str(e)
-    user_c8y.auth.password = new_password1
-    current_user = user_c8y.users.get_current()
-
-    # the current user password can be updated using the old password
-    new_password2 = '2Pass-Ruby!Workforce'
-    current_user.update_password(new_password1, new_password2)
-    user_c8y.auth.password = new_password2
-    current_user = user_c8y.users.get_current()
-    assert dt.datetime.now(dt.timezone.utc) - current_user.last_password_change_datetime < dt.timedelta(seconds=10)
 
 
 @pytest.mark.skip("This needs an TOTP enabled tenant")
@@ -98,7 +90,7 @@ def test_current_totp(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
     assert not current_user.get_totp_enabled()
 
     # generating a secret won't enable TOTP
-    secret, url = current_user.generate_totp_secret()
+    secret, _ = current_user.generate_totp_secret()
     assert not current_user.get_totp_activity().is_active
 
     # explicitly enabling the feature using different methods
@@ -127,11 +119,15 @@ def user_factory(live_c8y: CumulocityApi):
 
     created_users = []
 
-    def factory_fun():
+    def factory_fun(with_password=False) -> Union[User, tuple[User, str]]:
         username = RandomNameGenerator.random_name(2)
         email = f'{username}@software.ag'
-        user = User(c8y=live_c8y, username=username, email=email).create()
+        password = generate_password()
+        print(f"User: {email}, Password: {password}")
+        user = User(c8y=live_c8y, username=username, password=password, email=email).create()
         created_users.append(user)
+        if with_password:
+            return user, password
         return user
 
     yield factory_fun
@@ -142,27 +138,37 @@ def user_factory(live_c8y: CumulocityApi):
 
 @pytest.fixture(scope='function')
 def user_c8y(live_c8y: CumulocityApi, user_factory):
-    new_user = user_factory()
-    password = f'1Pass-{new_user.username}'
-    new_user.assign_global_role('1')
-    new_user.update_password(password)
+    """Provides a Cumulocity connection for a new user."""
+    new_user, password = user_factory(with_password=True)
 
     return CumulocityApi(base_url=live_c8y.base_url, tenant_id=live_c8y.tenant_id,
                          username=new_user.username, password=password)
 
 
-def test_set_password(live_c8y: CumulocityApi, user_factory):
-    """Verify that the password of a user can be set and removed."""
+def test_current_set_password(live_c8y: CumulocityApi, user_c8y):
+    """Verify that the password of a user can not be set."""
 
-    user = user_factory()
+    user = user_c8y.users.get_current()
 
+    # password strength requirements are tested before updating
     with pytest.raises(ValueError) as ve:
-        user.update_password('pw')
+        user.update_password(user_c8y.auth.password, 'pw')
         assert 'least' in str(ve)
 
-    # this is not a real password, obviously.
-    # but it should meet the password requirements
-    user.update_password('ja89NAk,2k23jhL_Paasd0')
+    # store last password change datetime
+    before_datetime = user.last_password_change_datetime
+
+    # updating for the current user should be ok
+    new_password = generate_password()
+    user.update_password(user_c8y.auth.password, new_password)
+
+    # password timestamp should have been updated
+    user = user_c8y.users.get_current()
+    assert user.last_password_change_datetime != before_datetime
+
+    # follow-up requests should still work
+    assert len(user_c8y.inventory.get_all(limit=10)) == 10
+
 
 
 def test_set_owner(live_c8y: CumulocityApi, user_factory):

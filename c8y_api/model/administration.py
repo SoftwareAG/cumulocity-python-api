@@ -393,7 +393,7 @@ class _BaseUser(SimpleObject):
     _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
 
     def __init__(self, c8y: CumulocityRestApi = None, username: str = None, email: str = None,
-                 enabled: bool = True, display_name: str = None, password:str = None,
+                 enabled: bool = True, display_name: str = None, password: str = None,
                  first_name: str = None, last_name: str = None, phone: str = None,
                  tfa_enabled: bool = None, require_password_reset: bool = None):
 
@@ -526,19 +526,6 @@ class User(_BaseUser):
     def delete(self):
         """Delete the User within the database."""
         self._delete()
-
-    def update_password(self, new_password: str):
-        """Update the password.
-
-        This operation is executed immediately. No additional call to
-        the ``update`` function required.
-
-        Args:
-            new_password (str): The new password to set
-        """
-        self._assert_c8y()
-        self._assert_username()
-        Users(self.c8y).set_password(self.username, new_password)
 
     def set_owner(self, user_id: str):
         """Set the owner for this user.
@@ -686,12 +673,33 @@ class CurrentUser(_BaseUser):
             self.is_active = is_active
 
         @classmethod
-        def from_json(cls, object_json: dict):
+        def from_json(cls, object_json: dict) -> CurrentUser.TotpActivity:
+            """Create an object instance from Cumulocity JSON format.
+
+            Caveat: this function is primarily for internal use and does not
+            return a full representation of the JSON. It is used for object
+            creation and update within Cumulocity.
+
+            Args:
+                object_json (dict): The JSON to parse.
+
+            Returns:
+                A TotpActivity instance.
+            """
             obj = CurrentUser.TotpActivity()
             obj.is_active = object_json['isActive']
             return obj
 
         def to_json(self) -> dict:
+            """Create a representation of this object in Cumulocity JSON format.
+
+            Caveat: this function is primarily for internal use and does not
+            return a full representation of the object. It is used for object
+            creation and update within Cumulocity.
+
+            Returns:
+                A JSON (nested dict) object.
+            """
             return {'isActive': self.is_active}
 
     _resource = '/user/currentUser'
@@ -723,7 +731,7 @@ class CurrentUser(_BaseUser):
         user.c8y = self.c8y
         return user
 
-    def update_password(self, current_password:str, new_password:str):
+    def update_password(self, current_password: str, new_password: str):
         """Update the current user's password:
 
         Args:
@@ -731,11 +739,12 @@ class CurrentUser(_BaseUser):
             new_password (str): the new password to set
         """
         self._assert_c8y()
-        request_json = {
-            'currentUserPassword': current_password,
-            'newPassword': new_password }
-        self.c8y.put(f'{self._resource}/password', request_json)
-        # self.c8y.auth.password = new_password  # TODO: is this sensible to add?
+        Users(self.c8y).set_current_password(current_password, new_password)
+        # request_json = {
+        #     'currentUserPassword': current_password,
+        #     'newPassword': new_password }
+        # self.c8y.put(f'{self._resource}/password', request_json)
+        # self.c8y.auth.password = new_password
 
     def verify_tfa(self, code:str):
         """Verify a TFA token."""
@@ -1019,14 +1028,20 @@ class Users(CumulocityResource):
         """
         super()._create(lambda u: u.to_full_json(), *users)
 
-    def set_password(self, username: str, new_password: str):
-        """Set the password of a user.
+    def set_current_password(self, current_password: str, new_password: str):
+        """Set the password of the current user.
+
+        Note: This automatically updates the connection with the new auth information.
 
         Args:
-            username (str):  Username of a Cumulocity user
+            current_password (str): The current password
             new_password (str): The new password to set
         """
-        self.c8y.put(self.resource + '/' + username, {'password': new_password})
+        request_json = {
+            'currentUserPassword': current_password,
+            'newPassword': new_password}
+        self.c8y.put('/user/currentUser/password', request_json)
+        self.c8y.auth.password = new_password
 
     def set_owner(self, user_id: str, owner_id: str | None):
         """Set the owner of a given user.
