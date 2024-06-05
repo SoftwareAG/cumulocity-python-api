@@ -559,9 +559,9 @@ class CumulocityResource:
                 break
             for result in results:
                 result.c8y = self.c8y  # inject c8y connection into instance
-                yield result
                 if limit and num_results >= limit:
                     break
+                yield result
                 num_results = num_results + 1
             # when a specific page was specified we don't read more pages
             if page_number:
