@@ -146,11 +146,23 @@ class Availability(object):
 
     @property
     def interval_minutes(self) -> int:
-        """Return the required updated interval in minutes as integer."""
+        """Return the required update interval in minutes as integer."""
         return int(self.interval.split(' ', 1)[0])
 
     @classmethod
-    def from_json(cls, object_json: dict):
+    def from_json(cls, object_json: dict) -> Availability:
+        """Create an object instance from Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the JSON. It is used for object
+        creation and update within Cumulocity.
+
+        Args:
+            object_json (dict): The JSON to parse.
+
+        Returns:
+            A Availability instance.
+        """
         obj = Availability()
         obj.device_id = object_json['deviceId']
         obj.external_id = object_json['externalId']
@@ -159,6 +171,7 @@ class Availability(object):
         obj.interval = object_json['interval']
         obj.last_message = object_json['lastMessage']
         return obj
+
 
 class ManagedObjectUtil:
     """Utility functions to work with the Inventory API."""
@@ -202,7 +215,7 @@ class ManagedObject(ComplexObject):
         mo.add_fragment('c8y_CustomValue', value=12, uom='units')
 
     Note: This does not work if a fragment is actually a field, not a
-    structure own it's own. A direct assignment to such a value fragment,
+    structure own its own. A direct assignment to such a value fragment,
     like
 
         mo.c8y_CustomReferences = [1, 2, 3]
@@ -230,11 +243,13 @@ class ManagedObject(ComplexObject):
          'deviceParents', 'assetParents', 'additionParents'])
 
     class Resource:
+        """Standard resource names."""
         AVAILABILITY = 'availability'
         SUPPORTED_MEASUREMENTS = 'supportedMeasurements'
         SUPPORTED_SERIES = 'supportedSeries'
 
     class Fragment:
+        """Standard fragment names."""
         SUPPORTED_MEASUREMENTS = 'c8y_SupportedMeasurements'
         SUPPORTED_SERIES = 'c8y_SupportedSeries'
 
