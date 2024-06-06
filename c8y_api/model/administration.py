@@ -740,11 +740,6 @@ class CurrentUser(_BaseUser):
         """
         self._assert_c8y()
         Users(self.c8y).set_current_password(current_password, new_password)
-        # request_json = {
-        #     'currentUserPassword': current_password,
-        #     'newPassword': new_password }
-        # self.c8y.put(f'{self._resource}/password', request_json)
-        # self.c8y.auth.password = new_password
 
     def verify_tfa(self, code:str):
         """Verify a TFA token."""
