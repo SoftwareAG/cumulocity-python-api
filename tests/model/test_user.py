@@ -3,7 +3,7 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
-
+import datetime
 # pylint: disable=redefined-outer-name
 
 import json
@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from c8y_api.model import User, CurrentUser
+from c8y_api.model import User, CurrentUser, TfaSettings
 
 
 @pytest.fixture(scope='function')
@@ -73,6 +73,35 @@ def test_current_parsing():
 
     # 3) Current user specific sets are being parsed
     assert all(r['id'] in user.effective_permission_ids for r in user_json['effectiveRoles'])
+
+
+def test_tfa_settings_parsing():
+    """Verify that TFA settings can be parsed from JSON as expected."""
+    data = {"tfaEnabled": True,
+            "tfaEnforced": True,
+            "strategy": "TOTP",
+            "lastTfaRequestTime": "2022-08-01T20:00:00.123Z"}
+
+    tfa_settings = TfaSettings.from_json(data)
+    assert tfa_settings.enabled == data['tfaEnabled']
+    assert tfa_settings.enforced == data['tfaEnforced']
+    assert tfa_settings.strategy == data['strategy']
+    assert tfa_settings.last_request_time == data['lastTfaRequestTime']
+
+
+def test_tfa_settings_formatting():
+    """Verify that TFA settings can be formatted to JSON as expected."""
+    tfa_settings = TfaSettings(
+        enabled=True,
+        enforced=True,
+        strategy='SMS',
+        last_request_time=datetime.datetime.utcnow()
+    )
+    data = tfa_settings.to_json()
+    data['tfaEnabled'] = tfa_settings.enabled
+    data['tfaEnforced'] = tfa_settings.enforced
+    data['strategy'] = tfa_settings.strategy
+    data['lastTfaRequestTime'] = tfa_settings.last_request_time
 
 
 def test_formatting(sample_user: User):

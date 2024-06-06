@@ -76,8 +76,6 @@ def test_current_update(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
     assert current_user.first_name == "New"
 
 
-
-@pytest.mark.skip("This needs an TOTP enabled tenant")
 def test_current_totp(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
     """Verify that the TOTP settings can be updated for the current user."""
     current_user = user_c8y.users.get_current()
@@ -94,22 +92,37 @@ def test_current_totp(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
     assert not current_user.get_totp_activity().is_active
 
     # explicitly enabling the feature using different methods
-    current_user.set_totp_enabled(True)
+    current_user.enable_totp()
+    assert current_user.get_totp_enabled()
     assert current_user.get_totp_activity().is_active
 
     # generate and verify TOTP codes
     totp = pyotp.TOTP(secret)
     code = totp.now()
-    current_user.verify_tfa(code)
+    current_user.verify_totp(code)
 
+    # wait for the code to become invalid
+    while code == totp.now():
+        time.sleep(1)
+    # Cumulocity has a tolerance for the last code
     time.sleep(30)
-    with pytest.raises(ValueError) as ex:
-        current_user.verify_tfa(code)
-    assert '403' in str(ex)
 
-    # TODO: revoke TOTP
-    # current_user.set_totp_activity(CurrentUser.TotpActivity(False))
-    # assert not current_user.get_totp_activity().is_active
+    assert not current_user.is_valid_totp(code)
+    with pytest.raises(ValueError) as ex:
+        current_user.verify_totp(code)
+    assert '403' in str(ex)
+    assert 'Invalid verification code' in str(ex)
+
+    # Simply disabling the TOTP feature is no longer supported (v10.20)
+    with pytest.raises(ValueError) as ex:
+        current_user.disable_totp()
+    assert '403' in str(ex)
+    assert 'Cannot deactivate TOTP setup!' in str(ex)
+
+    # Revoking does automatically disable the feature
+    current_user.revoke_totp_secret()
+    assert not current_user.get_totp_enabled()
+    assert not current_user.get_totp_activity().is_active
 
 
 @pytest.fixture(scope='function')
@@ -170,7 +183,6 @@ def test_current_set_password(live_c8y: CumulocityApi, user_c8y):
     assert len(user_c8y.inventory.get_all(limit=10)) == 10
 
 
-
 def test_set_owner(live_c8y: CumulocityApi, user_factory):
     """Verify that the owner of a user can be set and removed."""
 
@@ -207,3 +219,19 @@ def test_set_delegate(live_c8y: CumulocityApi, user_factory):
     db_user1 = live_c8y.users.get(user1.username)
     # -> owner property must be unset
     assert not db_user1.delegated_by
+
+
+def test_get_tfa_settings(live_c8y, user_c8y):
+    """Verify that the TFA settings can be retrieved as expected."""
+
+    # all users have TFA settings
+    tfa_settings = live_c8y.users.get_tfa_settings(user_c8y.username)
+    assert tfa_settings
+    assert not tfa_settings.enabled
+
+    # to enable TFA, we first generate a secret, then enable
+    # this is only possible for the current user
+    current_user = user_c8y.users.get_current()
+    current_user.generate_totp_secret()
+    current_user.enable_totp()
+    assert current_user.get_tfa_settings().enabled

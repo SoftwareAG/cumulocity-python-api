@@ -18,8 +18,10 @@ class SimpleObjectParser(object):
     a simple field mapping dictionary.
     """
 
-    def __init__(self, mapping):
-        self._obj_to_json = {**mapping, 'id': 'id'}
+    def __init__(self, mapping: dict = None, **kwargs):
+        if mapping is None:
+            mapping = {}
+        self._obj_to_json = {**mapping, 'id': 'id', **kwargs}
         self._json_to_object = {v: k for k, v in self._obj_to_json.items()}
 
     def from_json(self, obj_json, new_obj, skip=None):

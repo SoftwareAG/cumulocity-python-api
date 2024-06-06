@@ -374,6 +374,67 @@ class UserUtil:
         return {'managedObject': int(object_id), 'roles': [{'id': int(rid)} for rid in role_ids]}
 
 
+class TfaSettings:
+    """TFA settings representation within Cumulocity."""
+
+    _parser = SimpleObjectParser(
+            enabled='tfaEnabled',
+            enforced='tfaEnforced',
+            strategy='strategy',
+            last_request_time='lastTfaRequestTime')
+
+    def __init__(self, enabled: bool = None, enforced: bool = None, strategy: str = None, last_request_time: str | datetime = None):
+        """Create a TfaSettings instance.
+
+        Args:
+            enabled (bool):  Whether TFA is enabled
+            enforced (bool):  Whether TFA is enforced
+            strategy (str):  TFA strategy, e.g. "SMS" or "TOTP"
+            last_request_time (str|datetime):  The last time TFA was requested
+        """
+        self.enabled = enabled
+        self.enforced = enforced
+        self.strategy = strategy
+        self.last_request_time = _DateUtil.ensure_timestring(last_request_time)
+
+    @property
+    def last_request_datetime(self) -> datetime:
+        """Convert the last requests time to a Python datetime object.
+
+        Returns:
+            Standard Python datetime object
+        """
+        return _DateUtil.to_datetime(self.last_request_time)
+
+    @classmethod
+    def from_json(cls, object_json: dict) -> TfaSettings:
+        """Create an object instance from Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the JSON. It is used for object
+        creation and update within Cumulocity.
+
+        Args:
+            object_json (dict): The JSON to parse.
+
+        Returns:
+            A TfaSettings instance.
+        """
+        return cls._parser.from_json(object_json, TfaSettings())
+
+    def to_json(self) -> dict:
+        """Create a representation of this object in Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the object. It is used for object
+        creation and update within Cumulocity.
+
+        Returns:
+            A JSON (nested dict) object.
+        """
+        return self._parser.to_json(self)
+
+
 class _BaseUser(SimpleObject):
     _parser = SimpleObjectParser({
             'username': 'userName',
@@ -661,8 +722,7 @@ class User(_BaseUser):
 
 
 class CurrentUser(_BaseUser):
-    """
-
+    """Represents a "current" User object within Cumulocity.
 
     See also https://cumulocity.com/api/core/#tag/Current-User
     """
@@ -741,10 +801,14 @@ class CurrentUser(_BaseUser):
         self._assert_c8y()
         Users(self.c8y).set_current_password(current_password, new_password)
 
-    def verify_tfa(self, code:str):
-        """Verify a TFA token."""
+    def get_tfa_settings(self) -> TfaSettings:
+        """Read the TFA settings for the current user.
+
+        Returns:
+            A TfaSettings instance.
+        """
         self._assert_c8y()
-        self.c8y.put(f'{self._resource}/totpSecret/verify', {'code': code})
+        return Users(self.c8y).get_tfa_settings(self.username)
 
     def _read_totp_activity(self) -> dict:
         self._assert_c8y()
@@ -781,13 +845,21 @@ class CurrentUser(_BaseUser):
         except KeyError:
             return False
 
-    def set_totp_enabled(self, enabled:bool):
+    def _set_totp_enabled(self, enabled: bool):
         """Enable/disable the TOTP feature for the current user.
 
         Args:
             enabled (bool): Whether to enable the feature.
         """
         self._write_totp_activity({'isActive': enabled})
+
+    def enable_totp(self):
+        """Enable the TOTP feature for the current user."""
+        self._set_totp_enabled(True)
+
+    def disable_totp(self):
+        """Enable the TOTP feature for the current user."""
+        self._set_totp_enabled(False)
 
     def generate_totp_secret(self) -> (str, str):
         """Generate a new TOTP secret for the current user.
@@ -798,6 +870,38 @@ class CurrentUser(_BaseUser):
         self._assert_c8y()
         result_json = self.c8y.post(f'{self._resource}/totpSecret', {})
         return result_json['rawSecret'], result_json['secretQrUrl']
+
+    def verify_totp(self, code: str):
+        """Verify a TFA/TOTP token.
+
+        Args:
+            code (str): A TOTP token
+
+        Raises:
+            ValueError if the token is invalid/could not be verified.
+        """
+        self._assert_c8y()
+        self.c8y.post(f'{self._resource}/totpSecret/verify', {'code': code})
+
+    def is_valid_totp(self, code: str) -> bool:
+        """Verify a TFA/TOTP token.
+
+        Args:
+            code (str): A TOTP token
+
+        Returns:
+            True if the token was valid, False otherwise,
+        """
+        try:
+            self.verify_totp(code)
+            return True
+        except ValueError:
+            return False
+
+    def revoke_totp_secret(self):
+        """Revoke the currently set TFA/TOTP secret for the current user."""
+        self._assert_c8y()
+        Users(self.c8y).revoke_totp_secret(self.username)
 
 
 class InventoryRoles(CumulocityResource):
@@ -1064,6 +1168,25 @@ class Users(CumulocityResource):
                          UserUtil.build_delegate_reference(delegate_id))
         else:
             self.c8y.delete(self.build_object_path(user_id) + '/delegatedby')
+
+    def get_tfa_settings(self, user_id: str) -> TfaSettings:
+        """Read the TFA settings of a given user.
+
+        Args:
+            user_id (str): The user to query the settings for
+
+        Returns:
+            A TfaSettings object
+        """
+        return TfaSettings.from_json(self.c8y.get(self.build_object_path(user_id) + '/tfa'))
+
+    def revoke_totp_secret(self, user_id: str):
+        """Revoke the currently set TFA/TOTP secret for a user.
+
+        Args:
+            user_id (str): The user to set an owner for
+        """
+        self.c8y.delete(self.build_object_path(user_id) + '/totpSecret/revoke')
 
 
 class GlobalRoles(CumulocityResource):
