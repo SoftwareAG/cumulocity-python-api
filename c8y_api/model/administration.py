@@ -1127,6 +1127,10 @@ class Users(CumulocityResource):
         """
         super()._create(lambda u: u.to_full_json(), *users)
 
+    def logout_all(self):
+        """Terminate all user's sessions."""
+        self.c8y.post(f'/user/logout/{self.c8y.tenant_id}/allUsers', json={})
+
     def set_current_password(self, current_password: str, new_password: str):
         """Set the password of the current user.
 
