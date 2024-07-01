@@ -17,6 +17,7 @@ from c8y_api.model.measurements import *
 from c8y_api.model.notification2 import *
 from c8y_api.model.operations import *
 from c8y_api.model.tenant_options import *
+from c8y_api.model.tenants import *
 
 
 __all__ = [
@@ -37,6 +38,7 @@ __all__ = [
     'Applications',
     'TenantOptions',
     'AuditRecords',
+    'Tenants',
     # Model Classes
     'CumulocityResource',
     'ManagedObject',
@@ -66,6 +68,7 @@ __all__ = [
     'TenantOption',
     'AuditRecord',
     'Change',
+    'Tenant',
     # Measurement Helpers
     'Units',
     'Celsius',

@@ -14,6 +14,19 @@ import pytest
 
 from c8y_api._util import c8y_keys
 from c8y_api._jwt import JWT
+from model._util import _StringUtil
+
+@pytest.mark.parametrize(
+    'name, expected',
+    [
+        ('name', 'name'),
+        ('pascal_case', 'pascalCase'),
+        ('more_than_one', 'moreThanOne'),
+        ('_leading_underscore', 'leadingUnderscore'),
+    ])
+def test_snake_to_pascal_case(name, expected):
+    assert _StringUtil.to_pascal_case(name) == expected
+
 
 
 @patch.dict(os.environ, {'C8Y_SOME': 'some', 'C8Y_THING': 'thing', 'C8YNOT': 'not'}, clear=True)

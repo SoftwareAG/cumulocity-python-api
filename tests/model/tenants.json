@@ -1,0 +1,308 @@
+{
+  "tenants": [
+    {
+      "adminName": "admin@cumulocity.com",
+      "allowCreateTenants": false,
+      "applications": {
+        "references": [
+          {
+            "application": {
+              "activeVersionId": "2023106795",
+              "availability": "MARKET",
+              "config": {
+                "remotes": {}
+              },
+              "contextPath": "streaminganalytics",
+              "description": "",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "entry": "applications/streaming-analytics/src/main.ts",
+              "icon": {
+                "class": "c8y-icon-streaming-analytics"
+              },
+              "id": "47422",
+              "indexTemplate": "applications/streaming-analytics/src/index.html",
+              "key": "streaminganalytics-key",
+              "languages": {
+                "es": {
+                  "name": "Spanish",
+                  "nativeName": "Espa├▒ol",
+                  "url": "es.json"
+                },
+                "fr": {
+                  "name": "French",
+                  "nativeName": "Fran├ºais",
+                  "url": "fr.json"
+                },
+                "ja": {
+                  "name": "Japanese",
+                  "nativeName": "µùÑµ£¼Φ¬₧",
+                  "url": "ja.json"
+                },
+                "ko": {
+                  "name": "Korean",
+                  "nativeName": "φò£Ω╡¡∞û┤",
+                  "url": "ko.json"
+                },
+                "nl": {
+                  "name": "Dutch",
+                  "nativeName": "Nederlands",
+                  "url": "nl.json"
+                },
+                "pl": {
+                  "name": "Polish",
+                  "nativeName": "Polski",
+                  "url": "pl.json"
+                },
+                "pt_br": {
+                  "name": "Brazilian",
+                  "nativeName": "Brasileiro",
+                  "url": "pt_br.json"
+                },
+                "ru": {
+                  "name": "Russian",
+                  "nativeName": "╤Ç╤â╤ü╤ü╨║╨╕╨╣",
+                  "url": "ru.json"
+                },
+                "zh": {
+                  "name": "Chinese",
+                  "nativeName": "Σ╕¡µûç",
+                  "url": "zh.json"
+                },
+                "zh_tw": {
+                  "name": "Chinese - Taiwan ",
+                  "nativeName": "τ╣üΘ½öΣ╕¡µûç",
+                  "url": "zh_tw.json"
+                }
+              },
+              "manifest": {
+                "description": "The Streaming Analytics application lets you create Analytics Builder models and EPL apps for real-time analytics.",
+                "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+                "entry": "applications/streaming-analytics/src/main.ts",
+                "globalTitle": "Cumulocity",
+                "icon": {
+                  "class": "c8y-icon-streaming-analytics"
+                },
+                "indexTemplate": "applications/streaming-analytics/src/index.html",
+                "tabsHorizontal": true,
+                "version": "25.167.0",
+                "webSdkVersion": "1018.503.91"
+              },
+              "name": "Streaming Analytics",
+              "owner": {
+                "self": "https://cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "self": "https://t12345.cumulocity.com/application/applications/47422",
+              "tabsHorizontal": true,
+              "type": "HOSTED"
+            },
+            "self": "https://t12345.cumulocity.com//tenant/tenants/t12345/47422"
+          },
+          {
+            "application": {
+              "availability": "MARKET",
+              "contextPath": "templates-metrics",
+              "id": "44110",
+              "key": "templates-metrics",
+              "manifest": {
+                "billingMode": "RESOURCES",
+                "noAppSwitcher": true,
+                "requiredRoles": [],
+                "roles": [],
+                "settingsCategory": null
+              },
+              "name": "templates-metrics",
+              "owner": {
+                "self": "https://cumulocity.com/tenant/tenants/t111",
+                "tenant": {
+                  "id": "t111"
+                }
+              },
+              "requiredRoles": [
+                "ROLE_INVENTORY_READ",
+                "ROLE_INVENTORY_CREATE",
+                "ROLE_INVENTORY_ADMIN",
+                "ROLE_MEASUREMENT_READ"
+              ],
+              "roles": [],
+              "self": "https://t12345.cumulocity.com/application/applications/44110",
+              "type": "MICROSERVICE"
+            },
+            "self": "https://t12345.cumulocity.com//tenant/tenants/t12345/44110"
+          }
+        ],
+        "self": "https://t12345.cumulocity.com/tenant/tenants/t12345/applications"
+      },
+      "company": "Software AG",
+      "contactName": "Contact Name",
+      "contactPhone": "+1234567890",
+      "creationTime": "2019-08-13T14:10:01.444Z",
+      "customProperties": {},
+      "domain": "ms.cumulocity.com",
+      "id": "t12345",
+      "ownedApplications": {
+        "references": [
+          {
+            "application": {
+              "activeVersionId": "2023106795",
+              "availability": "MARKET",
+              "config": {
+                "remotes": {}
+              },
+              "contextPath": "streaminganalytics",
+              "description": "",
+              "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+              "entry": "applications/streaming-analytics/src/main.ts",
+              "icon": {
+                "class": "c8y-icon-streaming-analytics"
+              },
+              "id": "47422",
+              "indexTemplate": "applications/streaming-analytics/src/index.html",
+              "key": "streaminganalytics-key",
+              "languages": {
+                "es": {
+                  "name": "Spanish",
+                  "nativeName": "Espa├▒ol",
+                  "url": "es.json"
+                },
+                "fr": {
+                  "name": "French",
+                  "nativeName": "Fran├ºais",
+                  "url": "fr.json"
+                },
+                "ja": {
+                  "name": "Japanese",
+                  "nativeName": "µùÑµ£¼Φ¬₧",
+                  "url": "ja.json"
+                },
+                "ko": {
+                  "name": "Korean",
+                  "nativeName": "φò£Ω╡¡∞û┤",
+                  "url": "ko.json"
+                },
+                "nl": {
+                  "name": "Dutch",
+                  "nativeName": "Nederlands",
+                  "url": "nl.json"
+                },
+                "pl": {
+                  "name": "Polish",
+                  "nativeName": "Polski",
+                  "url": "pl.json"
+                },
+                "pt_br": {
+                  "name": "Brazilian",
+                  "nativeName": "Brasileiro",
+                  "url": "pt_br.json"
+                },
+                "ru": {
+                  "name": "Russian",
+                  "nativeName": "╤Ç╤â╤ü╤ü╨║╨╕╨╣",
+                  "url": "ru.json"
+                },
+                "zh": {
+                  "name": "Chinese",
+                  "nativeName": "Σ╕¡µûç",
+                  "url": "zh.json"
+                },
+                "zh_tw": {
+                  "name": "Chinese - Taiwan ",
+                  "nativeName": "τ╣üΘ½öΣ╕¡µûç",
+                  "url": "zh_tw.json"
+                }
+              },
+              "manifest": {
+                "description": "The Streaming Analytics application lets you create Analytics Builder models and EPL apps for real-time analytics.",
+                "dynamicOptionsUrl": "/apps/public/public-options/options.json",
+                "entry": "applications/streaming-analytics/src/main.ts",
+                "globalTitle": "Cumulocity",
+                "icon": {
+                  "class": "c8y-icon-streaming-analytics"
+                },
+                "indexTemplate": "applications/streaming-analytics/src/index.html",
+                "tabsHorizontal": true,
+                "version": "25.167.0",
+                "webSdkVersion": "1018.503.91"
+              },
+              "name": "Streaming Analytics",
+              "owner": {
+                "self": "https://cumulocity.com/tenant/tenants/management",
+                "tenant": {
+                  "id": "management"
+                }
+              },
+              "resourcesUrl": "/",
+              "self": "https://t12345.cumulocity.com/application/applications/47422",
+              "tabsHorizontal": true,
+              "type": "HOSTED"
+            },
+            "self": "https://t12345.cumulocity.com//tenant/tenants/t12345/47422"
+          },
+          {
+            "application": {
+              "availability": "MARKET",
+              "contextPath": "templates-metrics",
+              "id": "44110",
+              "key": "templates-metrics",
+              "manifest": {
+                "billingMode": "RESOURCES",
+                "noAppSwitcher": true,
+                "requiredRoles": [],
+                "roles": [],
+                "settingsCategory": null
+              },
+              "name": "templates-metrics",
+              "owner": {
+                "self": "https://cumulocity.com/tenant/tenants/t111",
+                "tenant": {
+                  "id": "t111"
+                }
+              },
+              "requiredRoles": [
+                "ROLE_INVENTORY_READ",
+                "ROLE_INVENTORY_CREATE",
+                "ROLE_INVENTORY_ADMIN",
+                "ROLE_MEASUREMENT_READ"
+              ],
+              "roles": [],
+              "self": "https://t12345.cumulocity.com/application/applications/44110",
+              "type": "MICROSERVICE"
+            },
+            "self": "https://t12345.cumulocity.com//tenant/tenants/t12345/44110"
+          }
+        ],
+        "self": "https://t12345.cumulocity.com/application/applicationsByOwner/t12345"
+      },
+      "parent": "management",
+      "self": "https://t12345.cumulocity.com/tenant/tenants/t12345",
+      "status": "ACTIVE",
+      "storageLimitPerDevice": 0
+    },
+    {
+      "adminName": "admin@cumulocity.com",
+      "allowCreateTenants": false,
+      "applications": {
+        "references": [],
+        "self": "https://t54321.cumulocity.com/tenant/tenants/t10334995/t54321"
+      },
+      "company": "Cumulocity",
+      "contactName": "Contact Name",
+      "contactPhone": "+1234567890",
+      "creationTime": "2019-08-13T14:10:01.444Z",
+      "customProperties": {},
+      "domain": "some.cumulocity.com",
+      "id": "t54321",
+      "ownedApplications": {
+        "references": [],
+        "self": "https://t54321.cumulocity.com/application/applicationsByOwner/t54321"
+      },
+      "parent": "management",
+      "self": "https://t12345.cumulocity.com/tenant/tenants/t54321",
+      "status": "ACTIVE",
+      "storageLimitPerDevice": 0
+    }
+  ]
+}

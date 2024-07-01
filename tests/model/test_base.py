@@ -160,8 +160,14 @@ def test_complexobject_instantiation_and_formatting():
 
     # 1_ when using the constructor and standard functions, the
     # write access is not recorded
-    obj = ComplexTestObject(field='field value', fixed_field=123,
-                            c8y_simple=True, c8y_complex={'a': 'valueA', 'b': 'valueB'})
+    obj = ComplexTestObject(
+        field='field value',
+        fixed_field=123,
+        c8y_simple=True,
+        c8y_complex={'a': 'valueA', 'b': 'valueB'},
+        additionalField=True,
+        additionalFragment={'value1': "A", 'value2': "B"}
+    )
 
     # -> all standard properties are set
     assert obj.id is None
@@ -171,6 +177,13 @@ def test_complexobject_instantiation_and_formatting():
     assert obj.c8y_simple is True
     assert obj.c8y_complex.a == 'valueA'
     assert obj.c8y_complex.b == 'valueB'
+    assert obj.additionalField is True
+    assert obj.additionalFragment.value1 == 'A'
+    assert obj.additionalFragment.value2 == 'B'
+    # -> using snake_case access should also be allowed
+    assert obj.additional_field is True
+    assert obj.additional_fragment.value1 == 'A'
+    assert obj.additional_fragment.value2 == 'B'
     # -> no update should be recorded
     assert not obj._updated_fields
     assert not obj._updated_fragments
@@ -181,7 +194,9 @@ def test_complexobject_instantiation_and_formatting():
         'c8y_field': obj.field,
         'c8y_fixed': obj.fixed_field,
         'c8y_simple': True,
-        'c8y_complex': {'a': 'valueA', 'b': 'valueB'}
+        'c8y_complex': {'a': 'valueA', 'b': 'valueB'},
+        'additionalField': True,
+        'additionalFragment': {'value1': "A", 'value2': "B"}
     }
     # -> full JSON should contain all fields
     assert obj._to_json() == expected_full_json
@@ -196,11 +211,18 @@ def test_complexobject_instantiation_and_formatting():
     obj.field = 'updated field'
     obj['c8y_simple'] = False  # currently, direct setting of simple fragments is not supported
     obj.c8y_complex.b = 'newB'
+    obj['additional_field'] = False  # snake case will be converted if there is a fitting field
+    obj['another_field'] = True  # this will just be inserted as-is
+    obj.additional_fragment.value1 = 'AA'
+    obj.additionalFragment.value2 = 'BB'
 
     # -> the diff JSON should only contain updated parts
     expected_diff_json = {
         'c8y_field': obj.field,
         'c8y_simple': obj.c8y_simple,
-        'c8y_complex': {'a': 'valueA', 'b': 'newB'}  # the 'a' field is unchanged but is included nonetheless
+        'c8y_complex': {'a': 'valueA', 'b': 'newB'},  # the 'a' field is unchanged but is included nonetheless
+        'additionalField': False,
+        'another_field': True,
+        'additionalFragment': {'value1': 'AA', 'value2': 'BB'}
     }
     assert obj._to_json(only_updated=True) == expected_diff_json
