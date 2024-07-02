@@ -35,6 +35,10 @@ def test_CRU(live_c8y: CumulocityApi, sample_device):  # noqa
     # wait for the bulk operation to be processed
     time.sleep(5)
 
+    # Check if bulk operation was created
+    all_ids = [x.id for x in live_c8y.bulk_operations.get_all()]
+    assert bulk.id in all_ids
+
     # (3) initially the status should be EXECUTING/COMPLETED as all
     #     child operations should have been created but not completed
     bulk = live_c8y.bulk_operations.get(bulk.id)
