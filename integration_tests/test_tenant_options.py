@@ -12,13 +12,6 @@ from c8y_api.model.tenant_options import TenantOption
 from util.testing_util import RandomNameGenerator
 
 
-def test_get_all_mapped(live_c8y: CumulocityApi):
-    """Verify that select by name works."""
-    options = live_c8y.tenant_options.get_all_mapped(category='two-factor-authentication')
-    assert options
-    assert 'enforced' in options
-
-
 def test_crud(live_c8y: CumulocityApi):
     """Verify that create/read/update/delete works for tenant options using
     the object-oriented functions."""
@@ -34,6 +27,8 @@ def test_crud(live_c8y: CumulocityApi):
         option = option.create()
         # check whether option was created and value matches
         assert live_c8y.tenant_options.get(option.category, option.key).value == 'test value'
+        # check whether mapping works
+        assert live_c8y.tenant_options.get_all_mapped(category=option.category)['my_key'] == 'test value'
 
         # 2) update the option
         option.value = 'new value'
