@@ -28,6 +28,7 @@ class CumulocityRestApi:
 
     ACCEPT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     ACCEPT_USER = 'application/vnd.com.nsn.cumulocity.user+json'
+    ACCEPT_CURRENT_USER = 'application/vnd.com.nsn.cumulocity.currentuser+json'
     ACCEPT_GLOBAL_ROLE = 'application/vnd.com.nsn.cumulocity.group+json'
     CONTENT_AUDIT_RECORD = 'application/vnd.com.nsn.cumulocity.auditrecord+json'
     CONTENT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'

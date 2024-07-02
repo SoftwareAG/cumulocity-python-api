@@ -54,6 +54,7 @@ __all__ = [
     'Fragment',
     'NamedObject',
     'User',
+    'CurrentUser',
     'GlobalRole',
     'Permission',
     'ReadPermission',

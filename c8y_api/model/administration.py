@@ -374,15 +374,68 @@ class UserUtil:
         return {'managedObject': int(object_id), 'roles': [{'id': int(rid)} for rid in role_ids]}
 
 
-class User(SimpleObject):
-    """Represents a User object within Cumulocity.
+class TfaSettings:
+    """TFA settings representation within Cumulocity."""
 
-    Notes:
-      - Only a limited set of properties are actually updatable. Others must
-        be set explicitly using the corresponding API (for example: global roles, permissions,
-        owner, etc.)
-    """
+    _parser = SimpleObjectParser(
+            enabled='tfaEnabled',
+            enforced='tfaEnforced',
+            strategy='strategy',
+            last_request_time='lastTfaRequestTime')
 
+    def __init__(self, enabled: bool = None, enforced: bool = None, strategy: str = None, last_request_time: str | datetime = None):
+        """Create a TfaSettings instance.
+
+        Args:
+            enabled (bool):  Whether TFA is enabled
+            enforced (bool):  Whether TFA is enforced
+            strategy (str):  TFA strategy, e.g. "SMS" or "TOTP"
+            last_request_time (str|datetime):  The last time TFA was requested
+        """
+        self.enabled = enabled
+        self.enforced = enforced
+        self.strategy = strategy
+        self.last_request_time = _DateUtil.ensure_timestring(last_request_time)
+
+    @property
+    def last_request_datetime(self) -> datetime:
+        """Convert the last requests time to a Python datetime object.
+
+        Returns:
+            Standard Python datetime object
+        """
+        return _DateUtil.to_datetime(self.last_request_time)
+
+    @classmethod
+    def from_json(cls, object_json: dict) -> TfaSettings:
+        """Create an object instance from Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the JSON. It is used for object
+        creation and update within Cumulocity.
+
+        Args:
+            object_json (dict): The JSON to parse.
+
+        Returns:
+            A TfaSettings instance.
+        """
+        return cls._parser.from_json(object_json, TfaSettings())
+
+    def to_json(self) -> dict:
+        """Create a representation of this object in Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the object. It is used for object
+        creation and update within Cumulocity.
+
+        Returns:
+            A JSON (nested dict) object.
+        """
+        return self._parser.to_json(self)
+
+
+class _BaseUser(SimpleObject):
     _parser = SimpleObjectParser({
             'username': 'userName',
             'password_strength': 'passwordStrength',
@@ -399,33 +452,12 @@ class User(SimpleObject):
             '_password_reset_mail': 'sendPasswordResetEmail',
             '_last_password_change': 'lastPasswordChange'})
     _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
-    _accept = CumulocityRestApi.ACCEPT_USER
-    _custom_properties_parser = ComplexObjectParser({}, [])
 
     def __init__(self, c8y: CumulocityRestApi = None, username: str = None, email: str = None,
-                 enabled: bool = True, display_name: str = None, password:str = None,
+                 enabled: bool = True, display_name: str = None, password: str = None,
                  first_name: str = None, last_name: str = None, phone: str = None,
                  tfa_enabled: bool = None, require_password_reset: bool = None):
-        """
-            Create a new User instance.
 
-            Args:
-                c8y (CumulocityRestApi):  Cumulocity connection reference; needs
-                    to be set for direct manipulation (create, delete).
-                username (str):  The user's username.
-                email (str):  The user's email address.
-                enabled (bool):  Whether the user is enabled.
-                display_name (str):  The user's display name
-                password (str):  The initial password for the user. If omitted,
-                    a newly created user will be sent a password reset link
-                    (for human users).
-                first_name (str):  The user's first name.
-                last_name (str):  The user's last name.
-                phone (str):  The user's phone number.
-                tfa_enabled (bool):  Whether 2nd factor login is enabled.
-                require_password_reset (bool):  Whether the password must be
-                    reset by the user after the next login.
-        """
         super().__init__(c8y)
         self.username = username
         self.password_strength = None
@@ -442,10 +474,6 @@ class User(SimpleObject):
         self._u_require_password_reset = require_password_reset
         self._password_reset_mail = not self._u_password
         self._last_password_change = None
-        self.global_role_ids = set()
-        self.permission_ids = set()
-        self.application_ids = set()
-        # self.custom_properties = WithUpdatableFragments()
 
     display_name = SimpleObject.UpdatableProperty('_u_display_name')
     email = SimpleObject.UpdatableProperty('_u_email')
@@ -468,12 +496,61 @@ class User(SimpleObject):
         # hint: could be cached, but it is rarely accessed multiple times
         return _DateUtil.to_datetime(self._last_password_change)
 
+
+class User(_BaseUser):
+    """Represents a User object within Cumulocity.
+
+    Notes:
+      - Only a limited set of properties are actually updatable. Others must
+        be set explicitly using the corresponding API (for example: global
+        roles, permissions, owner, etc.)
+    """
+    _resource = 'INVALID'  # needs to be dynamically generated. see _build_resource_path
+    _accept = CumulocityRestApi.ACCEPT_USER
+    _custom_properties_parser = ComplexObjectParser({}, [])
+
+    def __init__(self, c8y=None, username=None, email=None, enabled=True, display_name=None,
+                 password=None, first_name=None, last_name=None, phone=None,
+                 tfa_enabled=None, require_password_reset=None):
+        """
+            Create a new User instance.
+
+            Args:
+                c8y (CumulocityRestApi):  Cumulocity connection reference; needs
+                    to be set for direct manipulation (create, delete).
+                username (str):  The user's username.
+                email (str):  The user's email address.
+                enabled (bool):  Whether the user is enabled.
+                display_name (str):  The user's display name
+                password (str):  The initial password for the user. If omitted,
+                    a newly created user will be sent a password reset link
+                    (for human users).
+                first_name (str):  The user's first name.
+                last_name (str):  The user's last name.
+                phone (str):  The user's phone number.
+                tfa_enabled (bool):  Whether 2nd factor login is enabled.
+                require_password_reset (bool):  Whether the password must be
+                    reset by the user after the next login.
+        """
+        super().__init__(c8y,
+                         username=username, email=email, enabled=enabled,
+                         display_name=display_name, password=password,
+                         first_name=first_name, last_name=last_name,
+                         phone=phone, tfa_enabled=tfa_enabled,
+                         require_password_reset=require_password_reset)
+        self.global_role_ids = set()
+        self.permission_ids = set()
+        self.application_ids = set()
+        # self.effective_permission_ids = set()
+        # self.custom_properties = WithUpdatableFragments()
+
+
     @classmethod
     def from_json(cls, json: dict) -> User:
         user = cls._from_json(json, User())
-        if json['groups'] and json['groups']['references']:
+        if 'groups' in json and 'references' in json['groups']:
             user.global_role_ids = {str(ref['group']['id']) for ref in json['groups']['references']}
-        if json['roles'] and json['roles']['references']:
+        if 'roles' in json and 'references' in json['roles']:
             user.permission_ids = {ref['role']['id'] for ref in json['roles']['references']}
         if 'applications' in json:
             user.application_ids = {x['id'] for x in json['applications']}
@@ -510,19 +587,6 @@ class User(SimpleObject):
     def delete(self):
         """Delete the User within the database."""
         self._delete()
-
-    def update_password(self, new_password: str):
-        """Update the password.
-
-        This operation is executed immediately. No additional call to
-        the ``update`` function required.
-
-        Args:
-            new_password (str): The new password to set
-        """
-        self._assert_c8y()
-        self._assert_username()
-        Users(self.c8y).set_password(self.username, new_password)
 
     def set_owner(self, user_id: str):
         """Set the owner for this user.
@@ -657,6 +721,189 @@ class User(SimpleObject):
             raise ValueError("Username must be provided.")
 
 
+class CurrentUser(_BaseUser):
+    """Represents a "current" User object within Cumulocity.
+
+    See also https://cumulocity.com/api/core/#tag/Current-User
+    """
+
+    class TotpActivity:
+        """User's TOTP activity information."""
+        def __init__(self, is_active: bool = None):
+            self.is_active = is_active
+
+        @classmethod
+        def from_json(cls, object_json: dict) -> CurrentUser.TotpActivity:
+            """Create an object instance from Cumulocity JSON format.
+
+            Caveat: this function is primarily for internal use and does not
+            return a full representation of the JSON. It is used for object
+            creation and update within Cumulocity.
+
+            Args:
+                object_json (dict): The JSON to parse.
+
+            Returns:
+                A TotpActivity instance.
+            """
+            obj = CurrentUser.TotpActivity()
+            obj.is_active = object_json['isActive']
+            return obj
+
+        def to_json(self) -> dict:
+            """Create a representation of this object in Cumulocity JSON format.
+
+            Caveat: this function is primarily for internal use and does not
+            return a full representation of the object. It is used for object
+            creation and update within Cumulocity.
+
+            Returns:
+                A JSON (nested dict) object.
+            """
+            return {'isActive': self.is_active}
+
+    _resource = '/user/currentUser'
+    _accept = CumulocityRestApi.ACCEPT_CURRENT_USER
+
+    def __init__(self, c8y:CumulocityRestApi = None):
+        super().__init__(c8y)
+        self.effective_permission_ids = {}
+
+    @classmethod
+    def from_json(cls, json: dict) -> CurrentUser:
+        user:CurrentUser = cls._from_json(json, CurrentUser())
+        if 'effectiveRoles' in json:
+            user.effective_permission_ids = {ref['id'] for ref in json['effectiveRoles']}
+        return user
+
+    # no need to override the standard to_json method
+
+    def update(self) -> CurrentUser:
+        """Update the current user within the database.
+
+        Returns:
+            A fresh CurrentUser object representing what the updated
+            state within the database (including the ID).
+        """
+        self._assert_c8y()
+        result_json = self.c8y.put(self._resource, self.to_diff_json(), accept=self._accept)
+        user = self.from_json(result_json)
+        user.c8y = self.c8y
+        return user
+
+    def update_password(self, current_password: str, new_password: str):
+        """Update the current user's password:
+
+        Args:
+            current_password(str): the current password
+            new_password (str): the new password to set
+        """
+        self._assert_c8y()
+        Users(self.c8y).set_current_password(current_password, new_password)
+
+    def get_tfa_settings(self) -> TfaSettings:
+        """Read the TFA settings for the current user.
+
+        Returns:
+            A TfaSettings instance.
+        """
+        self._assert_c8y()
+        return Users(self.c8y).get_tfa_settings(self.username)
+
+    def _read_totp_activity(self) -> dict:
+        self._assert_c8y()
+        return self.c8y.get(f'{self._resource}/totpSecret/activity')
+
+    def _write_totp_activity(self, activity_json: dict):
+        self._assert_c8y()
+        self.c8y.post(f'{self._resource}/totpSecret/activity', activity_json)
+
+    def get_totp_activity(self) -> TotpActivity:
+        """Read the TOTP activity details.
+
+        Returns:
+            A TotpActivity instance.
+        """
+        return CurrentUser.TotpActivity.from_json(self._read_totp_activity())
+
+    def set_totp_activity(self, activity: TotpActivity):
+        """Update the TFA feature activity details.
+
+        Args:
+            activity(TotpActivity): The TFA activity details.
+        """
+        self._write_totp_activity(activity.to_json())
+
+    def get_totp_enabled(self) -> bool:
+        """Check whether the TOTP feature is enabled for the current user.
+
+        Returns:
+            True if the feature is enabled, False otherwise.
+        """
+        try:
+            return self._read_totp_activity()['isActive']
+        except KeyError:
+            return False
+
+    def _set_totp_enabled(self, enabled: bool):
+        """Enable/disable the TOTP feature for the current user.
+
+        Args:
+            enabled (bool): Whether to enable the feature.
+        """
+        self._write_totp_activity({'isActive': enabled})
+
+    def enable_totp(self):
+        """Enable the TOTP feature for the current user."""
+        self._set_totp_enabled(True)
+
+    def disable_totp(self):
+        """Enable the TOTP feature for the current user."""
+        self._set_totp_enabled(False)
+
+    def generate_totp_secret(self) -> (str, str):
+        """Generate a new TOTP secret for the current user.
+
+        Returns:
+            A (str, str) tuple of the raw secret token and the secret URL.
+        """
+        self._assert_c8y()
+        result_json = self.c8y.post(f'{self._resource}/totpSecret', {})
+        return result_json['rawSecret'], result_json['secretQrUrl']
+
+    def verify_totp(self, code: str):
+        """Verify a TFA/TOTP token.
+
+        Args:
+            code (str): A TOTP token
+
+        Raises:
+            ValueError if the token is invalid/could not be verified.
+        """
+        self._assert_c8y()
+        self.c8y.post(f'{self._resource}/totpSecret/verify', {'code': code})
+
+    def is_valid_totp(self, code: str) -> bool:
+        """Verify a TFA/TOTP token.
+
+        Args:
+            code (str): A TOTP token
+
+        Returns:
+            True if the token was valid, False otherwise,
+        """
+        try:
+            self.verify_totp(code)
+            return True
+        except ValueError:
+            return False
+
+    def revoke_totp_secret(self):
+        """Revoke the currently set TFA/TOTP secret for the current user."""
+        self._assert_c8y()
+        Users(self.c8y).revoke_totp_secret(self.username)
+
+
 class InventoryRoles(CumulocityResource):
     """Provides access to the InventoryRole API.
 
@@ -783,7 +1030,7 @@ class Users(CumulocityResource):
         super().__init__(c8y, 'user/' + c8y.tenant_id + '/users')
         self.__groups = GlobalRoles(c8y)
 
-    def get(self, username):
+    def get(self, username: str):
         """Retrieve a specific user.
 
         Args:
@@ -794,6 +1041,16 @@ class Users(CumulocityResource):
         """
         user = User.from_json(self._get_object(username))
         user.c8y = self.c8y  # inject c8y connection into instance
+        return user
+
+    def get_current(self) -> CurrentUser:
+        """Retrieve current user.
+
+        Returns:
+            CurrentUser instance
+        """
+        user = CurrentUser.from_json(self.c8y.get('/user/currentUser'))
+        user.c8y = self.c8y
         return user
 
     def select(self,
@@ -870,14 +1127,24 @@ class Users(CumulocityResource):
         """
         super()._create(lambda u: u.to_full_json(), *users)
 
-    def set_password(self, username: str, new_password: str):
-        """Set the password of a user.
+    def logout_all(self):
+        """Terminate all user's sessions."""
+        self.c8y.post(f'/user/logout/{self.c8y.tenant_id}/allUsers', json={})
+
+    def set_current_password(self, current_password: str, new_password: str):
+        """Set the password of the current user.
+
+        Note: This automatically updates the connection with the new auth information.
 
         Args:
-            username (str):  Username of a Cumulocity user
+            current_password (str): The current password
             new_password (str): The new password to set
         """
-        self.c8y.put(self.resource + '/' + username, {'password': new_password})
+        request_json = {
+            'currentUserPassword': current_password,
+            'newPassword': new_password}
+        self.c8y.put('/user/currentUser/password', request_json)
+        self.c8y.auth.password = new_password
 
     def set_owner(self, user_id: str, owner_id: str | None):
         """Set the owner of a given user.
@@ -905,6 +1172,25 @@ class Users(CumulocityResource):
                          UserUtil.build_delegate_reference(delegate_id))
         else:
             self.c8y.delete(self.build_object_path(user_id) + '/delegatedby')
+
+    def get_tfa_settings(self, user_id: str) -> TfaSettings:
+        """Read the TFA settings of a given user.
+
+        Args:
+            user_id (str): The user to query the settings for
+
+        Returns:
+            A TfaSettings object
+        """
+        return TfaSettings.from_json(self.c8y.get(self.build_object_path(user_id) + '/tfa'))
+
+    def revoke_totp_secret(self, user_id: str):
+        """Revoke the currently set TFA/TOTP secret for a user.
+
+        Args:
+            user_id (str): The user to set an owner for
+        """
+        self.c8y.delete(self.build_object_path(user_id) + '/totpSecret/revoke')
 
 
 class GlobalRoles(CumulocityResource):

@@ -15,38 +15,36 @@ class NamedObject(object):
 
     This class is used to model Cumulocity references.
     """
-    def __init__(self, id: str = None, name: str = None):  # noqa
+    def __init__(self, id=None, name=None):  # noqa
         """ Create a new instance.
 
-        Args:
-            id (str):  Database ID of the object
-            name (str):  Name of the object
+        :param id:  Database ID of the object
+        :param name:  Name of the object
+        :returns:  New NamedObject instance
         """
         self.id = id
         self.name = name
 
     @classmethod
-    def from_json(cls, object_json: dict) -> NamedObject:
+    def from_json(cls, object_json):
         """ Build a new instance from JSON.
 
         The JSON is assumed to be in the format as it is used by the
         Cumulocity REST API.
-        Args:
-            object_json (dict):  JSON object (nested dictionary)
+
+        :param object_json:  JSON object (nested dictionary)
             representing a named object within Cumulocity
-        Returns:
-              NamedObject instance
+        :returns:  NamedObject instance
         """
         return NamedObject(id=object_json['id'], name=object_json.get('name', ''))
 
-    def to_json(self) -> dict:
+    def to_json(self):
         """ Convert the instance to JSON.
 
         The JSON format produced by this function is what is used by the
         Cumulocity REST API.
 
-        Returns:
-            JSON object (nested dictionary)
+        :returns:  JSON object (nested dictionary)
         """
         return {'id': self.id, 'name': self.name}
 
@@ -58,7 +56,7 @@ class Fragment(object):
     within their data model.
 
     For example, every measurement contains such a fragment, holding
-    the actual data points::
+    the actual data points:
 
         "pt_current": {
             "CURR": {
@@ -67,29 +65,31 @@ class Fragment(object):
             }
         }
 
-    A fragment has a name (`pt_current` in above example) and can virtually
+    A fragment has a name (*pt_current* in above example) and can virtually
     define any substructure.
     """
     def __init__(self, name: str, **kwargs):
         """ Create a new fragment.
 
-        Args:
+        Params
             name (str):  Name of the fragment
-            **kwargs:  Named elements of the fragment. Each element
+            kwargs:  Named elements of the fragment. Each element
                 can either be a simple value of a complex substructure
                 modelled as nested dictionary.
+        Returns:
+            New Fragment instance
         """
         self.name = name
         self.items = kwargs
 
-    def __getattr__(self, name: str) -> str|int|float|bool|dict:
+    def __getattr__(self, name: str):
         """ Get a specific element of the fragment.
 
         Args:
             name (str):  Name of the element
 
         Returns:
-            Value of the element. Can be a simple value or a
+            Value of the element. May be a simple value or a
             complex substructure defined as nested dictionary.
         """
         item = self.items[name]
@@ -106,16 +106,13 @@ class Fragment(object):
         """
         return name in self.items
 
-    def add_element(self, name: str, element: Any|dict) -> Fragment:
+    def add_element(self, name, element):
         """ Add an element.
 
-        Args:
-            name (str):  Name of the element.
-            element (Any|dict):  Value of the element, either a simple
-                value or a complex substructure defined as nested dictionary.
-
-        Returns:
-            `self` reference
+        :param name:  Name of the element
+        :param element:  Value of the element, either a simple value or
+            a complex substructure defined as nested dictionary.
+        :returns:  self
         """
         self.items[name] = element
         return self
@@ -154,13 +151,17 @@ class Availability(object):
 
     @classmethod
     def from_json(cls, object_json: dict) -> Availability:
-        """Parse from Cumulocity JSON.
+        """Create an object instance from Cumulocity JSON format.
+
+        Caveat: this function is primarily for internal use and does not
+        return a full representation of the JSON. It is used for object
+        creation and update within Cumulocity.
 
         Args:
-            object_json (dict):  Cumulocity JSON representation
+            object_json (dict): The JSON to parse.
 
         Returns:
-            A new Availability instance.
+            A Availability instance.
         """
         obj = Availability()
         obj.device_id = object_json['deviceId']
@@ -170,6 +171,7 @@ class Availability(object):
         obj.interval = object_json['interval']
         obj.last_message = object_json['lastMessage']
         return obj
+
 
 class ManagedObjectUtil:
     """Utility functions to work with the Inventory API."""
@@ -241,13 +243,13 @@ class ManagedObject(ComplexObject):
          'deviceParents', 'assetParents', 'additionParents'])
 
     class Resource:
-        """Inventory sub-resources."""
+        """Standard resource names."""
         AVAILABILITY = 'availability'
         SUPPORTED_MEASUREMENTS = 'supportedMeasurements'
         SUPPORTED_SERIES = 'supportedSeries'
 
     class Fragment:
-        """Standard fragments."""
+        """Standard fragment names."""
         SUPPORTED_MEASUREMENTS = 'c8y_SupportedMeasurements'
         SUPPORTED_SERIES = 'c8y_SupportedSeries'
 
@@ -374,7 +376,7 @@ class ManagedObject(ComplexObject):
             object within the database. This instance can be used to get
             at the ID of the new managed object.
 
-        See also function `Inventory.create` which doesn't parse the result.
+        See also function Inventory.create which doesn't parse the result.
         """
         return self._create()
 
@@ -385,7 +387,7 @@ class ManagedObject(ComplexObject):
             A fresh ManagedObject instance representing the updated
             object within the database.
 
-        See also function `Inventory.update` which doesn't parse the result.
+        See also function Inventory.update which doesn't parse the result.
         """
         return self._update()
 
@@ -397,10 +399,10 @@ class ManagedObject(ComplexObject):
         Args:
             other_id (str|int):  Database ID of the event to update.
         Returns:
-            A fresh `ManagedObject` instance representing the updated
+            A fresh ManagedObject instance representing the updated
             object within the database.
 
-        See also function `Inventory.apply_to` which doesn't parse the result.
+        See also function Inventory.apply_to which doesn't parse the result.
         """
         self._assert_c8y()
         # put diff json to another object (by ID)
@@ -620,7 +622,7 @@ class DeviceGroup(ManagedObject):
     def __init__(self, c8y=None, root: bool = False, name: str = None, owner: str = None, **kwargs):
         """ Build a new DeviceGroup object.
 
-        The type of a device group will always be either `c8y_DeviceGroup`
+        A type of a device group will always be either `c8y_DeviceGroup`
         or `c8y_DeviceSubGroup` (depending on it's level). This is handled
         by the API.
 
@@ -680,8 +682,7 @@ class DeviceGroup(ManagedObject):
         child_json = DeviceGroup(name=name, owner=owner if owner else self.owner, **kwargs).to_json()
 
         response_json = self.c8y.post(self._build_object_path() + '/childAssets', json=child_json,
-                                      accept=CumulocityRestApi.ACCEPT_MANAGED_OBJECT,
-                                      content_type=CumulocityRestApi.CONTENT_MANAGED_OBJECT)
+                                      accept=CumulocityRestApi.ACCEPT_MANAGED_OBJECT)
         result = self.from_json(response_json)
         result.c8y = self.c8y
         return result
@@ -692,12 +693,11 @@ class DeviceGroup(ManagedObject):
         This operation will create the group and all added child groups
         within the database.
 
-        Returns:
-            A fresh DeviceGroup instance representing the created
+        :returns:  A fresh DeviceGroup instance representing the created
             object within the database. This instance can be used to get at
             the ID of the new object.
 
-        See also function `DeviceGroupInventory.create` which doesn't parse
+        See also function DeviceGroupInventory.create which doesn't parse
         the result.
         """
         return super()._create()
@@ -707,8 +707,7 @@ class DeviceGroup(ManagedObject):
 
         Note: Removing child groups is currently not supported.
 
-        Returns:
-            A fresh DeviceGroup instance representing the updated
+        :returns:  A fresh DeviceGroup instance representing the updated
             object within the database.
         """
         return super()._update()

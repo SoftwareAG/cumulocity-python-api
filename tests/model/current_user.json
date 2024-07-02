@@ -1,0 +1,25 @@
+{
+   "shouldResetPassword": false,
+   "userName": "user.name@cumulocity.com",
+   "self": "https://t12345.cumulocity.com/user/currentUser",
+   "effectiveRoles": [
+      {
+         "name": "ROLE_IDENTITY_ADMIN",
+         "self": "https://t12345.cumulocity.com/user/roles/ROLE_IDENTITY_ADMIN",
+         "id": "ROLE_IDENTITY_ADMIN"
+      },
+      {
+         "name": "ROLE_REMOTE_ACCESS_ADMIN",
+         "self": "https://t12345.cumulocity.com/user/roles/ROLE_REMOTE_ACCESS_ADMIN",
+         "id": "ROLE_REMOTE_ACCESS_ADMIN"
+      },
+      {
+         "name": "ROLE_RETENTION_RULE_ADMIN",
+         "self": "https://t12345.cumulocity.com/user/roles/ROLE_RETENTION_RULE_ADMIN",
+         "id": "ROLE_RETENTION_RULE_ADMIN"
+      }
+   ],
+   "id": "user.name@cumulocity.com",
+   "lastPasswordChange": "2021-11-17T08:09:53.257Z",
+   "email": "user.name@cumulocity.com"
+}
