@@ -16,7 +16,7 @@ from urllib.parse import urlencode
 
 from c8y_api._base_api import CumulocityRestApi
 
-from c8y_api.model._util import _DateUtil
+from c8y_api.model._util import _DateUtil, _StringUtil
 
 
 class _DictWrapper(MutableMapping):
@@ -332,8 +332,13 @@ class ComplexObject(SimpleObject):
             name (str):  Name of the custom fragment.
             fragment (str|bool|int|float|dict):  custom value/structure to assign.
         """
-        self.fragments[name] = fragment
-        self._signal_updated_fragment(name)
+        pascal_name = _StringUtil.to_pascal_case(name)
+        if pascal_name in self.fragments:
+            self.fragments[pascal_name] = fragment
+            self._signal_updated_fragment(pascal_name)
+        else:
+            self.fragments[name] = fragment
+            self._signal_updated_fragment(name)
 
     def __getitem__(self, name: str):
         """ Get the value of a custom fragment.
@@ -366,18 +371,24 @@ class ComplexObject(SimpleObject):
         Args:
             name (str): Name of the custom fragment.
         """
-        try:
+        if name in self:
             return self[name]
-        except KeyError:
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{name}'"
-            ) from None
+        pascal_name = _StringUtil.to_pascal_case(name)
+        if pascal_name in self:
+            return self[pascal_name]
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}' or '{pascal_name}'"
+        ) from None
 
     def _setattr_(self, name, value):
         if name in self.fragments:
             self[name] = value
-        else:
-            object.__setattr__(self, name, value)
+            return
+        pascal_name = _StringUtil.to_pascal_case(name)
+        if pascal_name in self.fragments:
+            self[pascal_name] = value
+            return
+        object.__setattr__(self, name, value)
 
     def __iadd__(self, other):
         try:  # go for iterable

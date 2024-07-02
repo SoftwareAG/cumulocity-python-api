@@ -383,7 +383,11 @@ class TfaSettings:
             strategy='strategy',
             last_request_time='lastTfaRequestTime')
 
-    def __init__(self, enabled: bool = None, enforced: bool = None, strategy: str = None, last_request_time: str | datetime = None):
+    def __init__(self,
+                 enabled: bool = None,
+                 enforced: bool = None,
+                 strategy: str = None,
+                 last_request_time: str | datetime = None):
         """Create a TfaSettings instance.
 
         Args:

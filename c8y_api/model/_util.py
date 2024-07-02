@@ -3,10 +3,23 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
-
+import re
 from datetime import datetime, timedelta, timezone
 from dateutil import parser
 from re import sub
+
+
+class _StringUtil(object):
+
+    TO_PASCAL_PATTERN = re.compile(r'_([a-z])')
+
+    @staticmethod
+    def to_pascal_case(name: str):
+        """Convert a given snake case (default Python style) name to pascal case (default for names in Cumulocity)"""
+        parts = list(filter(None, name.split('_')))
+        if len(parts) == 1:
+            return name
+        return parts[0] + "".join([x.title() for x in parts[1:]])
 
 
 class _QueryUtil(object):

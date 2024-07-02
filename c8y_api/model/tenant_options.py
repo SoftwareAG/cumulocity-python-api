@@ -35,7 +35,6 @@ class TenantOption(SimpleObject):
         Args:
             c8y (CumulocityRestApi):  Cumulocity connection reference; needs
                 to be set for direct manipulation (create, delete)
-        Args:
             category (str): Option category
             key (str): Option key (name)
             value (str): Option value
