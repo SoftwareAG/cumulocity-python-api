@@ -120,7 +120,7 @@ def test_current_totp(live_c8y: CumulocityApi, user_c8y: CumulocityApi):
     assert 'Cannot deactivate TOTP setup!' in str(ex)
 
     # Revoking does automatically disable the feature
-    current_user.revoke_totp_secret()
+    live_c8y.users.revoke_totp_secret(current_user.username)
     assert not current_user.get_totp_enabled()
     assert not current_user.get_totp_activity().is_active
 
@@ -234,4 +234,4 @@ def test_get_tfa_settings(live_c8y, user_c8y):
     current_user = user_c8y.users.get_current()
     current_user.generate_totp_secret()
     current_user.enable_totp()
-    assert current_user.get_tfa_settings().enabled
+    assert live_c8y.users.get_tfa_settings(current_user.username).enabled
