@@ -1,7 +1,17 @@
 # Changelog
 
 
+## Version 2.0
+
 * Added Changes support to the Audit API.
+* Fixed Issue #53 "KeyError when retrieving 'bulkOperation'"; bulk operations JSON is somewhat _non-standard_ as 
+  the root element is not named like the corresponding REST resource.
+* Added proper support for the CurrentUser API; this is a breaking change as some functions moved from the User API
+  to the CurrentUser API (the correct place).
+* Added support for 2FA at user level; TFA/TOTP can be enabled for individual users. Parts of this functionality,
+  e.g. getting the TOTP secret are only available at the CurrentUser level
+* Adding traditional date filter parameter names (date_from and date_to in addition to before/after) to Events 
+  and Alarms API. 
 
 
 ## Version 1.10

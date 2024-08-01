@@ -133,6 +133,7 @@ def test_get_availability(live_c8y: CumulocityApi, sample_device: Device):
             print("Availability not yet available (pun intended). Retrying ...")
     assert availability
 
+
 @pytest.fixture
 def object_with_measurements(live_c8y: CumulocityApi, mutable_object: ManagedObject) -> ManagedObject:
     """Provide a managed object with predefined measurements."""
@@ -143,20 +144,24 @@ def object_with_measurements(live_c8y: CumulocityApi, mutable_object: ManagedObj
     live_c8y.measurements.create(*ms)
     return mutable_object
 
+
 def test_get_supported_measurements(live_c8y: CumulocityApi, object_with_measurements: ManagedObject):
     """Verify that the supported measurements can be retrieved."""
     result = live_c8y.inventory.get_supported_measurements(object_with_measurements.id)
     assert set(result) == {'c8y_Counter', 'c8y_Integers'}
+
 
 def test_get_supported_measurements_2(live_c8y: CumulocityApi, object_with_measurements: ManagedObject):
     """Verify that the supported measurements can be retrieved."""
     result = object_with_measurements.get_supported_measurements()
     assert set(result) == {'c8y_Counter', 'c8y_Integers'}
 
+
 def test_get_supported_series(live_c8y: CumulocityApi, object_with_measurements: ManagedObject):
     """Verify that the supported measurement series can be retrieved."""
     result = live_c8y.inventory.get_supported_series(object_with_measurements.id)
     assert set(result) == {'c8y_Counter.N', 'c8y_Integers.V1', 'c8y_Integers.V2'}
+
 
 def test_get_supported_series_2(live_c8y: CumulocityApi, object_with_measurements: ManagedObject):
     """Verify that the supported measurement series can be retrieved."""
