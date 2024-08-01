@@ -4,6 +4,8 @@
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
 
+# pylint: disable=protected-access
+
 from __future__ import annotations
 
 import os
@@ -16,6 +18,7 @@ from c8y_api._util import c8y_keys
 from c8y_api._jwt import JWT
 from model._util import _StringUtil
 
+
 @pytest.mark.parametrize(
     'name, expected',
     [
@@ -25,8 +28,8 @@ from model._util import _StringUtil
         ('_leading_underscore', 'leadingUnderscore'),
     ])
 def test_snake_to_pascal_case(name, expected):
+    """Verify that snake case conversion works as expected."""
     assert _StringUtil.to_pascal_case(name) == expected
-
 
 
 @patch.dict(os.environ, {'C8Y_SOME': 'some', 'C8Y_THING': 'thing', 'C8YNOT': 'not'}, clear=True)

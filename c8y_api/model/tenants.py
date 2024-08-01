@@ -10,9 +10,9 @@ from datetime import datetime
 from typing import Generator, List
 
 from c8y_api._base_api import CumulocityRestApi
+from c8y_api.model.applications import Application
 from c8y_api.model._base import SimpleObject, CumulocityResource
 from c8y_api.model._parser import SimpleObjectParser
-from model import Application
 
 
 class Tenant(SimpleObject):
@@ -75,8 +75,8 @@ class Tenant(SimpleObject):
         self.creation_time = None
         self.parent = None
         self.status = None
-        self._applications = None
-        self._owned_applications = None
+        self._applications = []
+        self._owned_applications = []
 
     domain = SimpleObject.UpdatableProperty('_u_domain')
     admin_name = SimpleObject.UpdatableProperty('_u_admin_name')
@@ -102,9 +102,8 @@ class Tenant(SimpleObject):
         Returns:
             A Generator for Application instances.
         """
-        if self._applications:
-            for application_json in self._applications:
-                yield Application.from_json(application_json)
+        for application_json in self._applications:
+            yield Application.from_json(application_json)
 
     @property
     def all_applications(self) -> List[Application]:
@@ -113,7 +112,7 @@ class Tenant(SimpleObject):
         Returns:
             A list of Application instances.
         """
-        return [x for x in self.applications]
+        return list(self.applications)
 
     @property
     def owned_applications(self) -> Generator[Application]:
@@ -122,9 +121,8 @@ class Tenant(SimpleObject):
         Returns:
             A Generator for Application instances.
         """
-        if self._owned_applications:
-            for application_json in self._owned_applications:
-                yield Application.from_json(application_json)
+        for application_json in self._owned_applications:
+            yield Application.from_json(application_json)
 
     @property
     def all_owned_applications(self) -> List[Application]:
@@ -133,7 +131,7 @@ class Tenant(SimpleObject):
         Returns:
             A list of Application instances.
         """
-        return [x for x in self.owned_applications]
+        return list(self.owned_applications)
 
     @classmethod
     def from_json(cls, json: dict) -> Tenant:
@@ -152,6 +150,7 @@ class Tenant(SimpleObject):
         obj = cls._from_json(json, Tenant())
         # Extract (but don't parse) referenced application. Parsing is
         # done lazily in property implementations
+        # pylint: disable=protected-access
         if 'applications' in json:
             obj._applications = [x['application'] for x in json['applications']['references']]
         if 'ownedApplications' in json:
@@ -210,8 +209,19 @@ class Tenants(CumulocityResource):
         tenant.c8y = self.c8y
         return tenant
 
-    def get(self, id: str) -> Tenant:
-        tenant = Tenant.from_json(self._get_object(id))
+    def get(self, tenant_id: str) -> Tenant:
+        """Read a specific tenant from the database.
+
+        Args:
+            tenant_id (str|int):  database ID of a tenant
+
+        Returns:
+            Tenant object
+
+        Raises:
+            KeyError:  if the ID cannot be resolved.
+        """
+        tenant = Tenant.from_json(self._get_object(tenant_id))
         tenant.c8y = self.c8y  # inject c8y connection into instance
         return tenant
 
