@@ -7,12 +7,15 @@
 import json
 import os
 from datetime import datetime, timezone
+from unittest.mock import Mock
+
 from dateutil import parser
 from typing import List
 
 import pytest
 
-from c8y_api.model import BulkOperation
+from c8y_api import CumulocityApi
+from c8y_api.model import BulkOperation, BulkOperations
 
 
 def fix_sample_jsons() -> List[dict]:
@@ -22,12 +25,21 @@ def fix_sample_jsons() -> List[dict]:
         root = json.load(f)
         return root['bulkOperations']
 
+
 def test_parsing_collection():
+    """Verify that parsing a collection works as expected.
+    The bulk operations JSON is non-standard as the name differs from the REST endpoint."""
     path = os.path.dirname(__file__) + '/bulk_operations.json'
     with open(path, encoding='utf-8', mode='rt') as f:
-        root = json.load(f)
+        document = json.load(f)
+    page1 = document
+    page2 = {"bulkOperations": []}
 
-
+    mock_c8y = CumulocityApi("base_url", "tenant_id", "user", "password")
+    mock_c8y.get = Mock(side_effect=[page1, page2])
+    operations = BulkOperations(mock_c8y).get_all()
+    assert len(operations) == len(document['bulkOperations'])
+    assert operations[0].id == document['bulkOperations'][0]['id']
 
 
 @pytest.mark.parametrize('sample_json', fix_sample_jsons())

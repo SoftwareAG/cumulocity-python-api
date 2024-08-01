@@ -29,7 +29,7 @@
       "creationRamp": 5,
       "generalStatus": "EXECUTING_WITH_ERROR",
       "failedParentId": "1",
-      "id": 1,
+      "id": 2,
       "note": "Some description",
       "operationPrototype": {
         "c8y_Firmware": {
