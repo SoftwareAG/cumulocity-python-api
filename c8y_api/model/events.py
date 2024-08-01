@@ -174,7 +174,7 @@ class Event(ComplexObject):
         super()._assert_id()
         return self.c8y.get_file(self._build_attachment_path())
 
-    def create_attachment(self, file: str|BinaryIO, content_type: str = None) -> dict:
+    def create_attachment(self, file: str | BinaryIO, content_type: str = None) -> dict:
         """Create the binary attachment.
 
         Args:
@@ -190,7 +190,7 @@ class Event(ComplexObject):
         return self.c8y.post_file(self._build_attachment_path(), file,
                                   accept='application/json', content_type=content_type)
 
-    def update_attachment(self, file: str|BinaryIO, content_type: str = None) -> dict:
+    def update_attachment(self, file: str | BinaryIO, content_type: str = None) -> dict:
         """Update the binary attachment.
 
         Args:
@@ -251,8 +251,11 @@ class Events(CumulocityResource):
 
     def select(self, type: str = None, source: str = None, fragment: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
+               date_from: str | datetime = None, date_to: str | datetime = None,
                created_before: str | datetime = None, created_after: str | datetime = None,
+               created_from: str | datetime = None, created_to: str | datetime = None,
                updated_before: str | datetime = None, updated_after: str | datetime = None,
+               last_updated_from: str | datetime = None, last_updated_to: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None,
                page_size: int = 1000, page_number: int = None) -> Generator[Event]:
@@ -283,6 +286,12 @@ class Events(CumulocityResource):
                 Only events changed at a time after this date are returned.
             min_age (timedelta): Minimum age for selected events.
             max_age (timedelta): Maximum age for selected events.
+            date_from (str|datetime): Same as `after`
+            date_to (str|datetime): Same as `before`
+            created_from (str|datetime): Same as `created_after`
+            created_to(str|datetime): Same as `created_before`
+            last_updated_from (str|datetime): Same as `updated_after`
+            last_updated_to (str|datetime): Same as `updated_before`
             reverse (bool): Invert the order of results, starting with the
                 most recent one.
             limit (int): Limit the number of results to this number.
@@ -296,16 +305,22 @@ class Events(CumulocityResource):
         """
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             before=before, after=after,
+                                            date_from=date_from, date_to=date_to,
                                             created_before=created_before, created_after=created_after,
+                                            created_from=created_from, created_to=created_to,
                                             updated_before=updated_before, updated_after=updated_after,
+                                            last_updated_from=last_updated_from, last_updated_to=last_updated_to,
                                             min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
         return super()._iterate(base_query, page_number, limit, Event.from_json)
 
     def get_all(self, type: str = None, source: str = None, fragment: str = None,  # noqa (type)
                before: str | datetime = None, after: str | datetime = None,
+               date_from: str | datetime = None, date_to: str | datetime = None,
                created_before: str | datetime = None, created_after: str | datetime = None,
+               created_from: str | datetime = None, created_to: str | datetime = None,
                updated_before: str | datetime = None, updated_after: str | datetime = None,
+               last_updated_from: str | datetime = None, last_updated_to: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None,
                 page_size: int = 1000, page_number: int = None) -> List[Event]:
@@ -321,8 +336,11 @@ class Events(CumulocityResource):
         """
         return list(self.select(type=type, source=source, fragment=fragment,
                                 before=before, after=after,
+                                date_from=date_from, date_to=date_to,
                                 created_before=created_before, created_after=created_after,
+                                created_from=created_from, created_to=created_to,
                                 updated_before=updated_before, updated_after=updated_after,
+                                last_updated_from=last_updated_from, last_updated_to=last_updated_to,
                                 min_age=min_age, max_age=max_age,
                                 reverse=reverse, limit=limit, page_size=page_size, page_number=page_number))
 
@@ -348,7 +366,7 @@ class Events(CumulocityResource):
         """
         super()._update(Event.to_diff_json, *events)
 
-    def apply_to(self, event: Event|dict, *event_ids: str):
+    def apply_to(self, event: Event | dict, *event_ids: str):
         """Apply changes made to a single instance to other objects in the
         database.
 
@@ -388,7 +406,7 @@ class Events(CumulocityResource):
         query = base_query[:base_query.rindex('&')]
         self.c8y.delete(query)
 
-    def create_attachment(self, event_id: str, file: str|BinaryIO, content_type: str = None) -> dict:
+    def create_attachment(self, event_id: str, file: str | BinaryIO, content_type: str = None) -> dict:
         """Add an event's binary attachment.
 
         Args:
@@ -403,7 +421,7 @@ class Events(CumulocityResource):
         return self.c8y.post_file(self.build_attachment_path(event_id), file,
                                   accept='application/json', content_type=content_type)
 
-    def update_attachment(self, event_id: str, file: str|BinaryIO, content_type: str = None) -> dict:
+    def update_attachment(self, event_id: str, file: str | BinaryIO, content_type: str = None) -> dict:
         """Update an event's binary attachment.
 
         Args:

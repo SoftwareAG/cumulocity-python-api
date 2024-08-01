@@ -245,8 +245,11 @@ class Alarms(CumulocityResource):
     def select(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
                status: str = None, severity: str = None, resolved: str = None,
                before: str | datetime = None, after: str | datetime = None,
+               date_from: str | datetime = None, date_to: str | datetime = None,
                created_before: str | datetime = None, created_after: str | datetime = None,
+               created_from: str | datetime = None, created_to: str | datetime = None,
                updated_before: str | datetime = None, updated_after: str | datetime = None,
+               last_updated_from: str | datetime = None, last_updated_to: str | datetime = None,
                min_age: timedelta = None, max_age: timedelta = None,
                reverse: bool = False, limit: int = None,
                page_size: int = 1000, page_number: int = None) -> Generator[Alarm]:
@@ -280,6 +283,12 @@ class Alarms(CumulocityResource):
                 Only alarms changed at a time after this date are returned.
             min_age (timedelta):  Matches only alarms of at least this age
             max_age (timedelta):  Matches only alarms with at most this age
+            date_from (str|datetime): Same as `after`
+            date_to (str|datetime): Same as `before`
+            created_from (str|datetime): Same as `created_after`
+            created_to(str|datetime): Same as `created_before`
+            last_updated_from (str|datetime): Same as `updated_after`
+            last_updated_to (str|datetime): Same as `updated_before`
             reverse (bool):  Invert the order of results, starting with the
                 most recent one
             limit (int): Limit the number of results to this number.
@@ -294,8 +303,11 @@ class Alarms(CumulocityResource):
         base_query = self._build_base_query(type=type, source=source, fragment=fragment,
                                             status=status, severity=severity, resolved=resolved,
                                             before=before, after=after,
+                                            date_from=date_from, date_to=date_to,
                                             created_before=created_before, created_after=created_after,
+                                            created_from=created_from, created_to=created_to,
                                             updated_before=updated_before, updated_after=updated_after,
+                                            last_updated_from=last_updated_from, last_updated_to=last_updated_to,
                                             min_age=min_age, max_age=max_age,
                                             reverse=reverse, page_size=page_size)
         return super()._iterate(base_query, page_number, limit, Alarm.from_json)
@@ -303,8 +315,11 @@ class Alarms(CumulocityResource):
     def get_all(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
                 status: str = None, severity: str = None, resolved: str = None,
                 before: str | datetime = None, after: str | datetime = None,
+                date_from: str | datetime = None, date_to: str | datetime = None,
                 created_before: str | datetime = None, created_after: str | datetime = None,
+                created_from: str | datetime = None, created_to: str | datetime = None,
                 updated_before: str | datetime = None, updated_after: str | datetime = None,
+                last_updated_from: str | datetime = None, last_updated_to: str | datetime = None,
                 min_age: timedelta = None, max_age: timedelta = None,
                 reverse: bool = False, limit: int = None,
                 page_size: int = 1000, page_number: int = None) -> List[Alarm]:
@@ -321,15 +336,18 @@ class Alarms(CumulocityResource):
         return list(self.select(type=type, source=source, fragment=fragment,
                                 status=status, severity=severity, resolved=resolved,
                                 before=before, after=after,
+                                date_from=date_from, date_to=date_to,
                                 created_before=created_before, created_after=created_after,
+                                created_from=created_from, created_to=created_to,
                                 updated_before=updated_before, updated_after=updated_after,
+                                last_updated_from=last_updated_from, last_updated_to=last_updated_to,
                                 min_age=min_age, max_age=max_age, reverse=reverse,
                                 limit=limit, page_size=page_size, page_number=page_number))
 
     def count(self, type: str = None, source: str = None, fragment: str = None, # noqa (type)
-                status: str = None, severity: str = None, resolved: str = None,
-                before: str | datetime = None, after: str | datetime = None,
-                min_age: timedelta = None, max_age: timedelta = None) -> int:
+              status: str = None, severity: str = None, resolved: str = None,
+              before: str | datetime = None, after: str | datetime = None,
+              min_age: timedelta = None, max_age: timedelta = None) -> int:
         """Count the number of certain alarms.
 
         Args:

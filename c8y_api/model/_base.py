@@ -482,8 +482,11 @@ class CumulocityResource:
             device_id=None, agent_id=None, bulk_id=None, ids=None,
             text=None,
             before=None, after=None,
+            date_from=None, date_to=None,
             created_before=None, created_after=None,
+            created_from=None, created_to=None,
             updated_before=None, updated_after=None,
+            last_updated_from=None, last_updated_to=None,
             min_age=None, max_age=None,
             reverse=None, page_size=None,
             page_number=None,  # (must not be part of the prepared query)
@@ -492,24 +495,24 @@ class CumulocityResource:
         # min_age/max_age should be timedelta objects that can be used for
         # alternative calculation of the before/after parameters
         if min_age:
-            if before:
-                raise ValueError("Only one of 'min_age' and 'before' query parameters must be used.")
+            if before or date_to:
+                raise ValueError("Only one of 'min_age', 'before' and 'date_to' query parameters must be used.")
             min_age = _DateUtil.ensure_timedelta(min_age)
             before = _DateUtil.now() - min_age
         if max_age:
-            if after:
-                raise ValueError("Only one of 'max_age' and 'after' query parameters must be used.")
+            if after or date_from:
+                raise ValueError("Only one of 'max_age', 'after' and 'date_from' query parameters must be used.")
             max_age = _DateUtil.ensure_timedelta(max_age)
             after = _DateUtil.now() - max_age
 
         # before/after can also be datetime objects,
         # if so they need to be timezone aware
-        before = _DateUtil.ensure_timestring(before)
-        after = _DateUtil.ensure_timestring(after)
-        created_before = _DateUtil.ensure_timestring(created_before)
-        created_after = _DateUtil.ensure_timestring(created_after)
-        updated_before = _DateUtil.ensure_timestring(updated_before)
-        updated_after = _DateUtil.ensure_timestring(updated_after)
+        date_from = _DateUtil.ensure_timestring(date_from) or _DateUtil.ensure_timestring(after)
+        date_to = _DateUtil.ensure_timestring(date_to) or _DateUtil.ensure_timestring(before)
+        created_from = _DateUtil.ensure_timestring(created_from) or _DateUtil.ensure_timestring(created_after)
+        created_to = _DateUtil.ensure_timestring(created_to) or _DateUtil.ensure_timestring(created_before)
+        updated_from = _DateUtil.ensure_timestring(last_updated_from) or _DateUtil.ensure_timestring(updated_after)
+        updated_to = _DateUtil.ensure_timestring(last_updated_to) or _DateUtil.ensure_timestring(updated_before)
 
         params = {
             'type': type,
@@ -525,12 +528,12 @@ class CumulocityResource:
             'text': text,
             'ids': ','.join(ids) if ids else None,
             'bulkOperationId': bulk_id,
-            'dateFrom': after,
-            'dateTo': before,
-            'createdFrom': created_after,
-            'createdTo': created_before,
-            'lastUpdatedFrom': updated_after,
-            'lastUpdatedTo': updated_before,
+            'dateFrom': date_from,
+            'dateTo': date_to,
+            'createdFrom': created_from,
+            'createdTo': created_to,
+            'lastUpdatedFrom': updated_from,
+            'lastUpdatedTo': updated_to,
             'revert': str(reverse) if reverse else None,
             'pageSize': page_size}
         params = {k: v for k, v in params.items() if v}
