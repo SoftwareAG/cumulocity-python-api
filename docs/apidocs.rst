@@ -53,7 +53,6 @@ dynamically obtain :class:`CumulocityApi` instances for specific tenants.
     :inherited-members:
     :special-members: __init__
 
-
 .. _main-api-classes:
 
 Main API Classes
@@ -82,7 +81,7 @@ These objects can also be used directly within the :ref:`main-api-classes`
 to modify data in bulk.
 
 .. automodule:: c8y_api.model
-    :members: ManagedObject, Device, DeviceGroup, ExternalId, Binary, Measurement, Event, Alarm, Series, Subscription, Availability, Fragment, NamedObject, User, GlobalRole, Permission, ReadPermission, WritePermission, AnyPermission, Operation, BulkOperation, Application, TenantOption, AuditRecord
+    :members: ManagedObject, Device, DeviceGroup, ExternalId, Binary, Measurement, Event, Alarm, Series, Subscription, Availability, Fragment, NamedObject, User, CurrentUser, TfaSettings, GlobalRole, Permission, ReadPermission, WritePermission, AnyPermission, Operation, BulkOperation, Application, ApplicationSetting, ApplicationSubscription, TenantOption, AuditRecord, Change ,
     :special-members: __init__
     :undoc-members:
 
