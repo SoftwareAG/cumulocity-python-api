@@ -25,7 +25,9 @@ def mock_c8y() -> CumulocityRestApi:
         tenant_id='t12345',
         username='username',
         password='password',
-        application_key='application_key')
+        application_key='application_key',
+        processing_mode=CumulocityRestApi.ProcessingMode.QUIESCENT,
+    )
 
 
 @pytest.fixture(scope='module')
@@ -60,6 +62,11 @@ def assert_content_header(headers, content_type='application/json'):
 def assert_application_key_header(c8y, headers):
     """Assert that the application key header matches the expectation."""
     assert headers[c8y.HEADER_APPLICATION_KEY] == c8y.application_key
+
+
+def assert_processing_mode_header(c8y, headers):
+    """Assert that the processing mode header matches the expectation."""
+    assert headers[c8y.HEADER_PROCESSING_MODE] == c8y.processing_mode
 
 
 @pytest.mark.parametrize('args, expected', [
@@ -164,6 +171,7 @@ def test_post_defaults(mock_c8y: CumulocityRestApi):
         assert_accept_header(request_headers)
         assert_content_header(request_headers)
         assert_application_key_header(mock_c8y, request_headers)
+        assert_processing_mode_header(mock_c8y, request_headers)
 
         assert response['result']
 
@@ -188,6 +196,7 @@ def test_post_explicits(mock_c8y: CumulocityRestApi):
         assert_accept_header(request_headers, 'custom/accept')
         assert_content_header(request_headers, 'custom/content')
         assert_application_key_header(mock_c8y, request_headers)
+        assert_processing_mode_header(mock_c8y, request_headers)
 
         assert response['result']
 
@@ -268,6 +277,7 @@ def test_delete_defaults(mock_c8y: CumulocityRestApi):
         request_headers = rsps.calls[0].request.headers
         assert_auth_header(mock_c8y, request_headers)
         assert_application_key_header(mock_c8y, request_headers)
+        assert_processing_mode_header(mock_c8y, request_headers)
 
 
 def test_empty_response(mock_c8y: CumulocityRestApi):

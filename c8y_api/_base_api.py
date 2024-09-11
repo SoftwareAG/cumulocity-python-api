@@ -25,6 +25,7 @@ class CumulocityRestApi:
 
     MIMETYPE_JSON = 'application/json'
     HEADER_APPLICATION_KEY = 'X-Cumulocity-Application-Key'
+    HEADER_PROCESSING_MODE = 'X-Cumulocity-Processing-Mode'
 
     ACCEPT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     ACCEPT_USER = 'application/vnd.com.nsn.cumulocity.user+json'
@@ -34,8 +35,14 @@ class CumulocityRestApi:
     CONTENT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
+    class ProcessingMode:
+        """Cumulocity REST API processing modes."""
+        PERSISTENT = 'PERSISTENT'
+        TRANSIENT = 'TRANSIENT'
+        QUIESCENT = 'QUIESCENT'
+
     def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None, tfa_token: str = None,
-                 auth: AuthBase = None, application_key: str = None):
+                 auth: AuthBase = None, application_key: str = None, processing_mode: str = None):
         """Build a CumulocityRestApi instance.
 
         One of `auth` or `username/password` must be provided. The TFA token
@@ -54,6 +61,7 @@ class CumulocityRestApi:
         self.base_url = base_url.rstrip('/')
         self.tenant_id = tenant_id
         self.application_key = application_key
+        self.processing_mode = processing_mode
         self.is_tls = self.base_url.startswith('https')
 
         if auth:
@@ -70,6 +78,8 @@ class CumulocityRestApi:
             self.__default_headers['tfatoken'] = tfa_token
         if self.application_key:
             self.__default_headers[self.HEADER_APPLICATION_KEY] = self.application_key
+        if self.processing_mode:
+            self.__default_headers[self.HEADER_PROCESSING_MODE] = self.processing_mode
         self.session = self._create_session()
 
     def _create_session(self) -> requests.Session:
@@ -78,6 +88,8 @@ class CumulocityRestApi:
         s.headers = {'Accept': 'application/json'}
         if self.application_key:
             s.headers.update({self.HEADER_APPLICATION_KEY: self.application_key})
+        if self.processing_mode:
+            s.headers.update({self.HEADER_PROCESSING_MODE: self.processing_mode})
         return s
 
     def prepare_request(self, method: str, resource: str,
