@@ -17,6 +17,13 @@ from c8y_api._auth import HTTPBearerAuth
 from c8y_api._jwt import JWT
 
 
+class ProcessingMode:
+    """Cumulocity REST API processing modes."""
+    PERSISTENT = 'PERSISTENT'
+    TRANSIENT = 'TRANSIENT'
+    QUIESCENT = 'QUIESCENT'
+
+
 class CumulocityRestApi:
     """Cumulocity base REST API.
 
@@ -35,12 +42,6 @@ class CumulocityRestApi:
     CONTENT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
-    class ProcessingMode:
-        """Cumulocity REST API processing modes."""
-        PERSISTENT = 'PERSISTENT'
-        TRANSIENT = 'TRANSIENT'
-        QUIESCENT = 'QUIESCENT'
-
     def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None, tfa_token: str = None,
                  auth: AuthBase = None, application_key: str = None, processing_mode: str = None):
         """Build a CumulocityRestApi instance.
@@ -57,6 +58,8 @@ class CumulocityRestApi:
             auth (AuthBase):  Authentication details
             application_key (str):  Application ID to include in requests
                 (for billing/metering purposes).
+            processing_mode (str);  Connection processing mode (see
+                also https://cumulocity.com/api/core/#processing-mode)
         """
         self.base_url = base_url.rstrip('/')
         self.tenant_id = tenant_id

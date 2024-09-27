@@ -29,10 +29,27 @@ class CumulocityApi(CumulocityRestApi):
     Provides usage centric access to a Cumulocity instance.
     """
 
-    def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None,
-                 tfa_token: str = None, auth: AuthBase = None, application_key: str = None):
-        super().__init__(base_url, tenant_id, username=username, password=password, tfa_token=tfa_token,
-                         auth=auth, application_key=application_key)
+    def __init__(
+            self,
+            base_url: str,
+            tenant_id: str,
+            username: str = None,
+            password: str = None,
+            tfa_token: str = None,
+            auth: AuthBase = None,
+            application_key: str = None,
+            processing_mode: str = None,
+    ):
+        super().__init__(
+            base_url,
+            tenant_id,
+            username=username,
+            password=password,
+            tfa_token=tfa_token,
+            auth=auth,
+            application_key=application_key,
+            processing_mode=processing_mode,
+        )
         self.__measurements = Measurements(self)
         self.__inventory = Inventory(self)
         self.__binaries = Binaries(self)

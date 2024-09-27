@@ -115,12 +115,14 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, application_key: str = None, cache_size: int = 100, cache_ttl: int = 3600):
+    def __init__(self, application_key: str = None, processing_mode: str = None, cache_size: int = 100, cache_ttl: int = 3600):
         """Create a new tenant specific instance.
 
         Args:
             application_key (str|None): An application key to include in
                 all requests for tracking purposes.
+            processing_mode (str);  Connection processing mode (see also
+                https://cumulocity.com/api/core/#processing-mode)
             cache_size (int|None): The maximum number of cached user
                 instances (if user instances are created at all).
             cache_ttl (int|None): An maximum cache time for user
@@ -141,13 +143,13 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
             auth = HTTPBasicAuth(f'{tenant_id}/{username}', password)
         super().__init__(log=self._log, cache_size=cache_size, cache_ttl=cache_ttl,
                          base_url=baseurl, tenant_id=tenant_id, auth=auth,
-                         application_key=application_key)
+                         application_key=application_key, processing_mode=processing_mode)
 
     def _build_user_instance(self, auth) -> CumulocityApi:
         """Build a CumulocityApi instance for a specific user, using the
         same Base URL, Tenant ID and Application Key as the main instance."""
         return CumulocityApi(base_url=self.base_url, tenant_id=self.tenant_id, auth=auth,
-                             application_key=self.application_key)
+                             application_key=self.application_key, processing_mode=self.processing_mode)
 
 
 class MultiTenantCumulocityApp(_CumulocityAppBase):
@@ -170,9 +172,26 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, application_key: str = None, cache_size: int = 100, cache_ttl: int = 3600):
+    def __init__(self, application_key: str = None,  processing_mode: str = None,
+                 cache_size: int = 100, cache_ttl: int = 3600):
+        """Create a new instance.
+
+        Args:
+            application_key (str|None): An application key to include in
+                all requests for tracking purposes.
+            processing_mode (str);  Connection processing mode (see also
+                https://cumulocity.com/api/core/#processing-mode)
+            cache_size (int|None): The maximum number of cached tenant
+                instances (if tenant instances are created at all).
+            cache_ttl (int|None): An maximum cache time for tenant
+                instances (if tenant instances are created at all).
+
+        Returns:
+            A new MultiTenantCumulocityApp instance
+        """
         super().__init__(log=self._log, cache_size=cache_size, cache_ttl=cache_ttl)
         self.application_key = application_key
+        self.processing_mode = processing_mode
         self.cache_size = cache_size
         self.cache_ttl = cache_ttl
         self.bootstrap_instance = self._create_bootstrap_instance()
@@ -233,14 +252,14 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
         """Build a tenant instance."""
         auth = self._get_tenant_auth(tenant_id)
         return CumulocityApi(self.bootstrap_instance.base_url, tenant_id, auth=auth,
-                             application_key=self.application_key)
+                             application_key=self.application_key, processing_mode=self.processing_mode)
 
     def _build_user_instance(self, auth) -> CumulocityApi:
         """Build a CumulocityApi instance for a specific user, using the
         same Base URL, Tenant ID and Application Key as the main instance."""
         tenant_id = AuthUtil.get_tenant_id(auth)
         return CumulocityApi(base_url=self.bootstrap_instance.base_url, tenant_id=tenant_id, auth=auth,
-                             application_key=self.application_key)
+                             application_key=self.application_key, processing_mode=self.processing_mode)
 
     def get_tenant_instance(self, tenant_id: str = None, headers: dict = None) -> CumulocityApi:
         """Provide access to a tenant-specific instance in a multi-tenant

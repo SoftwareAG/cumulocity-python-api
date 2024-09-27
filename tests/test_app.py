@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import base64
 import os
 import time
 from unittest import mock
@@ -39,6 +40,12 @@ env_multi_tenant = {
 }
 
 
+def build_auth(user, password) -> dict:
+    """Create an auth header for testing."""
+    return {'Authorization': f'Basic ' +
+            base64.b64encode(f'{user}:{password}'.encode('utf-8')).decode('utf-8')}
+
+
 @mock.patch.dict(os.environ, env_per_tenant, clear=True)
 def test_per_tenant():
     """Verify that the instance will be created properly within a
@@ -61,18 +68,65 @@ def test_per_tenant():
         c8y.get('/xyz')
 
 
+@mock.patch.dict(os.environ, env_per_tenant, clear=True)
+def test_per_tenant__user_instances():
+    """Verify that user instances are correctly instantiated (and cached)
+    for single-tenant apps."""
+
+    c8y = SimpleCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+        cache_ttl=2,
+    )
+
+    # create user instance from HTTP headers
+    user1, pass1 = ('user1', 'pw1')
+    headers1 = build_auth(user1, pass1)
+
+    c8y_1 = c8y.get_user_instance(headers1)
+
+    # -> instance is correctly initialized
+    assert c8y_1.tenant_id == c8y.tenant_id
+    assert c8y_1.username == user1
+    assert isinstance(c8y_1.auth, HTTPBasicAuth)
+    assert c8y_1.auth.password == pass1
+
+    # -> properties are inherited
+    assert c8y_1.application_key == c8y.application_key
+    assert c8y_1.processing_mode == c8y.processing_mode
+
+    # requesting an instance for the same user
+    c8y_2 = c8y.get_user_instance(headers1)
+
+    # -> cached instance is returned
+    assert c8y_2 is c8y_1
+
+    # wait for cache timeout and request again
+    time.sleep(2)
+    c8y_3 = c8y.get_user_instance(headers1)
+
+    # -> new instance is created
+    assert c8y_3 is not c8y_1
+
+
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__bootstrap_instance():
     """Verify that the bootstrap instance will be created properly within a
     multi-tenant environment."""
 
-    c8y = MultiTenantCumulocityApp().bootstrap_instance
+    c8y = MultiTenantCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+    ).bootstrap_instance
 
     # -> bootstrap instance is initialized with environment variables
     assert c8y.tenant_id == env_multi_tenant['C8Y_BOOTSTRAP_TENANT']
     assert c8y.username == env_multi_tenant['C8Y_BOOTSTRAP_USER']
     assert isinstance(c8y.auth, HTTPBasicAuth)
     assert c8y.auth.password == env_multi_tenant['C8Y_BOOTSTRAP_PASSWORD']
+    # -> properties are inherited
+    assert c8y.application_key == 'app-key'
+    assert c8y.processing_mode == 'proc-mode'
 
     # -> requests will be prepended with the base url
     with responses.RequestsMock() as rsps:
@@ -84,6 +138,47 @@ def test_multi_tenant__bootstrap_instance():
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
+def test__multi_tenant__user_instances():
+    """Verify that user instances are correctly instantiated (and cached)
+    for multi-tenant apps."""
+
+    c8y = MultiTenantCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+        cache_ttl=2,
+    )
+
+    # create user instance from HTTP headers
+    tenant1, user1, pass1 = ('t1', 'user1', 'pw1')
+    headers1 = build_auth(f'{tenant1}/{user1}', pass1)
+
+    c8y_1 = c8y.get_user_instance(headers1)
+
+    # -> instance is correctly initialized
+    assert c8y_1.tenant_id == tenant1
+    assert c8y_1.username == user1
+    assert isinstance(c8y_1.auth, HTTPBasicAuth)
+    assert c8y_1.auth.password == pass1
+
+    # -> properties are inherited
+    assert c8y_1.application_key == c8y.application_key
+    assert c8y_1.processing_mode == c8y.processing_mode
+
+    # requesting an instance for the same user
+    c8y_2 = c8y.get_user_instance(headers1)
+
+    # -> cached instance is returned
+    assert c8y_2 is c8y_1
+
+    # wait for cache timeout and request again
+    time.sleep(2)
+    c8y_3 = c8y.get_user_instance(headers1)
+
+    # -> new instance is created
+    assert c8y_3 is not c8y_1
+
+
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__caching_instances():
     """Verify that instances are cached by their tenant ID and the cache
     is evaluated properly."""
@@ -92,7 +187,11 @@ def test_multi_tenant__caching_instances():
     # prepare a mock instance cache
     get_auth_mock = Mock(return_value=HTTPBasicAuth('username', 'password'))
 
-    c8y_factory = MultiTenantCumulocityApp(cache_ttl=2)
+    c8y_factory = MultiTenantCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+        cache_ttl=2,
+    )
     c8y_factory._get_tenant_auth = get_auth_mock
 
     # (1) get a specific instance
@@ -106,6 +205,9 @@ def test_multi_tenant__caching_instances():
     assert c8y.username == 'username'
     assert isinstance(c8y.auth, HTTPBasicAuth)
     assert c8y.auth.password == 'password'
+    # properties are inherited
+    assert c8y.application_key == c8y_factory.application_key
+    assert c8y.processing_mode == c8y_factory.processing_mode
 
     # (2) let's do that again
     get_auth_mock.reset_mock()
