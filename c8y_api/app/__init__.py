@@ -3,6 +3,7 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
+from __future__ import annotations
 
 from abc import abstractmethod
 import logging
@@ -29,26 +30,29 @@ class _CumulocityAppBase(object):
     def _build_user_instance(self, auth: AuthBase) -> CumulocityApi:
         """This must be defined by the implementing classes."""
 
-    def get_user_instance(self, headers: dict = None) -> CumulocityApi:
+    def get_user_instance(self, headers: dict = None, cookies: dict = None) -> CumulocityApi:
         """Return a user-specific CumulocityApi instance.
 
         The instance will have user access, based on the Authorization header
-        provided in the headers dict. The instance will be built on demand,
-        previously created instances are cached.
+        provided in the headers dict or corresponding entries in the cookies
+        dict. The instance will be built on demand, previously created instances
+        are cached.
 
         Args:
             headers (dict): A dictionary of HTTP header entries. The user
                 access is based on the Authorization header within.
-
+            cookies (dict): A dictionary of HTTP Cookie entries. The user
+                access is based on an authorization cookie as provided by
+                Cumulocity.
         Returns:
             A CumulocityApi instance authorized for a named user.
         """
-        auth_header = self._get_auth_header(headers)
+        auth_info = self._get_auth_info(headers, cookies)
         try:
-            return self.user_instances[auth_header]
+            return self.user_instances[auth_info]
         except KeyError:
-            instance = self._build_user_instance(AuthUtil.parse_auth_string(auth_header))
-            self.user_instances[auth_header] = instance
+            instance = self._build_user_instance(AuthUtil.parse_auth_string(auth_info))
+            self.user_instances[auth_info] = instance
             return instance
 
     def clear_user_cache(self, username: str = None):
@@ -68,13 +72,28 @@ class _CumulocityAppBase(object):
                     self.log.info(f"User '{username}' cleared from cache.")
 
     @staticmethod
-    def _get_auth_header(headers: dict) -> str:
-        """Extract the Authorization header from a headers dictionary."""
-        try:
-            return headers[next(filter(lambda k: k.upper() == 'AUTHORIZATION', headers.keys()))]
-        except StopIteration as ex:
-            keys = ", ".join(headers.keys()) or "None"
-            raise KeyError(f"Unable to resolve Authorization header. Found keys: {keys}.") from ex
+    def _get_auth_info(headers: dict = None, cookies: dict = None) -> str:
+        """Extract the authorization information from headers and cookies."""
+        headers = headers or {}
+        cookies = cookies or {}
+
+        def get_item(key: str, dictionary: dict) -> str | None:
+            for k, v in dictionary.items():
+                if k.upper() == key.upper():
+                    return v
+            return None
+
+        token = get_item('authorization', cookies)
+        if token:
+            info = f'Bearer {token}'
+        else:
+            info = get_item('Authorization', headers)
+
+        if not info:
+
+            keys = ", ".join([*headers.keys(), *cookies.keys()]) or "None"
+            raise KeyError(f"Unable to resolve Authorization information. Found keys: {keys}.")
+        return info
 
     @staticmethod
     def _get_env(name: str) -> str:
@@ -115,7 +134,13 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, application_key: str = None, processing_mode: str = None, cache_size: int = 100, cache_ttl: int = 3600):
+    def __init__(
+            self,
+            application_key: str = None,
+            processing_mode: str = None,
+            cache_size: int = 100,
+            cache_ttl: int = 3600
+    ):
         """Create a new tenant specific instance.
 
         Args:
@@ -194,7 +219,10 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
         self.processing_mode = processing_mode
         self.cache_size = cache_size
         self.cache_ttl = cache_ttl
-        self.bootstrap_instance = self._create_bootstrap_instance()
+        self.bootstrap_instance = self._create_bootstrap_instance(
+            application_key=application_key,
+            processing_mode=processing_mode,
+        )
         self._subscribed_auths = TTLCache(maxsize=cache_size, ttl=cache_ttl)
         self._tenant_instances = TTLCache(maxsize=cache_size, ttl=cache_ttl)
 
@@ -240,13 +268,20 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
         return [x['tenant'] for x in self._read_subscriptions(self.bootstrap_instance)]
 
     @classmethod
-    def _create_bootstrap_instance(cls) -> CumulocityApi:
+    def _create_bootstrap_instance(cls, application_key: str = None, processing_mode: str = None) -> CumulocityApi:
         """Build the bootstrap instance from the environment."""
-        baseurl = cls._get_env('C8Y_BASEURL')
+        base_url = cls._get_env('C8Y_BASEURL')
         tenant_id = cls._get_env('C8Y_BOOTSTRAP_TENANT')
         username = cls._get_env('C8Y_BOOTSTRAP_USER')
         password = cls._get_env('C8Y_BOOTSTRAP_PASSWORD')
-        return CumulocityApi(baseurl, tenant_id, username, password)
+        return CumulocityApi(
+            base_url=base_url,
+            tenant_id=tenant_id,
+            username=username,
+            password=password,
+            application_key=application_key,
+            processing_mode=processing_mode,
+        )
 
     def _create_tenant_instance(self, tenant_id: str) -> CumulocityApi:
         """Build a tenant instance."""

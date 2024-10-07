@@ -351,10 +351,32 @@ def test_get_user_instance(auth_value, username):
         assert JWT(call_arg.token).username == username
 
 
+@pytest.mark.parametrize('cookies, username', [
+    ({'authorization': sample_jwt(sub='someuser@domain.com', ten='t12345')}, 'someuser@domain.com'),
+    ({'foo': 'bar', 'authorization': sample_jwt(sub='someuser@domain.com', ten='t12345')}, 'someuser@domain.com'),
+    ({'authorization': sample_jwt(sub='someuser@domain.com', ten='t12345'), 'foo': 'bar'}, 'someuser@domain.com'),
+])
+def test_get_user_instance_cookie(cookies, username):
+    """Verify that a user instance is obtained from inbound HTTP headers with cookies."""
+    # pylint: disable=protected-access
+
+    c8y = _CumulocityAppBase(log=Mock())
+    # we intercept calls to the _build function
+    c8y._build_user_instance = Mock()
+
+    # build a user instance
+    c8y.get_user_instance(cookies=cookies)
+    # -> _build was called with a proper auth
+    call_arg = isolate_last_call_arg(c8y._build_user_instance, 'auth', 0)
+    assert isinstance(call_arg, HTTPBearerAuth)
+    # -> username and tenant_id should be correct
+    assert JWT(call_arg.token).username == username
+
+
 @mock.patch.dict(os.environ, env_per_tenant, clear=True)
 @pytest.mark.parametrize('auth_value, username', [
-    # (b64encode('t555/some@domain.com:password'), 't555/some@domain.com'),
-    # (b64encode('someuser@domain.com:password'), 'someuser@domain.com'),
+    (b64encode('t555/some@domain.com:password'), 'some@domain.com'),
+    (b64encode('someuser@domain.com:password'), 'someuser@domain.com'),
     (sample_jwt(sub='someuser@domain.com', ten='t543'), 'someuser@domain.com'),
 ])
 def test_build_user_instance(auth_value, username):

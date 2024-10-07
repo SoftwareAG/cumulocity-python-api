@@ -14,7 +14,7 @@ import pytest
 import requests
 import responses
 
-from c8y_api._base_api import CumulocityRestApi  # noqa (protected-access)
+from c8y_api._base_api import CumulocityRestApi, ProcessingMode  # noqa (protected-access)
 
 
 @pytest.fixture(scope='function')
@@ -26,7 +26,7 @@ def mock_c8y() -> CumulocityRestApi:
         username='username',
         password='password',
         application_key='application_key',
-        processing_mode=CumulocityRestApi.ProcessingMode.QUIESCENT,
+        processing_mode=ProcessingMode.QUIESCENT,
     )
 
 
