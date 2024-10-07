@@ -146,8 +146,39 @@ class Subscriptions(CumulocityResource):
         subscription.c8y = self.c8y  # inject c8y connection into instance
         return subscription
 
-    def select(self, context: str = None, source: str = None, subscription: str = None,
-               limit: int = None, page_size: int = 1000, page_number: int = None) -> Generator[Subscription]:
+    def count(
+            self,
+            context: str = None,
+            source: str = None,
+            subscription: str = None,
+            type_filter: str = None,
+    ) -> int:
+        """Calculate the number of potential results of a database query.
+
+        This function uses the same parameters as the `select` function.
+
+        Returns:
+            Number of potential results
+        """
+        base_query = self._build_base_query(
+            context=context,
+            source=source,
+            subscription=subscription,
+            typeFilter=type_filter,
+            page_size=1
+        )
+        return self._get_count(base_query)
+
+    def select(
+            self,
+            context: str = None,
+            source: str = None,
+            subscription: str = None,
+            type_filter: str = None,
+            limit: int = None,
+            page_size: int = 1000,
+            page_number: int = None
+    ) -> Generator[Subscription]:
         """ Query the database for subscriptions and iterate over the
         results.
 
@@ -162,6 +193,7 @@ class Subscriptions(CumulocityResource):
             context (str):  Subscription context.
             source (str):  Managed object ID the subscription is for.
             subscription (str): The subscription name.
+            type_filter (str): The type to filter subscriptions
             limit (int): Limit the number of results to this number.
             page_size (int): Define the number of objects which are read (and
                 parsed in one chunk). This is a performance related setting.
@@ -171,12 +203,24 @@ class Subscriptions(CumulocityResource):
         Returns:
             Generator for Subscription instances
         """
-        base_query = self._build_base_query(context=context, source=source,
-                                            subscription=subscription, page_size=page_size)
+        base_query = self._build_base_query(
+            context=context,
+            source=source,
+            subscription=subscription,
+            typeFilter=type_filter,
+            page_size=page_size)
         return super()._iterate(base_query, page_number, limit, Subscription.from_json)
 
-    def get_all(self, context: str = None, source: str = None, subscription: str = None,
-                limit: int = None, page_size: int = 1000, page_number: int = None) -> List[Subscription]:
+    def get_all(
+            self,
+            context: str = None,
+            source: str = None,
+            subscription: str = None,
+            type_filter: str = None,
+            limit: int = None,
+            page_size: int = 1000,
+            page_number: int = None
+    ) -> List[Subscription]:
         """ Query the database for subscriptions and return the results
         as list.
 
@@ -186,8 +230,8 @@ class Subscriptions(CumulocityResource):
         Returns:
             List of Subscription instances.
         """
-        return list(self.select(context=context, source=source, subscription=subscription, limit=limit,
-                                page_size=page_size, page_number=page_number))
+        return list(self.select(context=context, source=source, subscription=subscription, type_filter=type_filter,
+                                limit=limit, page_size=page_size, page_number=page_number))
 
     def create(self, *subscriptions: Subscription) -> None:
         """ Create subscriptions within the database.
