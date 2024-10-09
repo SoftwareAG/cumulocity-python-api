@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 2.1
+
+* Added support for processing mode on all API base classes
+* Added support for Cookie-based auth on OAI-only tenants
+* Added latest extensions for Notification 2.0 API including `count` function.
+* Switch to Python version 3.10
+
 
 ## Version 2.0
 
