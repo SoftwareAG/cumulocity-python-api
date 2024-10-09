@@ -3,6 +3,7 @@
 # and/or its subsidiaries and/or its affiliates and/or their licensors.
 # Use, reproduction, transfer, publication or disclosure is prohibited except
 # as specifically provided for in your License Agreement with Software AG.
+from __future__ import annotations
 
 from abc import abstractmethod
 import logging
@@ -29,26 +30,32 @@ class _CumulocityAppBase(object):
     def _build_user_instance(self, auth: AuthBase) -> CumulocityApi:
         """This must be defined by the implementing classes."""
 
-    def get_user_instance(self, headers: dict = None) -> CumulocityApi:
+    def get_user_instance(self, headers: dict = None, cookies: dict = None) -> CumulocityApi:
         """Return a user-specific CumulocityApi instance.
 
         The instance will have user access, based on the Authorization header
-        provided in the headers dict. The instance will be built on demand,
-        previously created instances are cached.
+        provided in the headers dict or corresponding entries in the cookies
+        dict. The instance will be built on demand, previously created instances
+        are cached.
 
         Args:
             headers (dict): A dictionary of HTTP header entries. The user
                 access is based on the Authorization header within.
-
+            cookies (dict): A dictionary of HTTP Cookie entries. The user
+                access is based on an authorization cookie as provided by
+                Cumulocity.
         Returns:
             A CumulocityApi instance authorized for a named user.
         """
-        auth_header = self._get_auth_header(headers)
+        if not (headers or cookies):
+            raise RuntimeError("At least one of 'headers' or 'cookies' must be specified.")
+
+        auth_info = self._get_auth_header(headers, cookies)
         try:
-            return self.user_instances[auth_header]
+            return self.user_instances[auth_info]
         except KeyError:
-            instance = self._build_user_instance(AuthUtil.parse_auth_string(auth_header))
-            self.user_instances[auth_header] = instance
+            instance = self._build_user_instance(AuthUtil.parse_auth_string(auth_info))
+            self.user_instances[auth_info] = instance
             return instance
 
     def clear_user_cache(self, username: str = None):
@@ -68,13 +75,28 @@ class _CumulocityAppBase(object):
                     self.log.info(f"User '{username}' cleared from cache.")
 
     @staticmethod
-    def _get_auth_header(headers: dict) -> str:
-        """Extract the Authorization header from a headers dictionary."""
-        try:
-            return headers[next(filter(lambda k: k.upper() == 'AUTHORIZATION', headers.keys()))]
-        except StopIteration as ex:
-            keys = ", ".join(headers.keys()) or "None"
-            raise KeyError(f"Unable to resolve Authorization header. Found keys: {keys}.") from ex
+    def _get_auth_header(headers: dict = None, cookies: dict = None) -> str:
+        """Extract the authorization information from headers and cookies."""
+        headers = headers or {}
+        cookies = cookies or {}
+
+        def get_item(key: str, dictionary: dict) -> str | None:
+            for k, v in dictionary.items():
+                if k.upper() == key.upper():
+                    return v
+            return None
+
+        token = get_item('authorization', cookies)
+        if token:
+            info = f'Bearer {token}'
+        else:
+            info = get_item('Authorization', headers)
+
+        if not info:
+
+            keys = ", ".join([*headers.keys(), *cookies.keys()]) or "None"
+            raise KeyError(f"Unable to resolve Authorization information. Found keys: {keys}.")
+        return info
 
     @staticmethod
     def _get_env(name: str) -> str:
@@ -115,12 +137,20 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, application_key: str = None, cache_size: int = 100, cache_ttl: int = 3600):
+    def __init__(
+            self,
+            application_key: str = None,
+            processing_mode: str = None,
+            cache_size: int = 100,
+            cache_ttl: int = 3600
+    ):
         """Create a new tenant specific instance.
 
         Args:
             application_key (str|None): An application key to include in
                 all requests for tracking purposes.
+            processing_mode (str);  Connection processing mode (see also
+                https://cumulocity.com/api/core/#processing-mode)
             cache_size (int|None): The maximum number of cached user
                 instances (if user instances are created at all).
             cache_ttl (int|None): An maximum cache time for user
@@ -141,13 +171,13 @@ class SimpleCumulocityApp(_CumulocityAppBase, CumulocityApi):
             auth = HTTPBasicAuth(f'{tenant_id}/{username}', password)
         super().__init__(log=self._log, cache_size=cache_size, cache_ttl=cache_ttl,
                          base_url=baseurl, tenant_id=tenant_id, auth=auth,
-                         application_key=application_key)
+                         application_key=application_key, processing_mode=processing_mode)
 
     def _build_user_instance(self, auth) -> CumulocityApi:
         """Build a CumulocityApi instance for a specific user, using the
         same Base URL, Tenant ID and Application Key as the main instance."""
         return CumulocityApi(base_url=self.base_url, tenant_id=self.tenant_id, auth=auth,
-                             application_key=self.application_key)
+                             application_key=self.application_key, processing_mode=self.processing_mode)
 
 
 class MultiTenantCumulocityApp(_CumulocityAppBase):
@@ -170,12 +200,32 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
 
     _log = logging.getLogger(__name__)
 
-    def __init__(self, application_key: str = None, cache_size: int = 100, cache_ttl: int = 3600):
+    def __init__(self, application_key: str = None,  processing_mode: str = None,
+                 cache_size: int = 100, cache_ttl: int = 3600):
+        """Create a new instance.
+
+        Args:
+            application_key (str|None): An application key to include in
+                all requests for tracking purposes.
+            processing_mode (str);  Connection processing mode (see also
+                https://cumulocity.com/api/core/#processing-mode)
+            cache_size (int|None): The maximum number of cached tenant
+                instances (if tenant instances are created at all).
+            cache_ttl (int|None): An maximum cache time for tenant
+                instances (if tenant instances are created at all).
+
+        Returns:
+            A new MultiTenantCumulocityApp instance
+        """
         super().__init__(log=self._log, cache_size=cache_size, cache_ttl=cache_ttl)
         self.application_key = application_key
+        self.processing_mode = processing_mode
         self.cache_size = cache_size
         self.cache_ttl = cache_ttl
-        self.bootstrap_instance = self._create_bootstrap_instance()
+        self.bootstrap_instance = self._create_bootstrap_instance(
+            application_key=application_key,
+            processing_mode=processing_mode,
+        )
         self._subscribed_auths = TTLCache(maxsize=cache_size, ttl=cache_ttl)
         self._tenant_instances = TTLCache(maxsize=cache_size, ttl=cache_ttl)
 
@@ -221,28 +271,35 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
         return [x['tenant'] for x in self._read_subscriptions(self.bootstrap_instance)]
 
     @classmethod
-    def _create_bootstrap_instance(cls) -> CumulocityApi:
+    def _create_bootstrap_instance(cls, application_key: str = None, processing_mode: str = None) -> CumulocityApi:
         """Build the bootstrap instance from the environment."""
-        baseurl = cls._get_env('C8Y_BASEURL')
+        base_url = cls._get_env('C8Y_BASEURL')
         tenant_id = cls._get_env('C8Y_BOOTSTRAP_TENANT')
         username = cls._get_env('C8Y_BOOTSTRAP_USER')
         password = cls._get_env('C8Y_BOOTSTRAP_PASSWORD')
-        return CumulocityApi(baseurl, tenant_id, username, password)
+        return CumulocityApi(
+            base_url=base_url,
+            tenant_id=tenant_id,
+            username=username,
+            password=password,
+            application_key=application_key,
+            processing_mode=processing_mode,
+        )
 
     def _create_tenant_instance(self, tenant_id: str) -> CumulocityApi:
         """Build a tenant instance."""
         auth = self._get_tenant_auth(tenant_id)
         return CumulocityApi(self.bootstrap_instance.base_url, tenant_id, auth=auth,
-                             application_key=self.application_key)
+                             application_key=self.application_key, processing_mode=self.processing_mode)
 
     def _build_user_instance(self, auth) -> CumulocityApi:
         """Build a CumulocityApi instance for a specific user, using the
         same Base URL, Tenant ID and Application Key as the main instance."""
         tenant_id = AuthUtil.get_tenant_id(auth)
         return CumulocityApi(base_url=self.bootstrap_instance.base_url, tenant_id=tenant_id, auth=auth,
-                             application_key=self.application_key)
+                             application_key=self.application_key, processing_mode=self.processing_mode)
 
-    def get_tenant_instance(self, tenant_id: str = None, headers: dict = None) -> CumulocityApi:
+    def get_tenant_instance(self, tenant_id: str = None, headers: dict = None, cookies: dict = None) -> CumulocityApi:
         """Provide access to a tenant-specific instance in a multi-tenant
         application setup.
 
@@ -250,6 +307,9 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
             tenant_id (str):  ID of the tenant to get access to
             headers (dict):  Inbound request headers, the tenant ID
                 is resolved from the Authorization header
+            cookies (dict): A dictionary of HTTP Cookie entries. The user
+                access is based on an authorization cookie as provided by
+                Cumulocity.
 
         Returns:
             A CumulocityApi instance authorized for a tenant user
@@ -259,12 +319,12 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
             return self._get_tenant_instance(tenant_id)
 
         # (2) otherwise, look for the Authorization header
-        if not headers:
-            raise RuntimeError("At least one of 'tenant_id' or 'headers' must be specified.")
+        if not (headers or cookies):
+            raise RuntimeError("At least one of 'tenant_id', 'headers' or cookies must be specified.")
 
-        auth_header = headers[next(filter(lambda k: 'Authorization'.upper() == k.upper(), headers.keys()))]
+        auth_header = self._get_auth_header(headers, cookies)
         if not auth_header:
-            raise ValueError("Missing Authentication header. Unable to resolve tenant ID.")
+            raise ValueError("Missing authentication information. Unable to resolve tenant ID.")
 
         tenant_id = AuthUtil.get_tenant_id(AuthUtil.parse_auth_string(auth_header))
         return self._get_tenant_instance(tenant_id)

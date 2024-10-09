@@ -10,11 +10,40 @@ import json as json_lib
 from typing import Union, Dict, BinaryIO
 
 import collections
+
 import requests
 from requests.auth import AuthBase, HTTPBasicAuth
 
 from c8y_api._auth import HTTPBearerAuth
 from c8y_api._jwt import JWT
+
+
+class ProcessingMode:
+    """Cumulocity REST API processing modes."""
+    PERSISTENT = 'PERSISTENT'
+    TRANSIENT = 'TRANSIENT'
+    QUIESCENT = 'QUIESCENT'
+
+
+class HttpError(Exception):
+    """Base class for technical HTTP errors."""
+    def __init__(self, method: str, url: str, code: int, message: str):
+        self.method = method
+        self.url = url
+        self.code = code
+        self. message = message
+
+
+class UnauthorizedError(HttpError):
+    """Error raised for unauthorized access."""
+    def __init__(self, method: str, url: str = None, message: str = "Unauthorized."):
+        super().__init__(method, url, 401, message)
+
+
+class AccessDeniedError(HttpError):
+    """Error raised for denied access."""
+    def __init__(self, method: str, url: str = None, message: str = "Access denied."):
+        super().__init__(method, url, 403, message)
 
 
 class CumulocityRestApi:
@@ -23,8 +52,14 @@ class CumulocityRestApi:
     Provides REST access to a Cumulocity instance.
     """
 
+    METHOD_GET = 'GET'
+    METHOD_POST = 'POST'
+    METHOD_PUT = 'PUT'
+    METHOD_DELETE = 'DELETE'
+
     MIMETYPE_JSON = 'application/json'
     HEADER_APPLICATION_KEY = 'X-Cumulocity-Application-Key'
+    HEADER_PROCESSING_MODE = 'X-Cumulocity-Processing-Mode'
 
     ACCEPT_MANAGED_OBJECT = 'application/vnd.com.nsn.cumulocity.managedobject+json'
     ACCEPT_USER = 'application/vnd.com.nsn.cumulocity.user+json'
@@ -35,7 +70,7 @@ class CumulocityRestApi:
     CONTENT_MEASUREMENT_COLLECTION = 'application/vnd.com.nsn.cumulocity.measurementcollection+json'
 
     def __init__(self, base_url: str, tenant_id: str, username: str = None, password: str = None, tfa_token: str = None,
-                 auth: AuthBase = None, application_key: str = None):
+                 auth: AuthBase = None, application_key: str = None, processing_mode: str = None):
         """Build a CumulocityRestApi instance.
 
         One of `auth` or `username/password` must be provided. The TFA token
@@ -50,10 +85,13 @@ class CumulocityRestApi:
             auth (AuthBase):  Authentication details
             application_key (str):  Application ID to include in requests
                 (for billing/metering purposes).
+            processing_mode (str);  Connection processing mode (see
+                also https://cumulocity.com/api/core/#processing-mode)
         """
         self.base_url = base_url.rstrip('/')
         self.tenant_id = tenant_id
         self.application_key = application_key
+        self.processing_mode = processing_mode
         self.is_tls = self.base_url.startswith('https')
 
         if auth:
@@ -70,6 +108,8 @@ class CumulocityRestApi:
             self.__default_headers['tfatoken'] = tfa_token
         if self.application_key:
             self.__default_headers[self.HEADER_APPLICATION_KEY] = self.application_key
+        if self.processing_mode:
+            self.__default_headers[self.HEADER_PROCESSING_MODE] = self.processing_mode
         self.session = self._create_session()
 
     def _create_session(self) -> requests.Session:
@@ -78,6 +118,8 @@ class CumulocityRestApi:
         s.headers = {'Accept': 'application/json'}
         if self.application_key:
             s.headers.update({self.HEADER_APPLICATION_KEY: self.application_key})
+        if self.processing_mode:
+            s.headers.update({self.HEADER_PROCESSING_MODE: self.processing_mode})
         return s
 
     def prepare_request(self, method: str, resource: str,
@@ -125,6 +167,10 @@ class CumulocityRestApi:
         """
         additional_headers = self._prepare_headers(accept=accept)
         r = self.session.get(self.base_url + resource, params=params, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_GET, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_GET, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -154,6 +200,10 @@ class CumulocityRestApi:
                 (only 200 is accepted).
         """
         r = self.session.get(self.base_url + resource, params=params)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_GET, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_GET, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -186,6 +236,10 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
         r = self.session.post(self.base_url + resource, json=json, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_POST, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_POST, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -233,6 +287,10 @@ class CumulocityRestApi:
         else:
             r = perform_post(file)
 
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_POST, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_POST, self.base_url + resource)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -267,6 +325,10 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
         r = self.session.put(self.base_url + resource, json=json, params=params, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_PUT, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_PUT, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -314,6 +376,10 @@ class CumulocityRestApi:
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
         data = read_file_data(file)
         r = self.session.put(self.base_url + resource, data=data, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_PUT, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_PUT, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -345,6 +411,10 @@ class CumulocityRestApi:
         if json:
             assert isinstance(json, dict)
         r = self.session.delete(self.base_url + resource, json=json, params=params, headers={'Accept': None})
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_DELETE, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_DELETE, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:

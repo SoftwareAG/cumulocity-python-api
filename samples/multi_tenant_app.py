@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from http.client import HTTPConnection
 
+from _base_api import UnauthorizedError
 from c8y_api.app import MultiTenantCumulocityApp
 
 
@@ -57,7 +58,7 @@ def tenant_info():
     # The subscribed tenant's credentials (to access Cumulocity and to access
     # the microservice) are part of the inbound request's headers. This is
     # resolved automatically when using the get_tenant_instance function.
-    c8y = c8yapp.get_tenant_instance(headers=request.headers)
+    c8y = c8yapp.get_tenant_instance(headers=request.headers, cookies=request.cookies)
     logging.info(f"Obtained tenant instance: tenant: {c8y.tenant_id}, user: {c8y.username}, pass: {c8y.auth.password}")
     # If the tenant ID is known (e.g. from URL) it can be given directly
     # like this:
@@ -79,14 +80,22 @@ def user_info():
     # The user's credentials (to access Cumulocity and to access the
     # microservice) are part of the inbound request's headers. This is
     # resolved automatically when using the get_user_instance function.
-    c8y = c8yapp.get_user_instance(request.headers)
-    logging.info(f"Obtained user instance: tenant: {c8y.tenant_id}, user: {c8y.username}")
-    devices_json = [{'name': d.name,
-                     'id': d.id,
-                     'type': d.type} for d in c8y.device_inventory.get_all()]
-    info_json = {'username': c8y.username,
-                 'devices': devices_json}
-    return jsonify(info_json)
+    # Note: the user connections are cached, hence it can be possible to
+    # receive an outdated, no longer valid connection. The corresponding
+    # UnauthorizedError must be caught and dealt with.
+    for _ in range(2):
+        c8y = c8yapp.get_user_instance(request.headers, request.cookies)
+        try:
+            logging.info(f"Obtained user instance: tenant: {c8y.tenant_id}, user: {c8y.username}")
+            devices_json = [{'name': d.name,
+                             'id': d.id,
+                             'type': d.type} for d in c8y.device_inventory.get_all()]
+            info_json = {'username': c8y.username,
+                         'devices': devices_json}
+            return jsonify(info_json)
+        except UnauthorizedError:
+            c8yapp.clear_user_cache(c8y.username)
+    raise RuntimeError("Unable to obtain a valid user scope connection!")
 
 
 webapp.run(host='0.0.0.0', port=80)

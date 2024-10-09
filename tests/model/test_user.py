@@ -95,7 +95,7 @@ def test_tfa_settings_formatting():
         enabled=True,
         enforced=True,
         strategy='SMS',
-        last_request_time=datetime.datetime.utcnow()
+        last_request_time=datetime.datetime.now(datetime.timezone.utc),
     )
     data = tfa_settings.to_json()
     data['tfaEnabled'] = tfa_settings.enabled

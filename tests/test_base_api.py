@@ -14,7 +14,8 @@ import pytest
 import requests
 import responses
 
-from c8y_api._base_api import CumulocityRestApi  # noqa (protected-access)
+from c8y_api._base_api import CumulocityRestApi, ProcessingMode, UnauthorizedError, \
+    AccessDeniedError, HttpError  # noqa (protected-access)
 
 
 @pytest.fixture(scope='function')
@@ -25,7 +26,9 @@ def mock_c8y() -> CumulocityRestApi:
         tenant_id='t12345',
         username='username',
         password='password',
-        application_key='application_key')
+        application_key='application_key',
+        processing_mode=ProcessingMode.QUIESCENT,
+    )
 
 
 @pytest.fixture(scope='module')
@@ -60,6 +63,11 @@ def assert_content_header(headers, content_type='application/json'):
 def assert_application_key_header(c8y, headers):
     """Assert that the application key header matches the expectation."""
     assert headers[c8y.HEADER_APPLICATION_KEY] == c8y.application_key
+
+
+def assert_processing_mode_header(c8y, headers):
+    """Assert that the processing mode header matches the expectation."""
+    assert headers[c8y.HEADER_PROCESSING_MODE] == c8y.processing_mode
 
 
 @pytest.mark.parametrize('args, expected', [
@@ -164,6 +172,7 @@ def test_post_defaults(mock_c8y: CumulocityRestApi):
         assert_accept_header(request_headers)
         assert_content_header(request_headers)
         assert_application_key_header(mock_c8y, request_headers)
+        assert_processing_mode_header(mock_c8y, request_headers)
 
         assert response['result']
 
@@ -188,6 +197,7 @@ def test_post_explicits(mock_c8y: CumulocityRestApi):
         assert_accept_header(request_headers, 'custom/accept')
         assert_content_header(request_headers, 'custom/content')
         assert_application_key_header(mock_c8y, request_headers)
+        assert_processing_mode_header(mock_c8y, request_headers)
 
         assert response['result']
 
@@ -255,6 +265,40 @@ def test_get_404():
             c8y.get('some/key')
         assert 'some/key' in str(error)
 
+@pytest.mark.parametrize(
+    'name, code, ex',
+    [
+        ('get', 401, UnauthorizedError),
+        ('get', 403, AccessDeniedError),
+        ('get_file', 401, UnauthorizedError),
+        ('get_file', 403, AccessDeniedError),
+        ('post', 401, UnauthorizedError),
+        ('post', 403, AccessDeniedError),
+        ('post_file', 401, UnauthorizedError),
+        ('post_file', 403, AccessDeniedError),
+        ('put', 401, UnauthorizedError),
+        ('put', 403, AccessDeniedError),
+        ('delete', 401, UnauthorizedError),
+        ('delete', 403, AccessDeniedError),
+    ]
+)
+def test_40x(name, code, ex: type[HttpError]):
+    """Verify that various HTTP error codes are raised as expected."""
+
+    c8y = CumulocityRestApi(base_url='url', tenant_id='t12345', username='user', password='pass')
+    method = name.split('_')[0]
+    function = getattr(c8y, name)
+
+    with patch(f'requests.Session.{method}') as method_mock:
+        mock_response = requests.Response()
+        mock_response.status_code = code
+        method_mock.return_value = mock_response
+        with pytest.raises(ex) as error:
+            function('/resource', {})
+        assert error.value.method == method.upper()
+        assert error.value.code == code
+        assert error.value.url == 'url/resource'
+
 
 def test_delete_defaults(mock_c8y: CumulocityRestApi):
     """Verify the basic functionality of the DELETE requests."""
@@ -268,6 +312,7 @@ def test_delete_defaults(mock_c8y: CumulocityRestApi):
         request_headers = rsps.calls[0].request.headers
         assert_auth_header(mock_c8y, request_headers)
         assert_application_key_header(mock_c8y, request_headers)
+        assert_processing_mode_header(mock_c8y, request_headers)
 
 
 def test_empty_response(mock_c8y: CumulocityRestApi):

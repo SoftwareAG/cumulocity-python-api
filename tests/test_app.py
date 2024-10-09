@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import base64
 import os
 import time
 from unittest import mock
@@ -23,6 +24,7 @@ from c8y_api._jwt import JWT
 
 from tests.utils import b64encode, build_auth_string, sample_jwt, isolate_last_call_arg
 
+
 env_per_tenant = {
     'C8Y_BASEURL': 'http://baseurl',
     'C8Y_TENANT': 'tenant_id',
@@ -37,6 +39,12 @@ env_multi_tenant = {
     'C8Y_BOOTSTRAP_PASSWORD': 'tenant_password'
 
 }
+
+
+def build_basic_auth(user, password) -> dict:
+    """Create an auth header for testing."""
+    return {'Authorization': 'Basic ' +
+            base64.b64encode(f'{user}:{password}'.encode('utf-8')).decode('utf-8')}
 
 
 @mock.patch.dict(os.environ, env_per_tenant, clear=True)
@@ -61,18 +69,65 @@ def test_per_tenant():
         c8y.get('/xyz')
 
 
+@mock.patch.dict(os.environ, env_per_tenant, clear=True)
+def test_per_tenant__user_instances():
+    """Verify that user instances are correctly instantiated (and cached)
+    for single-tenant apps."""
+
+    c8y = SimpleCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+        cache_ttl=2,
+    )
+
+    # create user instance from HTTP headers
+    user1, pass1 = ('user1', 'pw1')
+    headers1 = build_basic_auth(user1, pass1)
+
+    c8y_1 = c8y.get_user_instance(headers1)
+
+    # -> instance is correctly initialized
+    assert c8y_1.tenant_id == c8y.tenant_id
+    assert c8y_1.username == user1
+    assert isinstance(c8y_1.auth, HTTPBasicAuth)
+    assert c8y_1.auth.password == pass1
+
+    # -> properties are inherited
+    assert c8y_1.application_key == c8y.application_key
+    assert c8y_1.processing_mode == c8y.processing_mode
+
+    # requesting an instance for the same user
+    c8y_2 = c8y.get_user_instance(headers1)
+
+    # -> cached instance is returned
+    assert c8y_2 is c8y_1
+
+    # wait for cache timeout and request again
+    time.sleep(2)
+    c8y_3 = c8y.get_user_instance(headers1)
+
+    # -> new instance is created
+    assert c8y_3 is not c8y_1
+
+
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__bootstrap_instance():
     """Verify that the bootstrap instance will be created properly within a
     multi-tenant environment."""
 
-    c8y = MultiTenantCumulocityApp().bootstrap_instance
+    c8y = MultiTenantCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+    ).bootstrap_instance
 
     # -> bootstrap instance is initialized with environment variables
     assert c8y.tenant_id == env_multi_tenant['C8Y_BOOTSTRAP_TENANT']
     assert c8y.username == env_multi_tenant['C8Y_BOOTSTRAP_USER']
     assert isinstance(c8y.auth, HTTPBasicAuth)
     assert c8y.auth.password == env_multi_tenant['C8Y_BOOTSTRAP_PASSWORD']
+    # -> properties are inherited
+    assert c8y.application_key == 'app-key'
+    assert c8y.processing_mode == 'proc-mode'
 
     # -> requests will be prepended with the base url
     with responses.RequestsMock() as rsps:
@@ -84,6 +139,47 @@ def test_multi_tenant__bootstrap_instance():
 
 
 @mock.patch.dict(os.environ, env_multi_tenant, clear=True)
+def test__multi_tenant__user_instances():
+    """Verify that user instances are correctly instantiated (and cached)
+    for multi-tenant apps."""
+
+    c8y = MultiTenantCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+        cache_ttl=2,
+    )
+
+    # create user instance from HTTP headers
+    tenant1, user1, pass1 = ('t1', 'user1', 'pw1')
+    headers1 = build_basic_auth(f'{tenant1}/{user1}', pass1)
+
+    c8y_1 = c8y.get_user_instance(headers1)
+
+    # -> instance is correctly initialized
+    assert c8y_1.tenant_id == tenant1
+    assert c8y_1.username == user1
+    assert isinstance(c8y_1.auth, HTTPBasicAuth)
+    assert c8y_1.auth.password == pass1
+
+    # -> properties are inherited
+    assert c8y_1.application_key == c8y.application_key
+    assert c8y_1.processing_mode == c8y.processing_mode
+
+    # requesting an instance for the same user
+    c8y_2 = c8y.get_user_instance(headers1)
+
+    # -> cached instance is returned
+    assert c8y_2 is c8y_1
+
+    # wait for cache timeout and request again
+    time.sleep(2)
+    c8y_3 = c8y.get_user_instance(headers1)
+
+    # -> new instance is created
+    assert c8y_3 is not c8y_1
+
+
+@mock.patch.dict(os.environ, env_multi_tenant, clear=True)
 def test_multi_tenant__caching_instances():
     """Verify that instances are cached by their tenant ID and the cache
     is evaluated properly."""
@@ -92,7 +188,11 @@ def test_multi_tenant__caching_instances():
     # prepare a mock instance cache
     get_auth_mock = Mock(return_value=HTTPBasicAuth('username', 'password'))
 
-    c8y_factory = MultiTenantCumulocityApp(cache_ttl=2)
+    c8y_factory = MultiTenantCumulocityApp(
+        application_key='app-key',
+        processing_mode='proc-mode',
+        cache_ttl=2,
+    )
     c8y_factory._get_tenant_auth = get_auth_mock
 
     # (1) get a specific instance
@@ -106,6 +206,9 @@ def test_multi_tenant__caching_instances():
     assert c8y.username == 'username'
     assert isinstance(c8y.auth, HTTPBasicAuth)
     assert c8y.auth.password == 'password'
+    # properties are inherited
+    assert c8y.application_key == c8y_factory.application_key
+    assert c8y.processing_mode == c8y_factory.processing_mode
 
     # (2) let's do that again
     get_auth_mock.reset_mock()
@@ -249,10 +352,32 @@ def test_get_user_instance(auth_value, username):
         assert JWT(call_arg.token).username == username
 
 
+@pytest.mark.parametrize('cookies, username', [
+    ({'authorization': sample_jwt(sub='someuser@domain.com', ten='t12345')}, 'someuser@domain.com'),
+    ({'foo': 'bar', 'authorization': sample_jwt(sub='someuser@domain.com', ten='t12345')}, 'someuser@domain.com'),
+    ({'authorization': sample_jwt(sub='someuser@domain.com', ten='t12345'), 'foo': 'bar'}, 'someuser@domain.com'),
+])
+def test_get_user_instance_cookie(cookies, username):
+    """Verify that a user instance is obtained from inbound HTTP headers with cookies."""
+    # pylint: disable=protected-access
+
+    c8y = _CumulocityAppBase(log=Mock())
+    # we intercept calls to the _build function
+    c8y._build_user_instance = Mock()
+
+    # build a user instance
+    c8y.get_user_instance(cookies=cookies)
+    # -> _build was called with a proper auth
+    call_arg = isolate_last_call_arg(c8y._build_user_instance, 'auth', 0)
+    assert isinstance(call_arg, HTTPBearerAuth)
+    # -> username and tenant_id should be correct
+    assert JWT(call_arg.token).username == username
+
+
 @mock.patch.dict(os.environ, env_per_tenant, clear=True)
 @pytest.mark.parametrize('auth_value, username', [
-    # (b64encode('t555/some@domain.com:password'), 't555/some@domain.com'),
-    # (b64encode('someuser@domain.com:password'), 'someuser@domain.com'),
+    (b64encode('t555/some@domain.com:password'), 'some@domain.com'),
+    (b64encode('someuser@domain.com:password'), 'someuser@domain.com'),
     (sample_jwt(sub='someuser@domain.com', ten='t543'), 'someuser@domain.com'),
 ])
 def test_build_user_instance(auth_value, username):
