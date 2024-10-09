@@ -7,12 +7,3 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-
-[project]
-name = "c8y_api"
-
-[project.urls]
-Homepage = "https://github.com/SoftwareAG/cumulocity-python-api"
-Source = "https://github.com/SoftwareAG/cumulocity-python-api"
-Issues = "https://github.com/SoftwareAG/cumulocity-python-api/issues"
-Documentation = "https://cumulocity-python-api.readthedocs.io/en/latest/"
