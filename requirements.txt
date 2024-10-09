@@ -16,3 +16,5 @@ Flask
 websockets
 pandas
 PyOTP
+hatchling
+hatch-vcs

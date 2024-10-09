@@ -28,7 +28,7 @@ def lint(c, scope='all'):
     """Run PyLint."""
     if scope == 'all':
         scope = 'c8y_api c8y_tk tests integration_tests samples'
-    c.run(f'pylint {scope}')
+    c.run(f'pylint --rcfile pylintrc --fail-under=9 {scope}')
 
 
 @task

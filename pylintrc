@@ -68,6 +68,7 @@ disable=
         too-many-instance-attributes,
         too-many-arguments,
         too-few-public-methods,
+        too-many-positional-arguments,
         useless-object-inheritance,
         redefined-builtin,
         missing-module-docstring,

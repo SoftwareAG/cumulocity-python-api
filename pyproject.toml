@@ -1,9 +1,31 @@
 [build-system]
 requires = [
-    "setuptools",
-    "wheel",
-    "setuptools_scm"
+    "hatchling",
+    "hatch-vcs",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 
-[tool.setuptools_scm]
+[project]
+name = "c8y_api"
+dynamic = ["version"]
+authors = [{name="Christoph Souris", email="christoph.souris@gmail.com"}]
+description = "Python microservice and application client for the Cumulocity REST API"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/SoftwareAG/cumulocity-python-api"
+Source = "https://github.com/SoftwareAG/cumulocity-python-api"
+Issues = "https://github.com/SoftwareAG/cumulocity-python-api/issues"
+Documentation = "https://cumulocity-python-api.readthedocs.io/en/latest/"
+
+[tool.hatch.version]
+source = "vcs"
