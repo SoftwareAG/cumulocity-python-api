@@ -10,6 +10,7 @@ import json as json_lib
 from typing import Union, Dict, BinaryIO
 
 import collections
+
 import requests
 from requests.auth import AuthBase, HTTPBasicAuth
 
@@ -24,11 +25,37 @@ class ProcessingMode:
     QUIESCENT = 'QUIESCENT'
 
 
+class HttpError(Exception):
+    """Base class for technical HTTP errors."""
+    def __init__(self, method: str, url: str, code: int, message: str):
+        self.method = method
+        self.url = url
+        self.code = code
+        self. message = message
+
+
+class UnauthorizedError(HttpError):
+    """Error raised for unauthorized access."""
+    def __init__(self, method: str, url: str = None, message: str = "Unauthorized."):
+        super().__init__(method, url, 401, message)
+
+
+class AccessDeniedError(HttpError):
+    """Error raised for denied access."""
+    def __init__(self, method: str, url: str = None, message: str = "Access denied."):
+        super().__init__(method, url, 403, message)
+
+
 class CumulocityRestApi:
     """Cumulocity base REST API.
 
     Provides REST access to a Cumulocity instance.
     """
+
+    METHOD_GET = 'GET'
+    METHOD_POST = 'POST'
+    METHOD_PUT = 'PUT'
+    METHOD_DELETE = 'DELETE'
 
     MIMETYPE_JSON = 'application/json'
     HEADER_APPLICATION_KEY = 'X-Cumulocity-Application-Key'
@@ -140,6 +167,10 @@ class CumulocityRestApi:
         """
         additional_headers = self._prepare_headers(accept=accept)
         r = self.session.get(self.base_url + resource, params=params, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_GET, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_GET, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -169,6 +200,10 @@ class CumulocityRestApi:
                 (only 200 is accepted).
         """
         r = self.session.get(self.base_url + resource, params=params)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_GET, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_GET, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -201,6 +236,10 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
         r = self.session.post(self.base_url + resource, json=json, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_POST, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_POST, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -248,6 +287,10 @@ class CumulocityRestApi:
         else:
             r = perform_post(file)
 
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_POST, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_POST, self.base_url + resource)
         if 500 <= r.status_code <= 599:
             raise SyntaxError(f"Invalid POST request. Status: {r.status_code} Response:\n" + r.text)
         if r.status_code != 201:
@@ -282,6 +325,10 @@ class CumulocityRestApi:
         assert isinstance(json, dict)
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
         r = self.session.put(self.base_url + resource, json=json, params=params, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_PUT, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_PUT, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -329,6 +376,10 @@ class CumulocityRestApi:
         additional_headers = self._prepare_headers(accept=accept, content_type=content_type)
         data = read_file_data(file)
         r = self.session.put(self.base_url + resource, data=data, headers=additional_headers)
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_PUT, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_PUT, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:
@@ -360,6 +411,10 @@ class CumulocityRestApi:
         if json:
             assert isinstance(json, dict)
         r = self.session.delete(self.base_url + resource, json=json, params=params, headers={'Accept': None})
+        if r.status_code == 401:
+            raise UnauthorizedError(self.METHOD_DELETE, self.base_url + resource)
+        if r.status_code == 403:
+            raise AccessDeniedError(self.METHOD_DELETE, self.base_url + resource)
         if r.status_code == 404:
             raise KeyError(f"No such object: {resource}")
         if 500 <= r.status_code <= 599:

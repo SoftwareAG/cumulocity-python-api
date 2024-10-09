@@ -47,7 +47,10 @@ class _CumulocityAppBase(object):
         Returns:
             A CumulocityApi instance authorized for a named user.
         """
-        auth_info = self._get_auth_info(headers, cookies)
+        if not (headers or cookies):
+            raise RuntimeError("At least one of 'headers' or 'cookies' must be specified.")
+
+        auth_info = self._get_auth_header(headers, cookies)
         try:
             return self.user_instances[auth_info]
         except KeyError:
@@ -72,7 +75,7 @@ class _CumulocityAppBase(object):
                     self.log.info(f"User '{username}' cleared from cache.")
 
     @staticmethod
-    def _get_auth_info(headers: dict = None, cookies: dict = None) -> str:
+    def _get_auth_header(headers: dict = None, cookies: dict = None) -> str:
         """Extract the authorization information from headers and cookies."""
         headers = headers or {}
         cookies = cookies or {}
@@ -296,7 +299,7 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
         return CumulocityApi(base_url=self.bootstrap_instance.base_url, tenant_id=tenant_id, auth=auth,
                              application_key=self.application_key, processing_mode=self.processing_mode)
 
-    def get_tenant_instance(self, tenant_id: str = None, headers: dict = None) -> CumulocityApi:
+    def get_tenant_instance(self, tenant_id: str = None, headers: dict = None, cookies: dict = None) -> CumulocityApi:
         """Provide access to a tenant-specific instance in a multi-tenant
         application setup.
 
@@ -304,6 +307,9 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
             tenant_id (str):  ID of the tenant to get access to
             headers (dict):  Inbound request headers, the tenant ID
                 is resolved from the Authorization header
+            cookies (dict): A dictionary of HTTP Cookie entries. The user
+                access is based on an authorization cookie as provided by
+                Cumulocity.
 
         Returns:
             A CumulocityApi instance authorized for a tenant user
@@ -313,12 +319,12 @@ class MultiTenantCumulocityApp(_CumulocityAppBase):
             return self._get_tenant_instance(tenant_id)
 
         # (2) otherwise, look for the Authorization header
-        if not headers:
-            raise RuntimeError("At least one of 'tenant_id' or 'headers' must be specified.")
+        if not (headers or cookies):
+            raise RuntimeError("At least one of 'tenant_id', 'headers' or cookies must be specified.")
 
-        auth_header = headers[next(filter(lambda k: 'Authorization'.upper() == k.upper(), headers.keys()))]
+        auth_header = self._get_auth_header(headers, cookies)
         if not auth_header:
-            raise ValueError("Missing Authentication header. Unable to resolve tenant ID.")
+            raise ValueError("Missing authentication information. Unable to resolve tenant ID.")
 
         tenant_id = AuthUtil.get_tenant_id(AuthUtil.parse_auth_string(auth_header))
         return self._get_tenant_instance(tenant_id)

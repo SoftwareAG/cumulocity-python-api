@@ -24,6 +24,7 @@ from c8y_api._jwt import JWT
 
 from tests.utils import b64encode, build_auth_string, sample_jwt, isolate_last_call_arg
 
+
 env_per_tenant = {
     'C8Y_BASEURL': 'http://baseurl',
     'C8Y_TENANT': 'tenant_id',
@@ -40,9 +41,9 @@ env_multi_tenant = {
 }
 
 
-def build_auth(user, password) -> dict:
+def build_basic_auth(user, password) -> dict:
     """Create an auth header for testing."""
-    return {'Authorization': f'Basic ' +
+    return {'Authorization': 'Basic ' +
             base64.b64encode(f'{user}:{password}'.encode('utf-8')).decode('utf-8')}
 
 
@@ -81,7 +82,7 @@ def test_per_tenant__user_instances():
 
     # create user instance from HTTP headers
     user1, pass1 = ('user1', 'pw1')
-    headers1 = build_auth(user1, pass1)
+    headers1 = build_basic_auth(user1, pass1)
 
     c8y_1 = c8y.get_user_instance(headers1)
 
@@ -150,7 +151,7 @@ def test__multi_tenant__user_instances():
 
     # create user instance from HTTP headers
     tenant1, user1, pass1 = ('t1', 'user1', 'pw1')
-    headers1 = build_auth(f'{tenant1}/{user1}', pass1)
+    headers1 = build_basic_auth(f'{tenant1}/{user1}', pass1)
 
     c8y_1 = c8y.get_user_instance(headers1)
 

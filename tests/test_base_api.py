@@ -14,7 +14,8 @@ import pytest
 import requests
 import responses
 
-from c8y_api._base_api import CumulocityRestApi, ProcessingMode  # noqa (protected-access)
+from c8y_api._base_api import CumulocityRestApi, ProcessingMode, UnauthorizedError, \
+    AccessDeniedError, HttpError  # noqa (protected-access)
 
 
 @pytest.fixture(scope='function')
@@ -263,6 +264,40 @@ def test_get_404():
         with pytest.raises(KeyError) as error:
             c8y.get('some/key')
         assert 'some/key' in str(error)
+
+@pytest.mark.parametrize(
+    'name, code, ex',
+    [
+        ('get', 401, UnauthorizedError),
+        ('get', 403, AccessDeniedError),
+        ('get_file', 401, UnauthorizedError),
+        ('get_file', 403, AccessDeniedError),
+        ('post', 401, UnauthorizedError),
+        ('post', 403, AccessDeniedError),
+        ('post_file', 401, UnauthorizedError),
+        ('post_file', 403, AccessDeniedError),
+        ('put', 401, UnauthorizedError),
+        ('put', 403, AccessDeniedError),
+        ('delete', 401, UnauthorizedError),
+        ('delete', 403, AccessDeniedError),
+    ]
+)
+def test_40x(name, code, ex: type[HttpError]):
+    """Verify that various HTTP error codes are raised as expected."""
+
+    c8y = CumulocityRestApi(base_url='url', tenant_id='t12345', username='user', password='pass')
+    method = name.split('_')[0]
+    function = getattr(c8y, name)
+
+    with patch(f'requests.Session.{method}') as method_mock:
+        mock_response = requests.Response()
+        mock_response.status_code = code
+        method_mock.return_value = mock_response
+        with pytest.raises(ex) as error:
+            function('/resource', {})
+        assert error.value.method == method.upper()
+        assert error.value.code == code
+        assert error.value.url == 'url/resource'
 
 
 def test_delete_defaults(mock_c8y: CumulocityRestApi):
