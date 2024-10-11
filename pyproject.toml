@@ -20,6 +20,16 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+dependencies = [
+    "cachetools",
+    "Deprecated",
+    "inputimeout",
+    "PyJWT",
+    "python-dateutil",
+    "PyYAML",
+    "requests",
+    "websockets",
+]
 
 [project.urls]
 Homepage = "https://github.com/SoftwareAG/cumulocity-python-api"
