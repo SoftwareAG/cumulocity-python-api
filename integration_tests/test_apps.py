@@ -28,7 +28,7 @@ def fix_token_app(test_environment):
     assert r.status_code == 200
     cookie = r.headers['Set-Cookie']
     # split by ; to separate parts, then map a=b items to dictionary
-    cookie_parts = {x[0]:x[1] for x in [c.split('=') for c in cookie.split(';')] if len(x) == 2}
+    cookie_parts = {x[0]: x[1] for x in [c.split('=') for c in cookie.split(';')] if len(x) == 2}
     auth_token = cookie_parts['authorization']
     assert auth_token
     # build token-based app
@@ -52,3 +52,36 @@ def test_token_based_app(token_app):
     mo['new_Fragment'] = {}
     mo.update()
     mo.delete()
+
+
+def test_oai_secure_login():
+    """Verify that a cookies from an OAI-Secure login are parsed correctly."""
+    # First, create an instance for basic auth
+    c8y = SimpleCumulocityApp()
+
+    # (1) Submit auth request
+    form_data = {
+            'grant_type': 'PASSWORD',
+            'username': c8y.auth.username,
+            'password': c8y.auth.password
+        }
+    response = requests.post(url=c8y.base_url + '/tenant/oauth', data=form_data, timeout=60.0)
+    # -> should be ok
+    assert response.status_code == 200
+    # -> should contain cookies
+    assert 'Set-Cookie' in response.headers
+    assert 'authorization' in response.cookies
+    assert 'XSRF-TOKEN' in response.cookies
+
+    # (2) build an OAI-based request
+    request = requests.Request(
+        method="GET",
+        url="any",
+        cookies=response.cookies,
+        headers={'Accept': 'application/json'}
+    )
+    # -> user scope instance can be obtained
+    c8y_user = c8y.get_user_instance(request.headers, request.cookies)
+    assert c8y_user.username == c8y.username
+    assert isinstance(c8y_user.auth, HTTPBearerAuth)
+    assert c8y_user.auth.token == response.cookies['authorization']
