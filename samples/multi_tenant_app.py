@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from http.client import HTTPConnection
 
-from _base_api import UnauthorizedError
+from c8y_api._base_api import UnauthorizedError
 from c8y_api.app import MultiTenantCumulocityApp
 
 
@@ -50,6 +50,15 @@ webapp = Flask(__name__)
 def health():
     """Return dummy health string."""
     return jsonify({'status': 'ok'})
+
+
+@webapp.route("/debug")
+def debug():
+    """Return debug information."""
+    return jsonify({
+        'headers': dict(request.headers),
+        'cookies': dict(request.cookies),
+    })
 
 
 @webapp.route("/tenant")
