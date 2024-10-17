@@ -5,19 +5,8 @@
 # as specifically provided for in your License Agreement with Software AG.
 
 from invoke import task
-from setuptools_scm import get_version
 
 import util.microservice_util as ms_util
-
-
-@task
-def show_version(_):
-    """Print the module version.
-
-    This version string is inferred from the last Git tag. A tagged HEAD
-    should resolve to a clean x.y.z version string.
-    """
-    print(get_version())
 
 
 @task(help={
