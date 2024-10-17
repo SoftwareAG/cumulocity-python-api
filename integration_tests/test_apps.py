@@ -11,6 +11,8 @@ from c8y_api import CumulocityRestApi, HTTPBearerAuth
 from c8y_api.app import SimpleCumulocityApp
 from c8y_api.model import ManagedObject
 
+from tests.utils import build_auth_string, b64encode
+
 
 @pytest.fixture(name='token_app')
 def fix_token_app(test_environment):
@@ -74,11 +76,18 @@ def test_oai_secure_login():
     assert 'XSRF-TOKEN' in response.cookies
 
     # (2) build an OAI-based request
+    # Cumulocity forwards the cookies as well as the XSRF token _and_
+    # a phony Basic Auth header which contains tenant ID and username
+    # with a fake password to ensure backwards compatibility.
     request = requests.Request(
         method="GET",
         url="any",
         cookies=response.cookies,
-        headers={'Accept': 'application/json'}
+        headers={
+            'Accept': 'application/json',
+            'Authorization': build_auth_string(b64encode(f'{c8y.tenant_id}/{c8y.username}:<fake password>')),
+            'X-Xsrf-Token': response.cookies['XSRF-TOKEN']
+        }
     )
     # -> user scope instance can be obtained
     c8y_user = c8y.get_user_instance(request.headers, request.cookies)
